@@ -1,18 +1,18 @@
-import { invoke } from "@tauri-apps/api/core";
-import { IAction } from "./core/ActionService";
+import { IAction } from "./service/ActionService.ts";
 
 // core services and functions:
-import { setupAppFeature } from "./feature/app/setup.ts";
 import { setupSharedUxComponents } from "./gui/setup.ts";
-import { getDefaultServiceLayer } from "./core/ServiceLayer";
+import { getDefaultServiceLayer } from "./service/ServiceLayer.ts";
 
 // features:
 import { setupProjectBrowser } from "./feature/project-browser/ProjectBrowser";
 import { addDebugFeature as setupDebugFeature } from "./feature/debug/setup";
 
-setupSharedUxComponents();
+// apply default theme:
+getDefaultServiceLayer().getThemeService().applyDefaultTheme();
 
-setupAppFeature();
+// setup features:
+setupSharedUxComponents();
 setupProjectBrowser();
 setupDebugFeature();
 

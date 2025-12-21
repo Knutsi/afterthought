@@ -5,44 +5,15 @@
     <link rel="stylesheet" href="/src/styles.css" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Tauri App</title>
-    <script type="module" src="/src/gui/tabs/tabs.ts" defer></script>
     <script type="module" src="/src/main.ts" defer></script>
   </head>
 
   <body>
-    <div class="app-layout">
-      <header class="app-header">
-        <menu-bar></menu-bar>
-      </header>
-      <main class="app-main">
-        <div class="app-content">
-          <app-root>
-            <p>Jeg er en test</p>
-            <project-browser title="Boom!" />
-            
-            <tab-container>
-              <tab-page label="First Tab">
-                <h2>First Tab Content</h2>
-                <p>This is the content of the first tab. You can put any HTML here.</p>
-              </tab-page>
-              <tab-page label="Second Tab">
-                <h2>Second Tab Content</h2>
-                <p>This is the content of the second tab.</p>
-                <ul>
-                  <li>Item 1</li>
-                  <li>Item 2</li>
-                  <li>Item 3</li>
-                </ul>
-              </tab-page>
-              <tab-page label="Third Tab">
-                <h2>Third Tab Content</h2>
-                <p>This is the content of the third tab with some <strong>bold text</strong> and <em>italic text</em>.</p>
-              </tab-page>
-            </tab-container>
-          </app-root>
-        </div>
-        <action-list></action-list>
-      </main>
-    </div>
+    <main-layout show-menus show-toolbar show-statusbar mode="normal">
+      <div slot="menubar">Menu bar!</div>
+      <div slot="toolbar">Toolbar!</div>
+      <div slot="statusbar">Statusbar!</div>
+      <div slot="main">MAIN!</div>
+    </main-layout>
   </body>
 </html>

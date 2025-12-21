@@ -1,5 +1,5 @@
-import { getDefaultServiceLayer } from "../../core/ServiceLayer";
-import { ActionEvents, type IAction } from "../../core/ActionService";
+import { getDefaultServiceLayer } from "../../service/ServiceLayer";
+import { ActionEvents, type IAction } from "../../service/ActionService";
 
 // 1. Define the class
 export class ActionList extends HTMLElement {
