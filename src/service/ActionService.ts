@@ -7,8 +7,8 @@ export interface IAction {
     group: string
     do: () => Promise<void>
     undo?: () => Promise<void>
-    canUndo?: () => boolean
-    canDo: () => boolean
+    canUndo?: () => Promise<boolean>
+    canDo: () => Promise<boolean>
 }
 
 export const ActionEvents = {
@@ -20,10 +20,12 @@ export const ActionEvents = {
 
 export class ActionService extends EventTarget {
     private actions: IAction[] = [];
+    private serviceLayer: ServiceLayer;
     
-    constructor(_: ServiceLayer) {
+    constructor(serviceLayer: ServiceLayer) {
         super();
         this.actions = [];
+        this.serviceLayer = serviceLayer;
     }
 
     public doAction(actionId: string): void {
@@ -32,6 +34,7 @@ export class ActionService extends EventTarget {
             throw new Error(`Action ${actionId} not found`);
         }
 
+        console.log(`Doing action ${action.id}: ${action.name}`);
         action.do();
     }
 
@@ -39,7 +42,6 @@ export class ActionService extends EventTarget {
         console.log(`Adding action ${action.id}: ${action.name}`);
         this.validateAction(action);
         this.actions.push(action);
-        this.dispatchEvent(new CustomEvent(ActionEvents.ACTION_ADDED, { detail: action }));
     }
 
     public getActions(): IAction[] {
@@ -47,8 +49,10 @@ export class ActionService extends EventTarget {
     }
 
     public updateActionAvailability(): void {
-        // todo - check action availability against current state
-        this.dispatchEvent(new CustomEvent(ActionEvents.ACTION_AVAILABILITY_UPDATED));
+        for(const action of this.actions) {
+            action.canDo = action.canDo();
+        }
+        // todo: send signal that action availability has changed
     }
 
     private validateAction(action: IAction): void {
