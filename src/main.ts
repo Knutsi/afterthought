@@ -27,7 +27,7 @@ var newProjectAction: IAction = {
   do: async () => {
     console.log("New Project");
   },
-  canDo: () => true
+  canDo: async () => true
 }
 
 var quitAction: IAction = {
@@ -38,7 +38,7 @@ var quitAction: IAction = {
   do: async () => {
     console.log("Quit");
   },
-  canDo: () => true
+  canDo: async () => true
 }
 
 var helpAction: IAction = {
@@ -49,9 +49,27 @@ var helpAction: IAction = {
   do: async () => {
     console.log("Help");
   },
-  canDo: () => true
+  canDo: async () => true
 }
 
 getDefaultServiceLayer().actionService.addAction(newProjectAction);
 getDefaultServiceLayer().actionService.addAction(quitAction);
 getDefaultServiceLayer().actionService.addAction(helpAction);
+
+// Additional actions for Edit menu
+const dummyActions = [
+  { id: "core.undo", name: "Undo", shortcut: "Ctrl+Z", group: "Edit" },
+  { id: "core.redo", name: "Redo", shortcut: "Ctrl+Y", group: "Edit" },
+  { id: "core.cut", name: "Cut", shortcut: "Ctrl+X", group: "Edit" },
+  { id: "core.copy", name: "Copy", shortcut: "Ctrl+C", group: "Edit" },
+  { id: "core.paste", name: "Paste", shortcut: "Ctrl+V", group: "Edit" },
+  { id: "core.about", name: "About", shortcut: "", group: "Help" }
+];
+
+dummyActions.forEach(action => {
+  getDefaultServiceLayer().actionService.addAction({
+    ...action,
+    do: async () => console.log(action.name),
+    canDo: async () => true
+  });
+});

@@ -10,7 +10,28 @@
 
   <body>
     <main-layout show-menus show-toolbar show-statusbar mode="normal">
-      <div slot="menubar">Menu bar!</div>
+      <menu-bar slot="menubar">
+        <menu-menu label="File">
+          <menu-item label="New Project" shortcut="Ctrl+N" action-id="core.newProject"></menu-item>
+          <menu-item separator></menu-item>
+          <menu-item label="Quit" shortcut="Ctrl+Q" action-id="core.quit"></menu-item>
+        </menu-menu>
+
+        <menu-menu label="Edit">
+          <menu-item label="Undo" shortcut="Ctrl+Z" action-id="core.undo"></menu-item>
+          <menu-item label="Redo" shortcut="Ctrl+Y" action-id="core.redo"></menu-item>
+          <menu-item separator></menu-item>
+          <menu-item label="Cut" shortcut="Ctrl+X" action-id="core.cut"></menu-item>
+          <menu-item label="Copy" shortcut="Ctrl+C" action-id="core.copy"></menu-item>
+          <menu-item label="Paste" shortcut="Ctrl+V" action-id="core.paste"></menu-item>
+        </menu-menu>
+
+        <menu-menu label="Help">
+          <menu-item label="Documentation" shortcut="F1" action-id="core.help"></menu-item>
+          <menu-item separator></menu-item>
+          <menu-item label="About" action-id="core.about"></menu-item>
+        </menu-menu>
+      </menu-bar>
       <div slot="toolbar">Toolbar!</div>
       <div slot="statusbar">Statusbar!</div>
       <div slot="main">MAIN!</div>
