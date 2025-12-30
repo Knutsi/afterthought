@@ -90,19 +90,15 @@ export class Menu extends HTMLElement {
           min-width: 180px;
           background-color: var(--theme-color-background);
           border: 1px solid color-mix(in srgb, var(--theme-color-secondary) 40%, transparent);
+          border-radius: var(--theme-spacing-border-radius);
           box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.2);
           z-index: 1000;
-          opacity: 0;
           visibility: hidden;
-          transform: translateY(-4px);
-          transition: opacity 0.15s ease, transform 0.15s ease, visibility 0.15s;
           padding: 4px 0;
         }
 
         .dropdown.open {
-          opacity: 1;
           visibility: visible;
-          transform: translateY(0);
         }
 
         slot {
@@ -158,7 +154,7 @@ export class Menu extends HTMLElement {
   private addEventListeners(): void {
     const button = this.shadowRoot?.querySelector('.menu-button');
     if (button) {
-      button.addEventListener('click', this._handleButtonClick);
+      button.addEventListener('mousedown', this._handleButtonClick);
     }
 
     this.addEventListener('mouseenter', this._handleMouseEnter);
@@ -171,7 +167,7 @@ export class Menu extends HTMLElement {
   private removeEventListeners(): void {
     const button = this.shadowRoot?.querySelector('.menu-button');
     if (button) {
-      button.removeEventListener('click', this._handleButtonClick);
+      button.removeEventListener('mousedown', this._handleButtonClick);
     }
 
     this.removeEventListener('mouseenter', this._handleMouseEnter);
