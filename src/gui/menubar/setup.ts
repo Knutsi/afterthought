@@ -1,20 +1,19 @@
 // Unified setup module for menubar components
-import { setupMenuItem } from './MenuItem';
-import { setupMenu } from './Menu';
-import { setupMenuBar } from './MenuBar';
+// Components auto-register via defineComponent() when imported
+import './MenuItem';
+import './Menu';
+import './MenuBar';
 
 /**
  * Sets up all menubar-related custom elements.
- * This function registers menu-item, menu-menu, and menu-bar components.
+ * This function imports all menubar components, triggering their auto-registration.
  */
 export function setupMenubar(): void {
-  setupMenuItem();
-  setupMenu();
-  setupMenuBar();
+  // Components are already registered via side-effect imports above
   console.log("Menubar module initialized");
 }
 
-// Re-export the component classes and setup functions for convenience
-export { MenuItem, setupMenuItem } from './MenuItem';
-export { Menu, setupMenu } from './Menu';
-export { MenuBar, setupMenuBar } from './MenuBar';
+// Re-export the component classes for convenience
+export { MenuItem } from './MenuItem';
+export { Menu } from './Menu';
+export { MenuBar } from './MenuBar';

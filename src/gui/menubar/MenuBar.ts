@@ -1,31 +1,32 @@
-export class MenuBar extends HTMLElement {
-  private _initialized: boolean = false;
+import { BaseComponent, defineComponent } from '../core/BaseComponent';
+import { EventListeners, useMutationObserver, discoverChildren } from '../core/utilities';
+import { noSelect } from "../styles/cssUtilities";
+
+export class MenuBar extends BaseComponent {
   private _menus: HTMLElement[] = [];
   private _currentOpenMenu: HTMLElement | null = null;
-  private _mutationObserver: MutationObserver | null = null;
-
-  constructor() {
-    super();
-    this.attachShadow({ mode: 'open' });
-  }
+  private events = new EventListeners();
+  private cleanupMutationObserver: (() => void) | null = null;
 
   static get observedAttributes(): string[] {
     return [];
   }
 
-  connectedCallback(): void {
-    if (this._initialized) return;
-
+  protected onInit(): void {
     this.discoverMenus();
-    this.render();
-    this.addEventListeners();
-    this.setupMutationObserver();
-    this._initialized = true;
+    this.events.add(this, "menu-opened", this._handleMenuOpened);
+    this.events.add(this, "menu-action", this._handleMenuAction);
+    this.events.add(document, "click", this._handleDocumentClick);
+    this.events.add(this, "keydown", this._handleKeydown as EventListener);
+
+    this.cleanupMutationObserver = useMutationObserver(this, () => {
+      this.discoverMenus();
+    }, { childList: true, subtree: false });
   }
 
-  disconnectedCallback(): void {
-    this.removeEventListeners();
-    this.cleanupMutationObserver();
+  protected onDestroy(): void {
+    this.events.removeAll();
+    this.cleanupMutationObserver?.();
 
     if (this._currentOpenMenu) {
       (this._currentOpenMenu as any).close?.();
@@ -34,21 +35,17 @@ export class MenuBar extends HTMLElement {
   }
 
   private discoverMenus(): void {
-    const allChildren = Array.from(this.children);
-    this._menus = allChildren.filter(
-      (child): child is HTMLElement =>
-        child.tagName.toLowerCase() === 'menu-menu'
-    ) as HTMLElement[];
+    this._menus = discoverChildren(this, "menu-menu");
   }
 
-  private render(): void {
+  protected render(): void {
     this.shadowRoot!.innerHTML = `
       <style>
         :host {
           display: block;
           background-color: var(--theme-color-background);
           border-bottom: 1px solid color-mix(in srgb, var(--theme-color-secondary) 30%, transparent);
-          user-select: none;
+          ${noSelect()}
           position: relative;
           z-index: 100;
         }
@@ -61,7 +58,7 @@ export class MenuBar extends HTMLElement {
         }
 
         ::slotted(menu-menu) {
-          /* Styles for slotted menus if needed */
+          ${noSelect()}
         }
       </style>
       <div class="menubar-container">
@@ -72,24 +69,6 @@ export class MenuBar extends HTMLElement {
 
   public hasOpenMenu(): boolean {
     return this._currentOpenMenu !== null;
-  }
-
-  private addEventListeners(): void {
-    this.addEventListener('menu-opened', this._handleMenuOpened);
-    this.addEventListener('menu-action', this._handleMenuAction);
-
-    // Listen for global clicks to close all menus
-    document.addEventListener('click', this._handleDocumentClick);
-
-    // Keyboard navigation
-    this.addEventListener('keydown', this._handleKeydown);
-  }
-
-  private removeEventListeners(): void {
-    this.removeEventListener('menu-opened', this._handleMenuOpened);
-    this.removeEventListener('menu-action', this._handleMenuAction);
-    document.removeEventListener('click', this._handleDocumentClick);
-    this.removeEventListener('keydown', this._handleKeydown);
   }
 
   private _handleMenuOpened = (e: Event): void => {
@@ -113,7 +92,7 @@ export class MenuBar extends HTMLElement {
     // const actionService = getDefaultServiceLayer().actionService;
     // actionService.doAction(actionId);
 
-    console.log('Menu action triggered:', actionId, customEvent.detail);
+    console.log("Menu action triggered:", actionId, customEvent.detail);
 
     // Close all menus after action
     if (this._currentOpenMenu) {
@@ -140,15 +119,15 @@ export class MenuBar extends HTMLElement {
     let handled = false;
 
     switch (e.key) {
-      case 'ArrowLeft':
+      case "ArrowLeft":
         this.navigateToPreviousMenu();
         handled = true;
         break;
-      case 'ArrowRight':
+      case "ArrowRight":
         this.navigateToNextMenu();
         handled = true;
         break;
-      case 'Escape':
+      case "Escape":
         if (this._currentOpenMenu) {
           (this._currentOpenMenu as any).close?.();
           this._currentOpenMenu = null;
@@ -184,33 +163,12 @@ export class MenuBar extends HTMLElement {
     (this._currentOpenMenu as any).close?.();
     (nextMenu as any).open?.();
   }
-
-  private setupMutationObserver(): void {
-    this._mutationObserver = new MutationObserver(() => {
-      this.discoverMenus();
-    });
-
-    this._mutationObserver.observe(this, {
-      childList: true,
-      subtree: false
-    });
-  }
-
-  private cleanupMutationObserver(): void {
-    if (this._mutationObserver) {
-      this._mutationObserver.disconnect();
-      this._mutationObserver = null;
-    }
-  }
 }
 
-export function setupMenuBar(): void {
-  customElements.define('menu-bar', MenuBar);
-  console.log("Feature added: MenuBar");
-}
+defineComponent("menu-bar", MenuBar);
 
 declare global {
   interface HTMLElementTagNameMap {
-    'menu-bar': MenuBar;
+    "menu-bar": MenuBar;
   }
 }

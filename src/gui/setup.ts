@@ -1,9 +1,9 @@
 import { setupTabs } from "./tabs/tabs";
-import { setupMainLayout } from "./layout/MainLayout";
+import "./layout/MainLayout"; // Auto-registers via defineComponent
 import { setupMenubar } from "./menubar/setup";
 
 export function setupSharedUxComponents() {
     setupTabs();
-    setupMainLayout();
+    // MainLayout auto-registers via side-effect import above
     setupMenubar();
 }

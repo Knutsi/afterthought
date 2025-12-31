@@ -1,47 +1,9 @@
-// 1. Define the class
-export class MainLayout extends HTMLElement {
-  // Private state with type annotation
-  private _initialized: boolean = false;
+import { BaseComponent, defineComponent } from '../core/BaseComponent';
 
-  constructor() {
-    super();
-    // Attach Shadow DOM
-    this.attachShadow({ mode: 'open' });
-  }
-
-  // 2. Define observed attributes
+export class MainLayout extends BaseComponent {
   static get observedAttributes(): string[] {
     return ['show-toolbar', 'show-menus', 'show-statusbar', 'mode'];
   }
-
-  // 3. Lifecycle: Connected
-  connectedCallback(): void {
-    if (this._initialized) return;
-
-    this.render();
-    this._initialized = true;
-  }
-
-  // 4. Lifecycle: Attribute Changed
-  attributeChangedCallback(
-    _name: string,
-    oldValue: string | null,
-    newValue: string | null
-  ): void {
-    if (oldValue === newValue) return;
-    
-    // Re-render when attributes change
-    if (this._initialized) {
-      this.render();
-    }
-  }
-
-  // 5. Lifecycle: Disconnected
-  disconnectedCallback(): void {
-    // Cleanup if needed
-  }
-
-  // --- Methods ---
 
   private getShowMenus(): boolean {
     return this.hasAttribute('show-menus');
@@ -60,7 +22,7 @@ export class MainLayout extends HTMLElement {
     return mode === 'focus' ? 'focus' : 'normal';
   }
 
-  private render(): void {
+  protected render(): void {
     if (!this.shadowRoot) return;
 
     const showMenus = this.getShowMenus();
@@ -94,7 +56,7 @@ export class MainLayout extends HTMLElement {
           width: 100%;
           height: 100%;
         }
-        
+
         .layout-container {
           display: grid;
           grid-template-rows: ${gridTemplateRows};
@@ -155,17 +117,10 @@ export class MainLayout extends HTMLElement {
   }
 }
 
-export function setupMainLayout(): void {
-  // 6. Register the component
-  customElements.define('main-layout', MainLayout);
-  console.log("Feature added: MainLayout");
-}
+defineComponent('main-layout', MainLayout);
 
-// 7. TypeScript Specific: Global Type Augmentation
-// This allows TypeScript to recognize document.createElement('main-layout')
 declare global {
   interface HTMLElementTagNameMap {
     'main-layout': MainLayout;
   }
 }
-

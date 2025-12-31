@@ -1,34 +1,23 @@
-export class MenuItem extends HTMLElement {
-  private _initialized: boolean = false;
+import { BaseComponent, defineComponent } from '../core/BaseComponent';
+import { EventListeners } from '../core/utilities';
+import { noSelect } from '../styles/cssUtilities';
 
-  constructor() {
-    super();
-    this.attachShadow({ mode: 'open' });
-  }
+export class MenuItem extends BaseComponent {
+  private events = new EventListeners();
 
   static get observedAttributes(): string[] {
     return ['label', 'shortcut', 'action-id', 'disabled', 'separator'];
   }
 
-  connectedCallback(): void {
-    if (this._initialized) return;
-    this.render();
-    this.addEventListeners();
-    this._initialized = true;
+  protected onInit(): void {
+    this.events.addToShadow(this.shadowRoot, '.menu-item', 'click', this._handleClick);
   }
 
-  attributeChangedCallback(name: string, oldValue: string | null, newValue: string | null): void {
-    if (oldValue === newValue) return;
-    if (this._initialized) {
-      this.render();
-    }
+  protected onDestroy(): void {
+    this.events.removeAll();
   }
 
-  disconnectedCallback(): void {
-    this.removeEventListeners();
-  }
-
-  private render(): void {
+  protected render(): void {
     const isSeparator = this.hasAttribute('separator');
 
     if (isSeparator) {
@@ -36,7 +25,7 @@ export class MenuItem extends HTMLElement {
         <style>
           :host {
             display: block;
-            user-select: none;
+            ${noSelect()}
           }
           .separator {
             height: 1px;
@@ -56,7 +45,7 @@ export class MenuItem extends HTMLElement {
         <style>
           :host {
             display: block;
-            user-select: none;
+            ${noSelect()}
           }
 
           .menu-item {
@@ -71,6 +60,7 @@ export class MenuItem extends HTMLElement {
             color: var(--theme-color-text);
             background-color: var(--theme-color-background);
             transition: background-color 0.1s ease;
+            ${noSelect()}
           }
 
           .menu-item:hover:not(.disabled) {
@@ -85,12 +75,18 @@ export class MenuItem extends HTMLElement {
 
           .label {
             flex: 1;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 250px;
+            ${noSelect()}
           }
 
           .shortcut {
             margin-left: 32px;
             font-size: 12px;
             opacity: 0.7;
+            ${noSelect()}
           }
         </style>
         <div class="menu-item ${disabled ? 'disabled' : ''}" part="menu-item">
@@ -98,20 +94,6 @@ export class MenuItem extends HTMLElement {
           <span class="shortcut">${shortcut}</span>
         </div>
       `;
-    }
-  }
-
-  private addEventListeners(): void {
-    const menuItem = this.shadowRoot?.querySelector('.menu-item');
-    if (menuItem) {
-      menuItem.addEventListener('click', this._handleClick);
-    }
-  }
-
-  private removeEventListeners(): void {
-    const menuItem = this.shadowRoot?.querySelector('.menu-item');
-    if (menuItem) {
-      menuItem.removeEventListener('click', this._handleClick);
     }
   }
 
@@ -136,10 +118,7 @@ export class MenuItem extends HTMLElement {
   };
 }
 
-export function setupMenuItem(): void {
-  customElements.define('menu-item', MenuItem);
-  console.log("Feature added: MenuItem");
-}
+defineComponent('menu-item', MenuItem);
 
 declare global {
   interface HTMLElementTagNameMap {

@@ -1,54 +1,50 @@
-export class Menu extends HTMLElement {
-  private _initialized: boolean = false;
-  private _isOpen: boolean = false;
-  private _menuItems: HTMLElement[] = [];
-  private _mutationObserver: MutationObserver | null = null;
+import { BaseComponent, defineComponent } from '../core/BaseComponent';
+import { EventListeners, useMutationObserver, discoverChildren } from '../core/utilities';
+import { noSelect } from '../styles/cssUtilities';
 
-  constructor() {
-    super();
-    this.attachShadow({ mode: 'open' });
-  }
+export class Menu extends BaseComponent {
+  private _isOpen: boolean = false;
+  private events = new EventListeners();
+  private cleanupMutationObserver: (() => void) | null = null;
 
   static get observedAttributes(): string[] {
     return ['label', 'open'];
   }
 
-  connectedCallback(): void {
-    if (this._initialized) return;
-
+  protected onInit(): void {
     this.discoverMenuItems();
-    this.render();
-    this.addEventListeners();
-    this.setupMutationObserver();
-    this._initialized = true;
+    this.events.addToShadow(this.shadowRoot, '.menu-button', 'mousedown', this._handleButtonClick);
+    this.events.add(this, 'mouseenter', this._handleMouseEnter);
+    this.events.add(this, 'menuitem-click', this._handleMenuItemClick);
+    this.events.add(document, 'click', this._handleDocumentClick);
+
+    this.cleanupMutationObserver = useMutationObserver(this, () => {
+      this.discoverMenuItems();
+    }, { childList: true, subtree: false });
   }
 
-  attributeChangedCallback(name: string, oldValue: string | null, newValue: string | null): void {
-    if (oldValue === newValue) return;
-    if (this._initialized) {
-      if (name === 'open') {
-        this._isOpen = this.hasAttribute('open');
-        this.updateDropdownVisibility();
-      } else {
-        this.render();
-      }
+  protected onDestroy(): void {
+    this.events.removeAll();
+    this.cleanupMutationObserver?.();
+  }
+
+  protected onAttributeChange(name: string, _oldValue: string | null, _newValue: string | null): void {
+    if (!this._initialized) return;
+
+    if (name === 'open') {
+      this._isOpen = this.hasAttribute('open');
+      this.updateDropdownVisibility();
+    } else {
+      this.render();
     }
   }
 
-  disconnectedCallback(): void {
-    this.removeEventListeners();
-    this.cleanupMutationObserver();
-  }
-
   private discoverMenuItems(): void {
-    const allChildren = Array.from(this.children);
-    this._menuItems = allChildren.filter(
-      (child): child is HTMLElement =>
-        child.tagName.toLowerCase() === 'menu-item'
-    ) as HTMLElement[];
+    // Discover menu items (currently unused but maintained for future extensibility)
+    discoverChildren(this, 'menu-item');
   }
 
-  private render(): void {
+  protected render(): void {
     const label = this.getAttribute('label') || '';
 
     this.shadowRoot!.innerHTML = `
@@ -56,6 +52,7 @@ export class Menu extends HTMLElement {
         :host {
           display: inline-block;
           position: relative;
+          ${noSelect()}
         }
 
         .menu-button {
@@ -67,7 +64,7 @@ export class Menu extends HTMLElement {
           font-family: var(--theme-font-family, system-ui, -apple-system, sans-serif);
           color: var(--theme-color-text);
           transition: background-color 0.1s ease;
-          user-select: none;
+          ${noSelect()}
           height: var(--theme-size-menubar-height, 32px);
           display: flex;
           align-items: center;
@@ -95,6 +92,7 @@ export class Menu extends HTMLElement {
           z-index: 1000;
           visibility: hidden;
           padding: 4px 0;
+          ${noSelect()}
         }
 
         .dropdown.open {
@@ -151,31 +149,6 @@ export class Menu extends HTMLElement {
     this.updateDropdownVisibility();
   }
 
-  private addEventListeners(): void {
-    const button = this.shadowRoot?.querySelector('.menu-button');
-    if (button) {
-      button.addEventListener('mousedown', this._handleButtonClick);
-    }
-
-    this.addEventListener('mouseenter', this._handleMouseEnter);
-    this.addEventListener('menuitem-click', this._handleMenuItemClick);
-
-    // Global click listener for click-outside
-    document.addEventListener('click', this._handleDocumentClick);
-  }
-
-  private removeEventListeners(): void {
-    const button = this.shadowRoot?.querySelector('.menu-button');
-    if (button) {
-      button.removeEventListener('mousedown', this._handleButtonClick);
-    }
-
-    this.removeEventListener('mouseenter', this._handleMouseEnter);
-    this.removeEventListener('menuitem-click', this._handleMenuItemClick);
-
-    document.removeEventListener('click', this._handleDocumentClick);
-  }
-
   private _handleButtonClick = (e: Event): void => {
     e.stopPropagation();
 
@@ -221,30 +194,9 @@ export class Menu extends HTMLElement {
       detail: customEvent.detail
     }));
   };
-
-  private setupMutationObserver(): void {
-    this._mutationObserver = new MutationObserver(() => {
-      this.discoverMenuItems();
-    });
-
-    this._mutationObserver.observe(this, {
-      childList: true,
-      subtree: false
-    });
-  }
-
-  private cleanupMutationObserver(): void {
-    if (this._mutationObserver) {
-      this._mutationObserver.disconnect();
-      this._mutationObserver = null;
-    }
-  }
 }
 
-export function setupMenu(): void {
-  customElements.define('menu-menu', Menu);
-  console.log("Feature added: Menu");
-}
+defineComponent('menu-menu', Menu);
 
 declare global {
   interface HTMLElementTagNameMap {
