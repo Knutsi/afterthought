@@ -1,19 +1,22 @@
 // core services and functions:
-import { setupSharedUxComponents } from "./gui/setup.ts";
 import { getDefaultServiceLayer } from "./service/ServiceLayer.ts";
 
-// features:
-import { setupProjectBrowser } from "./feature/project-browser/ProjectBrowser";
-import { addDebugFeature as setupDebugFeature } from "./feature/debug/setup";
+// Import components directly (they auto-register via defineComponent):
+import "./gui/layout/MainLayout";
+import "./gui/menubar/MenuItem";
+import "./gui/menubar/Menu";
+import "./gui/menubar/MenuBar";
+import "./gui/menubar/DynamicMenuBar";
+import "./gui/tabs/TabPage";
+import "./gui/tabs/TabContainer";
+import "./feature/project-browser/ProjectBrowser";
+import "./feature/debug/ActionList";
+
+// Import default actions setup:
 import { setupDefaultActions } from "./default-actions.ts";
 
 // apply default theme:
 getDefaultServiceLayer().getThemeService().applyDefaultTheme();
-
-// setup features:
-setupSharedUxComponents();
-setupProjectBrowser();
-setupDebugFeature();
 
 // setup default actions:
 setupDefaultActions();
