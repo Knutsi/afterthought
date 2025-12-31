@@ -6,7 +6,7 @@ export class MenuItem extends BaseComponent {
   private events = new EventListeners();
 
   static get observedAttributes(): string[] {
-    return ['label', 'shortcut', 'action-id', 'disabled', 'separator'];
+    return ['label', 'shortcut', 'action-id', 'disabled', 'separator', 'selected'];
   }
 
   protected onInit(): void {
@@ -40,6 +40,7 @@ export class MenuItem extends BaseComponent {
       const label = this.getAttribute('label') || '';
       const shortcut = this.getAttribute('shortcut') || '';
       const disabled = this.hasAttribute('disabled');
+      const selected = this.hasAttribute('selected');
 
       this.shadowRoot!.innerHTML = `
         <style>
@@ -63,7 +64,8 @@ export class MenuItem extends BaseComponent {
             ${noSelect()}
           }
 
-          .menu-item:hover:not(.disabled) {
+          .menu-item:hover:not(.disabled),
+          .menu-item.selected:not(.disabled) {
             background-color: var(--theme-color-primary);
             color: var(--theme-color-background);
           }
@@ -89,7 +91,7 @@ export class MenuItem extends BaseComponent {
             ${noSelect()}
           }
         </style>
-        <div class="menu-item ${disabled ? 'disabled' : ''}" part="menu-item">
+        <div class="menu-item ${disabled ? 'disabled' : ''} ${selected ? 'selected' : ''}" part="menu-item">
           <span class="label">${label}</span>
           <span class="shortcut">${shortcut}</span>
         </div>

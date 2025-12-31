@@ -1,5 +1,5 @@
-import { BaseComponent, defineComponent } from '../core/BaseComponent';
-import { EventListeners, useMutationObserver, discoverChildren } from '../core/utilities';
+import { BaseComponent, defineComponent } from "../core/BaseComponent";
+import { EventListeners } from "../core/utilities";
 import { noSelect } from "../styles/cssUtilities";
 
 export class MenuBar extends BaseComponent {
@@ -27,10 +27,27 @@ export class MenuBar extends BaseComponent {
     // Listen for keyboard navigation
     this.events.add(this, "keydown", this._handleKeydown as EventListener);
 
-    // Rediscover menus when children change
-    this.cleanupMutationObserver = useMutationObserver(this, () => {
-      this.discoverMenus();
-    }, { childList: true, subtree: false });
+    // Watch for changes in DynamicMenuBar's children (menu elements being added/removed)
+    const menuBarElement = this.shadowRoot?.host as HTMLElement;
+    if (menuBarElement) {
+      const parentShadowRoot = menuBarElement.getRootNode() as ShadowRoot;
+      const dynamicMenuBar = parentShadowRoot?.host as HTMLElement;
+
+      if (dynamicMenuBar) {
+        const observer = new MutationObserver(() => {
+          this.discoverMenus();
+        });
+
+        observer.observe(dynamicMenuBar, {
+          childList: true,
+          subtree: false,
+        });
+
+        this.cleanupMutationObserver = () => {
+          observer.disconnect();
+        };
+      }
+    }
   }
 
   protected onDestroy(): void {
@@ -44,7 +61,23 @@ export class MenuBar extends BaseComponent {
   }
 
   private discoverMenus(): void {
-    this._menus = discoverChildren(this, "menu-menu");
+    // In nested slot architecture, MenuBar is inside DynamicMenuBar's shadow DOM
+    // We need to traverse up to find DynamicMenuBar and query its Light DOM children
+    const menuBarElement = this.shadowRoot?.host as HTMLElement;
+    if (menuBarElement) {
+      const parentShadowRoot = menuBarElement.getRootNode() as ShadowRoot;
+      const dynamicMenuBar = parentShadowRoot?.host as HTMLElement;
+
+      if (dynamicMenuBar && dynamicMenuBar.tagName.toLowerCase() === 'dynamic-menu-bar') {
+        this._menus = Array.from(dynamicMenuBar.children).filter(
+          (el): el is HTMLElement => el.tagName.toLowerCase() === 'menu-menu'
+        ) as HTMLElement[];
+      } else {
+        this._menus = [];
+      }
+    } else {
+      this._menus = [];
+    }
   }
 
   protected render(): void {
@@ -151,7 +184,7 @@ export class MenuBar extends BaseComponent {
     }
   };
 
-  private navigateToPreviousMenu(): void {
+  public navigateToPreviousMenu(): void {
     if (!this._currentOpenMenu) return;
 
     const currentIndex = this._menus.indexOf(this._currentOpenMenu);
@@ -162,7 +195,7 @@ export class MenuBar extends BaseComponent {
     (previousMenu as any).open?.();
   }
 
-  private navigateToNextMenu(): void {
+  public navigateToNextMenu(): void {
     if (!this._currentOpenMenu) return;
 
     const currentIndex = this._menus.indexOf(this._currentOpenMenu);

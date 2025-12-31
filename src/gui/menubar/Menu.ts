@@ -1,34 +1,46 @@
-import { BaseComponent, defineComponent } from '../core/BaseComponent';
-import { EventListeners, useMutationObserver, discoverChildren } from '../core/utilities';
-import { noSelect } from '../styles/cssUtilities';
+import { BaseComponent, defineComponent } from "../core/BaseComponent";
+import { EventListeners, useMutationObserver, discoverChildren } from "../core/utilities";
+import { noSelect } from "../styles/cssUtilities";
+import { MenuBar } from "./MenuBar";
 
 export class Menu extends BaseComponent {
   private _isOpen: boolean = false;
+  private _selectedIndex: number = -1;
   private events = new EventListeners();
   private cleanupMutationObserver: (() => void) | null = null;
 
   static get observedAttributes(): string[] {
-    return ['label', 'open'];
+    return ["label", "open"];
   }
 
   protected onInit(): void {
     this.discoverMenuItems();
 
-    // Listen to button clicks in shadow DOM
-    this.events.addToShadow(this.shadowRoot, '.menu-button', 'mousedown', this._handleButtonClick);
+    // Make menu focusable for keyboard navigation
+    this.setAttribute("tabindex", "0");
 
-    // Listen to hover for menu switching
-    this.events.add(this, 'mouseenter', this._handleMouseEnter);
+    // Listen to button clicks in shadow DOM
+    this.events.addToShadow(this.shadowRoot, ".menu-button", "mousedown", this._handleButtonClick);
+
+    // Listen to hover on button for menu switching
+    this.events.addToShadow(this.shadowRoot, ".menu-button", "mouseenter", this._handleMouseEnter);
 
     // Listen to menu item clicks
-    this.events.add(this, 'menuitem-click', this._handleMenuItemClick);
+    this.events.add(this, "menuitem-click", this._handleMenuItemClick);
 
     // Listen to document clicks to close when clicking outside
-    this.events.add(document, 'click', this._handleDocumentClick);
+    this.events.add(document, "click", this._handleDocumentClick);
 
-    this.cleanupMutationObserver = useMutationObserver(this, () => {
-      this.discoverMenuItems();
-    }, { childList: true, subtree: false });
+    // Listen to keyboard events for navigation
+    this.events.add(this, "keydown", this._handleKeydown as EventListener);
+
+    this.cleanupMutationObserver = useMutationObserver(
+      this,
+      () => {
+        this.discoverMenuItems();
+      },
+      { childList: true, subtree: false },
+    );
   }
 
   protected onDestroy(): void {
@@ -39,8 +51,8 @@ export class Menu extends BaseComponent {
   protected onAttributeChange(name: string, _oldValue: string | null, _newValue: string | null): void {
     if (!this._initialized) return;
 
-    if (name === 'open') {
-      this._isOpen = this.hasAttribute('open');
+    if (name === "open") {
+      this._isOpen = this.hasAttribute("open");
       this.updateDropdownVisibility();
     } else {
       this.render();
@@ -48,11 +60,11 @@ export class Menu extends BaseComponent {
   }
 
   private discoverMenuItems(): void {
-    discoverChildren(this, 'menu-item');
+    discoverChildren(this, "menu-item");
   }
 
   protected render(): void {
-    const label = this.getAttribute('label') || '';
+    const label = this.getAttribute("label") || "";
 
     this.shadowRoot!.innerHTML = `
       <style>
@@ -60,6 +72,10 @@ export class Menu extends BaseComponent {
           display: inline-block;
           position: relative;
           ${noSelect()}
+        }
+
+        :host(:focus) {
+          outline: none;
         }
 
         .menu-button {
@@ -121,38 +137,47 @@ export class Menu extends BaseComponent {
   }
 
   private updateDropdownVisibility(): void {
-    const dropdown = this.shadowRoot?.querySelector('.dropdown');
-    const button = this.shadowRoot?.querySelector('.menu-button');
+    const dropdown = this.shadowRoot?.querySelector(".dropdown");
+    const button = this.shadowRoot?.querySelector(".menu-button");
 
     if (!dropdown || !button) return;
 
     if (this._isOpen) {
-      dropdown.classList.add('open');
-      button.classList.add('open');
-      button.setAttribute('aria-expanded', 'true');
+      dropdown.classList.add("open");
+      button.classList.add("open");
+      button.setAttribute("aria-expanded", "true");
     } else {
-      dropdown.classList.remove('open');
-      button.classList.remove('open');
-      button.setAttribute('aria-expanded', 'false');
+      dropdown.classList.remove("open");
+      button.classList.remove("open");
+      button.setAttribute("aria-expanded", "false");
     }
   }
 
   public open(): void {
     this._isOpen = true;
-    this.setAttribute('open', '');
+    this.setAttribute("open", "");
     this.updateDropdownVisibility();
+    this._selectedIndex = -1;
+    this.updateSelectedItem();
+
+    // Focus the menu for keyboard navigation
+    this.focus();
 
     // Notify parent MenuBar that this menu opened
-    this.dispatchEvent(new CustomEvent('menu-opened', {
-      bubbles: true,
-      composed: true
-    }));
+    this.dispatchEvent(
+      new CustomEvent("menu-opened", {
+        bubbles: true,
+        composed: true,
+      }),
+    );
   }
 
   public close(): void {
     this._isOpen = false;
-    this.removeAttribute('open');
+    this.removeAttribute("open");
     this.updateDropdownVisibility();
+    this._selectedIndex = -1;
+    this.updateSelectedItem();
   }
 
   private _handleButtonClick = (e: Event): void => {
@@ -167,8 +192,8 @@ export class Menu extends BaseComponent {
 
   private _handleMouseEnter = (): void => {
     // Check if parent menubar has any open menu
-    const menuBar = this.parentElement;
-    if (menuBar && menuBar.tagName.toLowerCase() === 'menu-bar') {
+    const menuBar = this.getMenuBar();
+    if (menuBar) {
       const hasOpenMenu = (menuBar as any).hasOpenMenu?.();
       if (hasOpenMenu && !this._isOpen) {
         this.open();
@@ -198,18 +223,111 @@ export class Menu extends BaseComponent {
     this.close();
 
     // Forward event to menubar for action execution
-    this.dispatchEvent(new CustomEvent('menu-action', {
-      bubbles: true,
-      composed: true,
-      detail: customEvent.detail
-    }));
+    this.dispatchEvent(
+      new CustomEvent("menu-action", {
+        bubbles: true,
+        composed: true,
+        detail: customEvent.detail,
+      }),
+    );
   };
+
+  private _handleKeydown = (e: KeyboardEvent): void => {
+    if (!this._isOpen) return;
+
+    const menuItems = this.getSelectableMenuItems();
+    if (menuItems.length === 0) return;
+
+    let handled = false;
+
+    switch (e.key) {
+      case "ArrowDown":
+        this._selectedIndex = (this._selectedIndex + 1) % menuItems.length;
+        this.updateSelectedItem();
+        handled = true;
+        break;
+
+      case "ArrowUp":
+        this._selectedIndex = this._selectedIndex <= 0 ? menuItems.length - 1 : this._selectedIndex - 1;
+        this.updateSelectedItem();
+        handled = true;
+        break;
+
+      case "Enter":
+      case " ":
+        if (this._selectedIndex >= 0 && this._selectedIndex < menuItems.length) {
+          const selectedItem = menuItems[this._selectedIndex];
+          (selectedItem as any).click?.();
+          handled = true;
+        }
+        break;
+
+      case "ArrowLeft":
+      case "ArrowRight":
+        // Delegate horizontal navigation to parent MenuBar
+        const menuBar = this.getMenuBar();
+        if (menuBar) {
+          if (e.key === "ArrowLeft") {
+            (menuBar as MenuBar).navigateToPreviousMenu?.();
+          } else {
+            (menuBar as MenuBar).navigateToNextMenu?.();
+          }
+          handled = true;
+        }
+        break;
+
+      case "Escape":
+        this.close();
+        handled = true;
+        break;
+    }
+
+    if (handled) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+  };
+
+  private getSelectableMenuItems(): HTMLElement[] {
+    return Array.from(this.children).filter((child) => {
+      return (
+        child.tagName.toLowerCase() === "menu-item" &&
+        !child.hasAttribute("separator") &&
+        !child.hasAttribute("disabled")
+      );
+    }) as HTMLElement[];
+  }
+
+  private updateSelectedItem(): void {
+    const menuItems = this.getSelectableMenuItems();
+
+    menuItems.forEach((item, index) => {
+      if (index === this._selectedIndex) {
+        item.setAttribute("selected", "");
+      } else {
+        item.removeAttribute("selected");
+      }
+    });
+  }
+
+  private getMenuBar(): HTMLElement | null {
+    // Access MenuBar through the slot (crosses Shadow DOM boundary)
+    const slot = this.assignedSlot;
+    if (!slot) return null;
+
+    const menuBar = slot.parentElement;
+    if (menuBar && menuBar.tagName.toLowerCase() === "menu-bar") {
+      return menuBar;
+    }
+
+    return null;
+  }
 }
 
-defineComponent('menu-menu', Menu);
+defineComponent("menu-menu", Menu);
 
 declare global {
   interface HTMLElementTagNameMap {
-    'menu-menu': Menu;
+    "menu-menu": Menu;
   }
 }
