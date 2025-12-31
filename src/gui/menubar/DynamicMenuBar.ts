@@ -1,45 +1,8 @@
 import { BaseComponent, defineComponent } from "../core/BaseComponent";
 import { EventListeners } from "../core/utilities";
 import { getDefaultServiceLayer } from "../../service/ServiceLayer";
-import { ActionEvents, type IAction } from "../../service/ActionService";
-
-const preferredMenuOrder = ["File", "Edit", "View", "Project", "Task", "Tools", "Window", "Help", "Settings", "About"];
-const preferredMenuGroupOrder = [
-  "create",
-  "exit",
-  "edit",
-  "view",
-  "project",
-  "task",
-  "tools",
-  "window",
-  "help",
-  "settings",
-  "about",
-];
-
-interface IDynamicMenuBarModel {
-  orderedMenus: IMenu[];
-}
-
-interface IMenu {
-  id: string;
-  label: string;
-  orderedGroups: IMenuGroup[];
-}
-
-interface IMenuGroup {
-  id: string;
-  orderedItems: IMenuItem[];
-}
-
-interface IMenuItem {
-  id: string;
-  label: string;
-  shortcut: string;
-  actionId: string;
-  disabled: boolean;
-}
+import { ActionEvents } from "../../service/ActionService";
+import { buildMenuBarModel, type IDynamicMenuBarModel } from "./menuModelAdapter";
 
 interface IDynamicMenuBarViewState {
   openMenuId: string | null;
@@ -231,108 +194,8 @@ export class DynamicMenuBar extends BaseComponent {
   private async rebuild(): Promise<void> {
     const actionService = getDefaultServiceLayer().actionService;
     const actions = actionService.getActions();
-    const model = await this.buildMenuBarModel(actions);
+    const model = await buildMenuBarModel(actions);
     this.renderFromModel(model);
-  }
-
-  private async buildMenuBarModel(actions: IAction[]): Promise<IDynamicMenuBarModel> {
-    // Group actions by menuGroup, then by menuSubGroup
-    const menuMap = new Map<string, Map<string | undefined, IAction[]>>();
-
-    for (const action of actions) {
-      if (!menuMap.has(action.menuGroup)) {
-        menuMap.set(action.menuGroup, new Map());
-      }
-      const subgroupMap = menuMap.get(action.menuGroup)!;
-      const subgroupKey = action.menuSubGroup || undefined;
-
-      if (!subgroupMap.has(subgroupKey)) {
-        subgroupMap.set(subgroupKey, []);
-      }
-      subgroupMap.get(subgroupKey)!.push(action);
-    }
-
-    // Build menu items with parallel canDo() calls
-    const orderedMenus: IMenu[] = [];
-
-    for (const [menuLabel, subgroupMap] of menuMap.entries()) {
-      const orderedGroups: IMenuGroup[] = [];
-
-      // Sort subgroups: by preferredMenuGroupOrder, then alphabetically
-      const sortedSubgroups = Array.from(subgroupMap.keys()).sort((a, b) => {
-        if (a === undefined && b === undefined) return 0;
-        if (a === undefined) return -1;
-        if (b === undefined) return 1;
-
-        const aIndex = preferredMenuGroupOrder.indexOf(a);
-        const bIndex = preferredMenuGroupOrder.indexOf(b);
-
-        // Both in preferred list
-        if (aIndex !== -1 && bIndex !== -1) {
-          return aIndex - bIndex;
-        }
-
-        // Only a is in preferred list
-        if (aIndex !== -1) return -1;
-
-        // Only b is in preferred list
-        if (bIndex !== -1) return 1;
-
-        // Neither in preferred list, sort alphabetically
-        return a.localeCompare(b, undefined, { sensitivity: "base" });
-      });
-
-      for (const subgroup of sortedSubgroups) {
-        const actionsInSubgroup = subgroupMap.get(subgroup)!;
-
-        // Build menu items with parallel canDo() calls
-        const itemPromises = actionsInSubgroup.map(async (action) => {
-          const canDo = await action.canDo().catch(() => false);
-          return {
-            id: action.id,
-            label: action.name,
-            shortcut: action.shortcut,
-            actionId: action.id,
-            disabled: !canDo,
-          } as IMenuItem;
-        });
-
-        const orderedItems = await Promise.all(itemPromises);
-
-        orderedGroups.push({
-          id: subgroup || "",
-          orderedItems,
-        });
-      }
-
-      orderedMenus.push({
-        id: `menu-${menuLabel.toLowerCase().replace(/\s+/g, '-')}`,
-        label: menuLabel,
-        orderedGroups,
-      });
-    }
-
-    // Sort menus by preferredMenuOrder, then alphabetically
-    orderedMenus.sort((a, b) => {
-      const aIndex = preferredMenuOrder.indexOf(a.label);
-      const bIndex = preferredMenuOrder.indexOf(b.label);
-
-      // Both in preferred list
-      if (aIndex !== -1 && bIndex !== -1) {
-        return aIndex - bIndex;
-      }
-
-      // Only a is in preferred list
-      if (aIndex !== -1) return -1;
-
-      // Only b is in preferred list
-      if (bIndex !== -1) return 1;
-
-      // Neither in preferred list, sort alphabetically
-      return a.label.localeCompare(b.label, undefined, { sensitivity: "base" });
-    });
-
-    return { orderedMenus };
   }
 
   private renderFromModel(model: IDynamicMenuBarModel): void {
