@@ -1,16 +1,21 @@
 import { BaseComponent, defineComponent } from "../core/BaseComponent";
 import { EventListeners, useMutationObserver, discoverChildren } from "../core/utilities";
 import { noSelect } from "../styles/cssUtilities";
-import { MenuBar } from "./MenuBar";
 
 export class Menu extends BaseComponent {
-  private _isOpen: boolean = false;
-  private _selectedIndex: number = -1;
+  // React-style callback props (passed from DynamicMenuBar)
+  public onToggle?: (menuId: string, currentlyOpen: boolean) => void;
+  public onSelectItem?: (menuId: string, index: number) => void;
+  public onNavigateNext?: () => void;
+  public onNavigatePrevious?: () => void;
+  public onClose?: (menuId: string) => void;
+  public hasOpenMenu?: () => boolean;
+
   private events = new EventListeners();
   private cleanupMutationObserver: (() => void) | null = null;
 
   static get observedAttributes(): string[] {
-    return ["label", "open"];
+    return ["label", "open", "data-menu-id", "selected-index"];
   }
 
   protected onInit(): void {
@@ -24,12 +29,6 @@ export class Menu extends BaseComponent {
 
     // Listen to hover on button for menu switching
     this.events.addToShadow(this.shadowRoot, ".menu-button", "mouseenter", this._handleMouseEnter);
-
-    // Listen to menu item clicks
-    this.events.add(this, "menuitem-click", this._handleMenuItemClick);
-
-    // Listen to document clicks to close when clicking outside
-    this.events.add(document, "click", this._handleDocumentClick);
 
     // Listen to keyboard events for navigation
     this.events.add(this, "keydown", this._handleKeydown as EventListener);
@@ -52,8 +51,9 @@ export class Menu extends BaseComponent {
     if (!this._initialized) return;
 
     if (name === "open") {
-      this._isOpen = this.hasAttribute("open");
       this.updateDropdownVisibility();
+    } else if (name === "selected-index") {
+      this.updateSelectedItem();
     } else {
       this.render();
     }
@@ -125,7 +125,7 @@ export class Menu extends BaseComponent {
           display: block;
         }
       </style>
-      <button class="menu-button" part="menu-button" role="button" aria-haspopup="true" aria-expanded="${this._isOpen}">
+      <button class="menu-button" part="menu-button" role="button" aria-haspopup="true" aria-expanded="${this.hasAttribute("open")}">
         <span class="label">${label}</span>
       </button>
       <div class="dropdown" part="dropdown" role="menu">
@@ -142,7 +142,8 @@ export class Menu extends BaseComponent {
 
     if (!dropdown || !button) return;
 
-    if (this._isOpen) {
+    const isOpen = this.hasAttribute("open");
+    if (isOpen) {
       dropdown.classList.add("open");
       button.classList.add("open");
       button.setAttribute("aria-expanded", "true");
@@ -153,131 +154,85 @@ export class Menu extends BaseComponent {
     }
   }
 
-  public open(): void {
-    this._isOpen = true;
-    this.setAttribute("open", "");
-    this.updateDropdownVisibility();
-    this._selectedIndex = -1;
-    this.updateSelectedItem();
-
-    // Focus the menu for keyboard navigation
-    this.focus();
-
-    // Notify parent MenuBar that this menu opened
-    this.dispatchEvent(
-      new CustomEvent("menu-opened", {
-        bubbles: true,
-        composed: true,
-      }),
-    );
-  }
-
-  public close(): void {
-    this._isOpen = false;
-    this.removeAttribute("open");
-    this.updateDropdownVisibility();
-    this._selectedIndex = -1;
-    this.updateSelectedItem();
-  }
-
   private _handleButtonClick = (e: Event): void => {
     e.stopPropagation();
 
-    if (this._isOpen) {
-      this.close();
-    } else {
-      this.open();
+    const menuId = this.getAttribute("data-menu-id");
+    const isOpen = this.hasAttribute("open");
+    if (menuId && this.onToggle) {
+      this.onToggle(menuId, isOpen);
     }
   };
 
   private _handleMouseEnter = (): void => {
-    // Check if parent menubar has any open menu
-    const menuBar = this.getMenuBar();
-    if (menuBar) {
-      const hasOpenMenu = (menuBar as any).hasOpenMenu?.();
-      if (hasOpenMenu && !this._isOpen) {
-        this.open();
-      }
+    const menuId = this.getAttribute("data-menu-id");
+    const isOpen = this.hasAttribute("open");
+
+    if (this.hasOpenMenu?.() && !isOpen && menuId && this.onToggle) {
+      this.onToggle(menuId, false);
     }
-  };
-
-  private _handleDocumentClick = (e: Event): void => {
-    if (!this._isOpen) return;
-
-    // Use composedPath() to properly detect clicks through shadow DOM
-    const path = e.composedPath();
-
-    // If click originated from within this menu component, ignore it
-    if (path.includes(this)) {
-      return;
-    }
-
-    // Click was outside, close the menu
-    this.close();
-  };
-
-  private _handleMenuItemClick = (e: Event): void => {
-    const customEvent = e as CustomEvent;
-
-    // Close this menu
-    this.close();
-
-    // Forward event to menubar for action execution
-    this.dispatchEvent(
-      new CustomEvent("menu-action", {
-        bubbles: true,
-        composed: true,
-        detail: customEvent.detail,
-      }),
-    );
   };
 
   private _handleKeydown = (e: KeyboardEvent): void => {
-    if (!this._isOpen) return;
+    const isOpen = this.hasAttribute("open");
+    if (!isOpen) return;
 
     const menuItems = this.getSelectableMenuItems();
     if (menuItems.length === 0) return;
 
     let handled = false;
+    const menuId = this.getAttribute("data-menu-id");
 
     switch (e.key) {
-      case "ArrowDown":
-        this._selectedIndex = (this._selectedIndex + 1) % menuItems.length;
-        this.updateSelectedItem();
+      case "ArrowDown": {
+        const currentIndex = parseInt(this.getAttribute("selected-index") || "-1", 10);
+        const nextIndex = (currentIndex + 1) % menuItems.length;
+        if (menuId && this.onSelectItem) {
+          this.onSelectItem(menuId, nextIndex);
+        }
         handled = true;
         break;
+      }
 
-      case "ArrowUp":
-        this._selectedIndex = this._selectedIndex <= 0 ? menuItems.length - 1 : this._selectedIndex - 1;
-        this.updateSelectedItem();
+      case "ArrowUp": {
+        const currentIndex = parseInt(this.getAttribute("selected-index") || "-1", 10);
+        const nextIndex = currentIndex <= 0 ? menuItems.length - 1 : currentIndex - 1;
+        if (menuId && this.onSelectItem) {
+          this.onSelectItem(menuId, nextIndex);
+        }
         handled = true;
         break;
+      }
 
       case "Enter":
-      case " ":
-        if (this._selectedIndex >= 0 && this._selectedIndex < menuItems.length) {
-          const selectedItem = menuItems[this._selectedIndex] as any;
+      case " ": {
+        const currentIndex = parseInt(this.getAttribute("selected-index") || "-1", 10);
+        if (currentIndex >= 0 && currentIndex < menuItems.length) {
+          const selectedItem = menuItems[currentIndex] as any;
           selectedItem.activate?.();
           handled = true;
         }
         break;
+      }
 
       case "ArrowLeft":
+        if (this.onNavigatePrevious) {
+          this.onNavigatePrevious();
+          handled = true;
+        }
+        break;
+
       case "ArrowRight":
-        // Delegate horizontal navigation to parent MenuBar
-        const menuBar = this.getMenuBar();
-        if (menuBar) {
-          if (e.key === "ArrowLeft") {
-            (menuBar as MenuBar).navigateToPreviousMenu?.();
-          } else {
-            (menuBar as MenuBar).navigateToNextMenu?.();
-          }
+        if (this.onNavigateNext) {
+          this.onNavigateNext();
           handled = true;
         }
         break;
 
       case "Escape":
-        this.close();
+        if (menuId && this.onClose) {
+          this.onClose(menuId);
+        }
         handled = true;
         break;
     }
@@ -300,27 +255,15 @@ export class Menu extends BaseComponent {
 
   private updateSelectedItem(): void {
     const menuItems = this.getSelectableMenuItems();
+    const selectedIndex = parseInt(this.getAttribute("selected-index") || "-1", 10);
 
     menuItems.forEach((item, index) => {
-      if (index === this._selectedIndex) {
+      if (index === selectedIndex) {
         item.setAttribute("selected", "");
       } else {
         item.removeAttribute("selected");
       }
     });
-  }
-
-  private getMenuBar(): HTMLElement | null {
-    // Access MenuBar through the slot (crosses Shadow DOM boundary)
-    const slot = this.assignedSlot;
-    if (!slot) return null;
-
-    const menuBar = slot.parentElement;
-    if (menuBar && menuBar.tagName.toLowerCase() === "menu-bar") {
-      return menuBar;
-    }
-
-    return null;
   }
 }
 

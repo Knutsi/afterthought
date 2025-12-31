@@ -23,6 +23,7 @@ interface IDynamicMenuBarModel {
 }
 
 interface IMenu {
+  id: string;
   label: string;
   orderedGroups: IMenuGroup[];
 }
@@ -40,9 +41,19 @@ interface IMenuItem {
   disabled: boolean;
 }
 
+interface IDynamicMenuBarViewState {
+  openMenuId: string | null;
+  selectedItemIndices: Map<string, number>;
+}
+
 export class DynamicMenuBar extends BaseComponent {
   private events = new EventListeners();
   private rebuildTimeoutId: number | null = null;
+  private model: IDynamicMenuBarModel | null = null;
+  private viewState: IDynamicMenuBarViewState = {
+    openMenuId: null,
+    selectedItemIndices: new Map(),
+  };
 
   static get observedAttributes(): string[] {
     return [];
@@ -60,9 +71,6 @@ export class DynamicMenuBar extends BaseComponent {
       this.scheduleRebuild();
     });
 
-    // Listen for menu-action events and route to ActionService
-    this.events.add(this, "menu-action", this._handleMenuAction);
-
     // Initial menu population
     this.rebuild();
   }
@@ -74,6 +82,101 @@ export class DynamicMenuBar extends BaseComponent {
       clearTimeout(this.rebuildTimeoutId);
       this.rebuildTimeoutId = null;
     }
+
+    // Close any open menu
+    if (this.viewState.openMenuId) {
+      this.closeMenu(this.viewState.openMenuId);
+    }
+  }
+
+  // Public API: State queries
+  public getOpenMenuId(): string | null {
+    return this.viewState.openMenuId;
+  }
+
+  public getSelectedIndex(menuId: string): number {
+    return this.viewState.selectedItemIndices.get(menuId) ?? -1;
+  }
+
+  public hasOpenMenu(): boolean {
+    return this.viewState.openMenuId !== null;
+  }
+
+  // Public API: State updates
+  public openMenu(menuId: string): void {
+    // Close currently open menu if different
+    if (this.viewState.openMenuId && this.viewState.openMenuId !== menuId) {
+      this.closeMenu(this.viewState.openMenuId);
+    }
+
+    this.viewState.openMenuId = menuId;
+    this.viewState.selectedItemIndices.set(menuId, -1); // Reset selection
+
+    // Update DOM: set 'open' attribute on menu element
+    const menuElement = this.getMenuElement(menuId);
+    if (menuElement) {
+      menuElement.setAttribute('open', '');
+      // Focus the menu for keyboard navigation
+      (menuElement as any).focus?.();
+    }
+  }
+
+  public closeMenu(menuId: string): void {
+    if (this.viewState.openMenuId === menuId) {
+      this.viewState.openMenuId = null;
+    }
+    this.viewState.selectedItemIndices.set(menuId, -1);
+
+    // Update DOM: remove 'open' attribute
+    const menuElement = this.getMenuElement(menuId);
+    if (menuElement) {
+      menuElement.removeAttribute('open');
+      menuElement.removeAttribute('selected-index');
+    }
+  }
+
+  public selectItem(menuId: string, index: number): void {
+    this.viewState.selectedItemIndices.set(menuId, index);
+
+    // Update DOM: set 'selected-index' attribute on menu
+    const menuElement = this.getMenuElement(menuId);
+    if (menuElement) {
+      menuElement.setAttribute('selected-index', String(index));
+    }
+  }
+
+  public navigateToNextMenu(): void {
+    if (!this.model || !this.viewState.openMenuId) return;
+
+    const currentIndex = this.model.orderedMenus.findIndex(
+      m => m.id === this.viewState.openMenuId
+    );
+    if (currentIndex < 0 || currentIndex >= this.model.orderedMenus.length - 1) return;
+
+    const nextMenuId = this.model.orderedMenus[currentIndex + 1].id;
+    this.closeMenu(this.viewState.openMenuId);
+    this.openMenu(nextMenuId);
+  }
+
+  public navigateToPreviousMenu(): void {
+    if (!this.model || !this.viewState.openMenuId) return;
+
+    const currentIndex = this.model.orderedMenus.findIndex(
+      m => m.id === this.viewState.openMenuId
+    );
+    if (currentIndex <= 0) return;
+
+    const previousMenuId = this.model.orderedMenus[currentIndex - 1].id;
+    this.closeMenu(this.viewState.openMenuId);
+    this.openMenu(previousMenuId);
+  }
+
+  // Helper to get menu element by ID
+  private getMenuElement(menuId: string): HTMLElement | null {
+    return Array.from(this.children).find(
+      child => child.tagName.toLowerCase() === 'menu-menu' &&
+               child.getAttribute('data-menu-id') === menuId
+    ) as HTMLElement | null;
   }
 
   protected render(): void {
@@ -81,13 +184,38 @@ export class DynamicMenuBar extends BaseComponent {
       <style>
         :host {
           display: block;
+          background-color: var(--theme-color-background);
+          border-bottom: 1px solid color-mix(in srgb, var(--theme-color-secondary) 30%, transparent);
+          position: relative;
+          z-index: 100;
+        }
+
+        .menubar-container {
+          display: flex;
+          align-items: center;
+          height: var(--theme-size-menubar-height, 32px);
+          padding: 0;
         }
       </style>
-      <menu-bar>
+      <div class="menubar-container">
         <slot></slot>
-      </menu-bar>
+      </div>
     `;
+
+    // Handle outside clicks to close menus
+    this.events.add(document, 'click', this._handleDocumentClick);
   }
+
+  private _handleDocumentClick = (e: Event): void => {
+    if (!this.viewState.openMenuId) return;
+
+    // Use composedPath() to check if click was inside this component
+    const path = e.composedPath();
+    if (!path.includes(this)) {
+      // Click was outside, close the open menu
+      this.closeMenu(this.viewState.openMenuId);
+    }
+  };
 
   private scheduleRebuild(): void {
     if (this.rebuildTimeoutId !== null) {
@@ -178,6 +306,7 @@ export class DynamicMenuBar extends BaseComponent {
       }
 
       orderedMenus.push({
+        id: `menu-${menuLabel.toLowerCase().replace(/\s+/g, '-')}`,
         label: menuLabel,
         orderedGroups,
       });
@@ -207,8 +336,11 @@ export class DynamicMenuBar extends BaseComponent {
   }
 
   private renderFromModel(model: IDynamicMenuBarModel): void {
-    // Save currently open menu label
-    const openMenuLabel = this.getCurrentOpenMenuLabel();
+    // Store model for state management
+    this.model = model;
+
+    // Save currently open menu ID (not label!)
+    const openMenuId = this.viewState.openMenuId;
 
     // Clear existing menu-menu children
     Array.from(this.children).forEach((child) => {
@@ -221,6 +353,36 @@ export class DynamicMenuBar extends BaseComponent {
     for (const menu of model.orderedMenus) {
       const menuElement = document.createElement("menu-menu");
       menuElement.setAttribute("label", menu.label);
+      menuElement.setAttribute("data-menu-id", menu.id);  // Add menu ID
+
+      // Set callbacks (React-style props)
+      (menuElement as any).onToggle = (menuId: string, currentlyOpen: boolean) => {
+        if (currentlyOpen) {
+          this.closeMenu(menuId);
+        } else {
+          this.openMenu(menuId);
+        }
+      };
+
+      (menuElement as any).onSelectItem = (menuId: string, index: number) => {
+        this.selectItem(menuId, index);
+      };
+
+      (menuElement as any).onNavigateNext = () => {
+        this.navigateToNextMenu();
+      };
+
+      (menuElement as any).onNavigatePrevious = () => {
+        this.navigateToPreviousMenu();
+      };
+
+      (menuElement as any).onClose = (menuId: string) => {
+        this.closeMenu(menuId);
+      };
+
+      (menuElement as any).hasOpenMenu = () => {
+        return this.hasOpenMenu();
+      };
 
       // Add menu items for each group
       for (let groupIndex = 0; groupIndex < menu.orderedGroups.length; groupIndex++) {
@@ -231,6 +393,15 @@ export class DynamicMenuBar extends BaseComponent {
           menuItem.setAttribute("label", item.label);
           menuItem.setAttribute("shortcut", item.shortcut);
           menuItem.setAttribute("action-id", item.actionId);
+
+          // Set onClick callback (React-style prop)
+          (menuItem as any).onClick = (actionId: string) => {
+            // Close the menu
+            this.closeMenu(menu.id);
+
+            // Execute the action
+            this._handleMenuAction(actionId);
+          };
 
           if (group.id) {
             menuItem.setAttribute("data-subgroup", group.id);
@@ -254,35 +425,13 @@ export class DynamicMenuBar extends BaseComponent {
       this.appendChild(menuElement);
     }
 
-    // Restore open menu state
-    this.restoreOpenMenu(openMenuLabel);
-  }
-
-  private getCurrentOpenMenuLabel(): string | null {
-    const menuBar = this.parentElement;
-    if (menuBar && menuBar.tagName.toLowerCase() === "menu-bar") {
-      const openMenu = (menuBar as any)._currentOpenMenu;
-      return openMenu?.getAttribute("label") || null;
-    }
-    return null;
-  }
-
-  private restoreOpenMenu(menuLabel: string | null): void {
-    if (!menuLabel) return;
-
-    const menu = Array.from(this.children).find(
-      (child) => child.tagName.toLowerCase() === "menu-menu" && child.getAttribute("label") === menuLabel,
-    );
-
-    if (menu) {
-      (menu as any).open?.();
+    // Restore open menu using ID
+    if (openMenuId) {
+      this.openMenu(openMenuId);
     }
   }
 
-  private _handleMenuAction = (e: Event): void => {
-    const customEvent = e as CustomEvent;
-    const actionId = customEvent.detail.actionId;
-
+  private _handleMenuAction = (actionId: string): void => {
     if (!actionId) return;
 
     const actionService = getDefaultServiceLayer().actionService;

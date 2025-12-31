@@ -5,7 +5,6 @@ import { getDefaultServiceLayer } from "./service/ServiceLayer.ts";
 import "./gui/layout/MainLayout";
 import "./gui/menubar/MenuItem";
 import "./gui/menubar/Menu";
-import "./gui/menubar/MenuBar";
 import "./gui/menubar/DynamicMenuBar";
 import "./gui/tabs/TabPage";
 import "./gui/tabs/TabContainer";

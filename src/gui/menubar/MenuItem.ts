@@ -3,6 +3,9 @@ import { EventListeners } from '../core/utilities';
 import { noSelect } from '../styles/cssUtilities';
 
 export class MenuItem extends BaseComponent {
+  // React-style callback prop
+  public onClick?: (actionId: string, label: string, shortcut: string) => void;
+
   private events = new EventListeners();
 
   static get observedAttributes(): string[] {
@@ -23,16 +26,13 @@ export class MenuItem extends BaseComponent {
 
     if (disabled || isSeparator) return;
 
-    // Dispatch the same event that click would dispatch
-    this.dispatchEvent(new CustomEvent('menuitem-click', {
-      bubbles: true,
-      composed: true,
-      detail: {
-        label: this.getAttribute('label'),
-        actionId: this.getAttribute('action-id'),
-        shortcut: this.getAttribute('shortcut')
-      }
-    }));
+    if (this.onClick) {
+      this.onClick(
+        this.getAttribute('action-id') || '',
+        this.getAttribute('label') || '',
+        this.getAttribute('shortcut') || ''
+      );
+    }
   }
 
   protected render(): void {
@@ -131,16 +131,13 @@ export class MenuItem extends BaseComponent {
 
     if (disabled || isSeparator) return;
 
-    // Dispatch custom event for parent Menu to handle
-    this.dispatchEvent(new CustomEvent('menuitem-click', {
-      bubbles: true,
-      composed: true,
-      detail: {
-        label: this.getAttribute('label'),
-        actionId: this.getAttribute('action-id'),
-        shortcut: this.getAttribute('shortcut')
-      }
-    }));
+    if (this.onClick) {
+      this.onClick(
+        this.getAttribute('action-id') || '',
+        this.getAttribute('label') || '',
+        this.getAttribute('shortcut') || ''
+      );
+    }
   };
 }
 
