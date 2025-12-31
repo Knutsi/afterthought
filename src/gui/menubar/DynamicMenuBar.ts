@@ -1,15 +1,48 @@
-import { BaseComponent, defineComponent } from '../core/BaseComponent';
-import { EventListeners } from '../core/utilities';
-import { getDefaultServiceLayer } from '../../service/ServiceLayer';
-import { ActionEvents, type IAction } from '../../service/ActionService';
+import { BaseComponent, defineComponent } from "../core/BaseComponent";
+import { EventListeners } from "../core/utilities";
+import { getDefaultServiceLayer } from "../../service/ServiceLayer";
+import { ActionEvents, type IAction } from "../../service/ActionService";
+
+const preferredMenuOrder = ["File", "Edit", "View", "Project", "Task", "Tools", "Window", "Help", "Settings", "About"];
+const preferredMenuGroupOrder = [
+  "create",
+  "exit",
+  "edit",
+  "view",
+  "project",
+  "task",
+  "tools",
+  "window",
+  "help",
+  "settings",
+  "about",
+];
+
+interface IDynamicMenuBarModel {
+  orderedMenus: IMenu[];
+}
+
+interface IMenu {
+  label: string;
+  orderedGroups: IMenuGroup[];
+}
+
+interface IMenuGroup {
+  id: string;
+  orderedItems: IMenuItem[];
+}
+
+interface IMenuItem {
+  id: string;
+  label: string;
+  shortcut: string;
+  actionId: string;
+  disabled: boolean;
+}
 
 export class DynamicMenuBar extends BaseComponent {
   private events = new EventListeners();
-
-  // Track existing DOM elements to prevent recreation
-  private menuElements: Map<string, HTMLElement> = new Map();
-  private menuItems: Map<string, HTMLElement> = new Map();
-  private subgroupsByMenu: Map<string, Set<string | undefined>> = new Map();
+  private rebuildTimeoutId: number | null = null;
 
   static get observedAttributes(): string[] {
     return [];
@@ -18,29 +51,29 @@ export class DynamicMenuBar extends BaseComponent {
   protected onInit(): void {
     const actionService = getDefaultServiceLayer().actionService;
 
-    // Listen to action events - incremental updates instead of full regeneration
-    actionService.addEventListener(ActionEvents.ACTION_ADDED, (e: Event) => {
-      const customEvent = e as CustomEvent;
-      this.addActionToMenu(customEvent.detail.action);
+    // Listen to action events - trigger rebuild on changes
+    actionService.addEventListener(ActionEvents.ACTION_ADDED, () => {
+      this.scheduleRebuild();
     });
 
     actionService.addEventListener(ActionEvents.ACTION_AVAILABILITY_UPDATED, () => {
-      this.updateMenuAvailability();
+      this.scheduleRebuild();
     });
 
     // Listen for menu-action events and route to ActionService
     this.events.add(this, "menu-action", this._handleMenuAction);
 
-    // Initial menu population - add each action incrementally
-    const actions = actionService.getActions();
-    actions.forEach(action => this.addActionToMenu(action));
+    // Initial menu population
+    this.rebuild();
   }
 
   protected onDestroy(): void {
     this.events.removeAll();
-    this.menuElements.clear();
-    this.menuItems.clear();
-    this.subgroupsByMenu.clear();
+
+    if (this.rebuildTimeoutId !== null) {
+      clearTimeout(this.rebuildTimeoutId);
+      this.rebuildTimeoutId = null;
+    }
   }
 
   protected render(): void {
@@ -56,144 +89,193 @@ export class DynamicMenuBar extends BaseComponent {
     `;
   }
 
-  private getOrCreateMenu(menuGroup: string): HTMLElement {
-    // Return existing menu if it exists
-    if (this.menuElements.has(menuGroup)) {
-      return this.menuElements.get(menuGroup)!;
+  private scheduleRebuild(): void {
+    if (this.rebuildTimeoutId !== null) {
+      clearTimeout(this.rebuildTimeoutId);
     }
 
-    // Create new menu-menu element
-    const menuMenu = document.createElement('menu-menu');
-    menuMenu.setAttribute('label', menuGroup);
-
-    // Find insertion position (alphabetical by menuGroup)
-    let insertIndex = 0;
-    for (let i = 0; i < this.children.length; i++) {
-      const child = this.children[i];
-      if (child.tagName.toLowerCase() === 'menu-menu') {
-        const existingLabel = child.getAttribute('label') || '';
-        if (menuGroup.localeCompare(existingLabel) > 0) {
-          insertIndex = i + 1;
-        }
-      }
-    }
-
-    // Insert menu in correct position
-    if (insertIndex >= this.children.length) {
-      this.appendChild(menuMenu);
-    } else {
-      this.insertBefore(menuMenu, this.children[insertIndex]);
-    }
-
-    // Track menu and initialize subgroup set
-    this.menuElements.set(menuGroup, menuMenu);
-    this.subgroupsByMenu.set(menuGroup, new Set());
-
-    return menuMenu;
+    this.rebuildTimeoutId = setTimeout(() => {
+      this.rebuild();
+      this.rebuildTimeoutId = null;
+    }, 10) as unknown as number;
   }
 
-  private addActionToMenu(action: IAction): void {
-    // Get or create the menu for this action's menuGroup
-    const menu = this.getOrCreateMenu(action.menuGroup);
+  private async rebuild(): Promise<void> {
+    const actionService = getDefaultServiceLayer().actionService;
+    const actions = actionService.getActions();
+    const model = await this.buildMenuBarModel(actions);
+    this.renderFromModel(model);
+  }
 
-    // Create menu-item element
-    const menuItem = document.createElement('menu-item');
-    menuItem.setAttribute('label', action.name);
-    menuItem.setAttribute('shortcut', action.shortcut);
-    menuItem.setAttribute('action-id', action.id);
+  private async buildMenuBarModel(actions: IAction[]): Promise<IDynamicMenuBarModel> {
+    // Group actions by menuGroup, then by menuSubGroup
+    const menuMap = new Map<string, Map<string | undefined, IAction[]>>();
 
-    // Store subgroup in data attribute for easy lookup
-    if (action.menuSubGroup) {
-      menuItem.setAttribute('data-subgroup', action.menuSubGroup);
+    for (const action of actions) {
+      if (!menuMap.has(action.menuGroup)) {
+        menuMap.set(action.menuGroup, new Map());
+      }
+      const subgroupMap = menuMap.get(action.menuGroup)!;
+      const subgroupKey = action.menuSubGroup || undefined;
+
+      if (!subgroupMap.has(subgroupKey)) {
+        subgroupMap.set(subgroupKey, []);
+      }
+      subgroupMap.get(subgroupKey)!.push(action);
     }
 
-    // Set initial availability
-    action.canDo().then(canDo => {
-      if (!canDo) {
-        menuItem.setAttribute('disabled', '');
+    // Build menu items with parallel canDo() calls
+    const orderedMenus: IMenu[] = [];
+
+    for (const [menuLabel, subgroupMap] of menuMap.entries()) {
+      const orderedGroups: IMenuGroup[] = [];
+
+      // Sort subgroups: by preferredMenuGroupOrder, then alphabetically
+      const sortedSubgroups = Array.from(subgroupMap.keys()).sort((a, b) => {
+        if (a === undefined && b === undefined) return 0;
+        if (a === undefined) return -1;
+        if (b === undefined) return 1;
+
+        const aIndex = preferredMenuGroupOrder.indexOf(a);
+        const bIndex = preferredMenuGroupOrder.indexOf(b);
+
+        // Both in preferred list
+        if (aIndex !== -1 && bIndex !== -1) {
+          return aIndex - bIndex;
+        }
+
+        // Only a is in preferred list
+        if (aIndex !== -1) return -1;
+
+        // Only b is in preferred list
+        if (bIndex !== -1) return 1;
+
+        // Neither in preferred list, sort alphabetically
+        return a.localeCompare(b, undefined, { sensitivity: "base" });
+      });
+
+      for (const subgroup of sortedSubgroups) {
+        const actionsInSubgroup = subgroupMap.get(subgroup)!;
+
+        // Build menu items with parallel canDo() calls
+        const itemPromises = actionsInSubgroup.map(async (action) => {
+          const canDo = await action.canDo().catch(() => false);
+          return {
+            id: action.id,
+            label: action.name,
+            shortcut: action.shortcut,
+            actionId: action.id,
+            disabled: !canDo,
+          } as IMenuItem;
+        });
+
+        const orderedItems = await Promise.all(itemPromises);
+
+        orderedGroups.push({
+          id: subgroup || "",
+          orderedItems,
+        });
+      }
+
+      orderedMenus.push({
+        label: menuLabel,
+        orderedGroups,
+      });
+    }
+
+    // Sort menus by preferredMenuOrder, then alphabetically
+    orderedMenus.sort((a, b) => {
+      const aIndex = preferredMenuOrder.indexOf(a.label);
+      const bIndex = preferredMenuOrder.indexOf(b.label);
+
+      // Both in preferred list
+      if (aIndex !== -1 && bIndex !== -1) {
+        return aIndex - bIndex;
+      }
+
+      // Only a is in preferred list
+      if (aIndex !== -1) return -1;
+
+      // Only b is in preferred list
+      if (bIndex !== -1) return 1;
+
+      // Neither in preferred list, sort alphabetically
+      return a.label.localeCompare(b.label, undefined, { sensitivity: "base" });
+    });
+
+    return { orderedMenus };
+  }
+
+  private renderFromModel(model: IDynamicMenuBarModel): void {
+    // Save currently open menu label
+    const openMenuLabel = this.getCurrentOpenMenuLabel();
+
+    // Clear existing menu-menu children
+    Array.from(this.children).forEach((child) => {
+      if (child.tagName.toLowerCase() === "menu-menu") {
+        child.remove();
       }
     });
 
-    // Track this menu item
-    this.menuItems.set(action.id, menuItem);
+    // Create menus from model
+    for (const menu of model.orderedMenus) {
+      const menuElement = document.createElement("menu-menu");
+      menuElement.setAttribute("label", menu.label);
 
-    // Track subgroup (for divider management)
-    const subgroups = this.subgroupsByMenu.get(action.menuGroup)!;
-    const isNewSubgroup = !subgroups.has(action.menuSubGroup);
-    subgroups.add(action.menuSubGroup);
+      // Add menu items for each group
+      for (let groupIndex = 0; groupIndex < menu.orderedGroups.length; groupIndex++) {
+        const group = menu.orderedGroups[groupIndex];
 
-    // Find correct insertion position
-    const position = this.findInsertPositionInMenu(menu, action);
+        for (const item of group.orderedItems) {
+          const menuItem = document.createElement("menu-item");
+          menuItem.setAttribute("label", item.label);
+          menuItem.setAttribute("shortcut", item.shortcut);
+          menuItem.setAttribute("action-id", item.actionId);
 
-    // Insert menu item at correct position
-    if (position >= menu.children.length) {
-      menu.appendChild(menuItem);
-    } else {
-      menu.insertBefore(menuItem, menu.children[position]);
-    }
-
-    // Update dividers if we added a new subgroup
-    if (isNewSubgroup && subgroups.size > 1) {
-      this.updateDividersForMenu(menu);
-    }
-  }
-
-  private findInsertPositionInMenu(menu: HTMLElement, action: IAction): number {
-    const targetSubgroup = action.menuSubGroup;
-
-    for (let i = 0; i < menu.children.length; i++) {
-      const child = menu.children[i];
-
-      // Skip separators when counting position
-      if (child.hasAttribute('separator')) {
-        continue;
-      }
-
-      if (child.tagName.toLowerCase() === 'menu-item') {
-        const itemSubgroup = child.getAttribute('data-subgroup') || undefined;
-
-        // Undefined subgroups come first
-        if (targetSubgroup === undefined && itemSubgroup !== undefined) {
-          return i;
-        }
-
-        // If both defined, compare alphabetically
-        if (targetSubgroup !== undefined && itemSubgroup !== undefined) {
-          if (targetSubgroup.localeCompare(itemSubgroup) < 0) {
-            return i;
+          if (group.id) {
+            menuItem.setAttribute("data-subgroup", group.id);
           }
+
+          if (item.disabled) {
+            menuItem.setAttribute("disabled", "");
+          }
+
+          menuElement.appendChild(menuItem);
+        }
+
+        // Add separator after group (except for last group)
+        if (groupIndex < menu.orderedGroups.length - 1) {
+          const separator = document.createElement("menu-item");
+          separator.setAttribute("separator", "");
+          menuElement.appendChild(separator);
         }
       }
+
+      this.appendChild(menuElement);
     }
 
-    // Insert at end if no earlier position found
-    return menu.children.length;
+    // Restore open menu state
+    this.restoreOpenMenu(openMenuLabel);
   }
 
-  private updateDividersForMenu(menu: HTMLElement): void {
-    // Remove all existing separators
-    const separators = Array.from(menu.querySelectorAll('[separator]'));
-    separators.forEach(sep => sep.remove());
+  private getCurrentOpenMenuLabel(): string | null {
+    const menuBar = this.parentElement;
+    if (menuBar && menuBar.tagName.toLowerCase() === "menu-bar") {
+      const openMenu = (menuBar as any)._currentOpenMenu;
+      return openMenu?.getAttribute("label") || null;
+    }
+    return null;
+  }
 
-    // Insert dividers between subgroups
-    let previousSubgroup: string | undefined = undefined;
+  private restoreOpenMenu(menuLabel: string | null): void {
+    if (!menuLabel) return;
 
-    for (let i = 0; i < menu.children.length; i++) {
-      const child = menu.children[i];
+    const menu = Array.from(this.children).find(
+      (child) => child.tagName.toLowerCase() === "menu-menu" && child.getAttribute("label") === menuLabel,
+    );
 
-      if (child.tagName.toLowerCase() === 'menu-item' && !child.hasAttribute('separator')) {
-        const currentSubgroup = child.getAttribute('data-subgroup') || undefined;
-
-        // Insert divider if subgroup changed (but not before first subgroup)
-        if (previousSubgroup !== undefined && previousSubgroup !== currentSubgroup) {
-          const separator = document.createElement('menu-item');
-          separator.setAttribute('separator', '');
-          menu.insertBefore(separator, child);
-          i++; // Skip the separator we just inserted
-        }
-
-        previousSubgroup = currentSubgroup;
-      }
+    if (menu) {
+      (menu as any).open?.();
     }
   }
 
@@ -210,31 +292,12 @@ export class DynamicMenuBar extends BaseComponent {
       console.error(`Failed to execute action ${actionId}:`, error);
     }
   };
-
-  private updateMenuAvailability(): void {
-    const actionService = getDefaultServiceLayer().actionService;
-    const allActions = actionService.getActions();
-
-    // Iterate tracked items instead of querying DOM
-    this.menuItems.forEach((menuItem, actionId) => {
-      const action = allActions.find(a => a.id === actionId);
-      if (!action) return;
-
-      action.canDo().then(canDo => {
-        if (canDo) {
-          menuItem.removeAttribute('disabled');
-        } else {
-          menuItem.setAttribute('disabled', '');
-        }
-      });
-    });
-  }
 }
 
-defineComponent('dynamic-menu-bar', DynamicMenuBar);
+defineComponent("dynamic-menu-bar", DynamicMenuBar);
 
 declare global {
   interface HTMLElementTagNameMap {
-    'dynamic-menu-bar': DynamicMenuBar;
+    "dynamic-menu-bar": DynamicMenuBar;
   }
 }

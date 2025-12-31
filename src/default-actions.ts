@@ -6,7 +6,7 @@ var newProjectAction: IAction = {
   name: "New Project",
   shortcut: "Ctrl+N",
   menuGroup: "File",
-  menuSubGroup: "Project",
+  menuSubGroup: "create",
   do: async () => {
     console.log("New Project");
   },
@@ -18,7 +18,7 @@ var quitAction: IAction = {
   name: "Quit",
   shortcut: "Ctrl+Q",
   menuGroup: "File",
-  menuSubGroup: "App",
+  menuSubGroup: "exit",
   do: async () => {
     console.log("Quit");
   },
