@@ -1,62 +1,36 @@
+import { BaseComponent, defineComponent } from '../../gui/core/BaseComponent';
 import { getDefaultServiceLayer } from "../../service/ServiceLayer";
 import { ActionEvents, type IAction } from "../../service/ActionService";
 
-// 1. Define the class
-export class ActionList extends HTMLElement {
-  // Private state with type annotation
-  private _initialized: boolean = false;
+export class ActionList extends BaseComponent {
   private _actionService = getDefaultServiceLayer().actionService;
   private _actionAddedHandler?: (e: Event) => void;
 
-  constructor() {
-    super();
-    // Attach Shadow DOM
-    this.attachShadow({ mode: 'open' });
-  }
-
-  // 2. Define observed attributes
   static get observedAttributes(): string[] {
     return [];
   }
 
-  // 3. Lifecycle: Connected
-  connectedCallback(): void {
-    if (this._initialized) return;
-
-    this.render();
+  protected onInit(): void {
     this.addEventListeners();
-    this._initialized = true;
   }
 
-  // 4. Lifecycle: Attribute Changed
-  attributeChangedCallback(
-    name: string,
-    oldValue: string | null,
-    newValue: string | null
-  ): void {
-    if (oldValue === newValue) return;
-  }
-
-  // 5. Lifecycle: Disconnected
-  disconnectedCallback(): void {
+  protected onDestroy(): void {
     this.removeEventListeners();
   }
 
-  // --- Methods ---
-
-  private render(): void {
+  protected render(): void {
     const actions = this._actionService.getActions();
-    
+
     const actionsHtml = actions.length > 0
       ? actions.map(action => this.renderAction(action)).join('')
       : '<div class="no-actions">No actions registered</div>';
 
     this.shadowRoot!.innerHTML = `
       <style>
-        :host { 
-          display: block; 
-          padding: 16px; 
-          border-left: 1px solid #ccc; 
+        :host {
+          display: block;
+          padding: 16px;
+          border-left: 1px solid #ccc;
           background-color: #f9f9f9;
           height: 100%;
           overflow-y: auto;
@@ -110,12 +84,13 @@ export class ActionList extends HTMLElement {
   }
 
   private renderAction(action: IAction): string {
+    const subGroup = action.menuSubGroup ? ` > ${this.escapeHtml(action.menuSubGroup)}` : '';
     return `
       <div class="action-item">
         <div class="action-name">${this.escapeHtml(action.name)}</div>
         <div class="action-id">${this.escapeHtml(action.id)}</div>
         <div class="action-shortcut">Shortcut: ${this.escapeHtml(action.shortcut)}</div>
-        <div class="action-group">Group: ${this.escapeHtml(action.group)}</div>
+        <div class="action-group">Group: ${this.escapeHtml(action.menuGroup)}${subGroup}</div>
       </div>
     `;
   }
@@ -127,7 +102,6 @@ export class ActionList extends HTMLElement {
   }
 
   private addEventListeners(): void {
-    // Listen for new actions being added
     this._actionAddedHandler = () => {
       this.render();
     };
@@ -142,8 +116,8 @@ export class ActionList extends HTMLElement {
   }
 }
 
-// 7. TypeScript Specific: Global Type Augmentation
-// This allows TypeScript to recognize document.createElement('action-list')
+defineComponent('action-list', ActionList);
+
 declare global {
   interface HTMLElementTagNameMap {
     'action-list': ActionList;

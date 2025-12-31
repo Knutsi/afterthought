@@ -1,51 +1,30 @@
-// 1. Define the class
-export class ProjectBrowser extends HTMLElement {
-  // Private state with type annotation
-  private _initialized: boolean = false;
+import { BaseComponent, defineComponent } from '../../gui/core/BaseComponent';
 
-  constructor() {
-    super();
-    // Attach Shadow DOM
-    this.attachShadow({ mode: 'open' });
-  }
-
-  // 2. Define observed attributes
+export class ProjectBrowser extends BaseComponent {
   static get observedAttributes(): string[] {
     return ['title', 'theme'];
   }
 
-  // 3. Lifecycle: Connected
-  connectedCallback(): void {
-    if (this._initialized) return;
-
-    this.render();
+  protected onInit(): void {
     this.addEventListeners();
-    this._initialized = true;
   }
 
-  // 4. Lifecycle: Attribute Changed
-  attributeChangedCallback(
+  protected onAttributeChange(
     name: string,
     oldValue: string | null,
     newValue: string | null
   ): void {
-    if (oldValue === newValue) return;
-
     if (name === 'title') {
-      this.render(); // Re-render on title change
+      // BaseComponent will trigger re-render automatically
+      super.onAttributeChange(name, oldValue, newValue);
     }
   }
 
-  // 5. Lifecycle: Disconnected
-  disconnectedCallback(): void {
+  protected onDestroy(): void {
     this.removeEventListeners();
   }
 
-  // --- Methods ---
-
-  private render(): void {
-    // We use the non-null assertion (!) because we know we attached shadowRoot in the constructor
-    // In strict mode, you might prefer: if (!this.shadowRoot) return;
+  protected render(): void {
     this.shadowRoot!.innerHTML = `
       <style>
         :host { display: block; padding: 10px; border: 1px solid #ccc; }
@@ -70,23 +49,13 @@ export class ProjectBrowser extends HTMLElement {
     }
   }
 
-  // Use an arrow function to automatically bind 'this'
   private _handleClick = (e: Event): void => {
     console.log('Clicked!', e);
   }
 }
 
+defineComponent('project-browser', ProjectBrowser);
 
-
-export function setupProjectBrowser()
-{
-// 6. Register the component
-    customElements.define('project-browser', ProjectBrowser);
-    console.log("Feature added: ProjectBrowser")
-}
-
-// 7. TypeScript Specific: Global Type Augmentation
-// This allows TypeScript to recognize document.createElement('my-component')
 declare global {
   interface HTMLElementTagNameMap {
     'project-browser': ProjectBrowser;
