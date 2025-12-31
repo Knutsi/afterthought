@@ -256,8 +256,8 @@ export class Menu extends BaseComponent {
       case "Enter":
       case " ":
         if (this._selectedIndex >= 0 && this._selectedIndex < menuItems.length) {
-          const selectedItem = menuItems[this._selectedIndex];
-          (selectedItem as any).click?.();
+          const selectedItem = menuItems[this._selectedIndex] as any;
+          selectedItem.activate?.();
           handled = true;
         }
         break;

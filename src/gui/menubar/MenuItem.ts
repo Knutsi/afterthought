@@ -10,11 +10,29 @@ export class MenuItem extends BaseComponent {
   }
 
   protected onInit(): void {
-    this.events.addToShadow(this.shadowRoot, '.menu-item', 'click', this._handleClick);
+    // Event listener setup moved to end of render() to survive re-renders
   }
 
   protected onDestroy(): void {
     this.events.removeAll();
+  }
+
+  public activate(): void {
+    const disabled = this.hasAttribute('disabled');
+    const isSeparator = this.hasAttribute('separator');
+
+    if (disabled || isSeparator) return;
+
+    // Dispatch the same event that click would dispatch
+    this.dispatchEvent(new CustomEvent('menuitem-click', {
+      bubbles: true,
+      composed: true,
+      detail: {
+        label: this.getAttribute('label'),
+        actionId: this.getAttribute('action-id'),
+        shortcut: this.getAttribute('shortcut')
+      }
+    }));
   }
 
   protected render(): void {
@@ -36,6 +54,7 @@ export class MenuItem extends BaseComponent {
         </style>
         <div class="separator"></div>
       `;
+      // No event listener needed for separators
     } else {
       const label = this.getAttribute('label') || '';
       const shortcut = this.getAttribute('shortcut') || '';
@@ -96,6 +115,11 @@ export class MenuItem extends BaseComponent {
           <span class="shortcut">${shortcut}</span>
         </div>
       `;
+
+      // Re-attach event listener after render
+      // This ensures the listener is attached to the current Shadow DOM element
+      this.events.removeAll();  // Clear old listeners
+      this.events.addToShadow(this.shadowRoot, '.menu-item', 'click', this._handleClick);
     }
   }
 
