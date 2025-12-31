@@ -63,7 +63,6 @@ export class Menu extends BaseComponent {
           font-size: var(--theme-font-size, 14px);
           font-family: var(--theme-font-family, system-ui, -apple-system, sans-serif);
           color: var(--theme-color-text);
-          transition: background-color 0.1s ease;
           ${noSelect()}
           height: var(--theme-size-menubar-height, 32px);
           display: flex;
