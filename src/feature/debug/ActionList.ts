@@ -30,7 +30,7 @@ export class ActionList extends HTMLElement {
 
   // 4. Lifecycle: Attribute Changed
   attributeChangedCallback(
-    name: string,
+    _name: string,
     oldValue: string | null,
     newValue: string | null
   ): void {
@@ -110,12 +110,13 @@ export class ActionList extends HTMLElement {
   }
 
   private renderAction(action: IAction): string {
+    const subGroup = action.menuSubGroup ? ` > ${this.escapeHtml(action.menuSubGroup)}` : '';
     return `
       <div class="action-item">
         <div class="action-name">${this.escapeHtml(action.name)}</div>
         <div class="action-id">${this.escapeHtml(action.id)}</div>
         <div class="action-shortcut">Shortcut: ${this.escapeHtml(action.shortcut)}</div>
-        <div class="action-group">Group: ${this.escapeHtml(action.group)}</div>
+        <div class="action-group">Group: ${this.escapeHtml(action.menuGroup)}${subGroup}</div>
       </div>
     `;
   }

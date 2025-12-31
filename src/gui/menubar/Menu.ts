@@ -13,9 +13,17 @@ export class Menu extends BaseComponent {
 
   protected onInit(): void {
     this.discoverMenuItems();
+
+    // Listen to button clicks in shadow DOM
     this.events.addToShadow(this.shadowRoot, '.menu-button', 'mousedown', this._handleButtonClick);
+
+    // Listen to hover for menu switching
     this.events.add(this, 'mouseenter', this._handleMouseEnter);
+
+    // Listen to menu item clicks
     this.events.add(this, 'menuitem-click', this._handleMenuItemClick);
+
+    // Listen to document clicks to close when clicking outside
     this.events.add(document, 'click', this._handleDocumentClick);
 
     this.cleanupMutationObserver = useMutationObserver(this, () => {
@@ -40,7 +48,6 @@ export class Menu extends BaseComponent {
   }
 
   private discoverMenuItems(): void {
-    // Discover menu items (currently unused but maintained for future extensibility)
     discoverChildren(this, 'menu-item');
   }
 
@@ -135,7 +142,7 @@ export class Menu extends BaseComponent {
     this.setAttribute('open', '');
     this.updateDropdownVisibility();
 
-    // Notify parent MenuBar
+    // Notify parent MenuBar that this menu opened
     this.dispatchEvent(new CustomEvent('menu-opened', {
       bubbles: true,
       composed: true
@@ -159,7 +166,7 @@ export class Menu extends BaseComponent {
   };
 
   private _handleMouseEnter = (): void => {
-    // Check if ANY menu in parent menubar is open
+    // Check if parent menubar has any open menu
     const menuBar = this.parentElement;
     if (menuBar && menuBar.tagName.toLowerCase() === 'menu-bar') {
       const hasOpenMenu = (menuBar as any).hasOpenMenu?.();
@@ -172,21 +179,25 @@ export class Menu extends BaseComponent {
   private _handleDocumentClick = (e: Event): void => {
     if (!this._isOpen) return;
 
-    const target = e.target as Node;
+    // Use composedPath() to properly detect clicks through shadow DOM
+    const path = e.composedPath();
 
-    // Check if click is outside this menu
-    if (!this.contains(target) && !this.shadowRoot?.contains(target)) {
-      this.close();
+    // If click originated from within this menu component, ignore it
+    if (path.includes(this)) {
+      return;
     }
+
+    // Click was outside, close the menu
+    this.close();
   };
 
   private _handleMenuItemClick = (e: Event): void => {
     const customEvent = e as CustomEvent;
 
-    // Close menu when item is clicked
+    // Close this menu
     this.close();
 
-    // Forward event to menubar for potential action execution
+    // Forward event to menubar for action execution
     this.dispatchEvent(new CustomEvent('menu-action', {
       bubbles: true,
       composed: true,

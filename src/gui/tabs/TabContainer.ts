@@ -38,7 +38,7 @@ export class TabContainer extends HTMLElement {
 
   // 4. Lifecycle: Attribute Changed
   attributeChangedCallback(
-    name: string,
+    _name: string,
     oldValue: string | null,
     newValue: string | null
   ): void {

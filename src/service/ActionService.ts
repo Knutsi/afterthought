@@ -4,7 +4,8 @@ export interface IAction {
     id: string
     name: string
     shortcut: string
-    group: string
+    menuGroup: string
+    menuSubGroup?: string
     do: () => Promise<void>
     undo?: () => Promise<void>
     canUndo?: () => Promise<boolean>
@@ -20,12 +21,10 @@ export const ActionEvents = {
 
 export class ActionService extends EventTarget {
     private actions: IAction[] = [];
-    private serviceLayer: ServiceLayer;
-    
-    constructor(serviceLayer: ServiceLayer) {
+
+    constructor(_serviceLayer: ServiceLayer) {
         super();
         this.actions = [];
-        this.serviceLayer = serviceLayer;
     }
 
     public doAction(actionId: string): void {
@@ -36,12 +35,14 @@ export class ActionService extends EventTarget {
 
         console.log(`Doing action ${action.id}: ${action.name}`);
         action.do();
+        this.dispatchEvent(new CustomEvent(ActionEvents.ACTION_DONE, { detail: { actionId } }));
     }
 
     public addAction(action: IAction) {
         console.log(`Adding action ${action.id}: ${action.name}`);
         this.validateAction(action);
         this.actions.push(action);
+        this.dispatchEvent(new CustomEvent(ActionEvents.ACTION_ADDED, { detail: { action } }));
     }
 
     public getActions(): IAction[] {
@@ -49,10 +50,8 @@ export class ActionService extends EventTarget {
     }
 
     public updateActionAvailability(): void {
-        for(const action of this.actions) {
-            action.canDo = action.canDo();
-        }
-        // todo: send signal that action availability has changed
+        // Dispatch event to notify listeners that action availability should be rechecked
+        this.dispatchEvent(new Event(ActionEvents.ACTION_AVAILABILITY_UPDATED));
     }
 
     private validateAction(action: IAction): void {

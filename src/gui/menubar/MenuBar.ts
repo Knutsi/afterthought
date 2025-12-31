@@ -14,11 +14,20 @@ export class MenuBar extends BaseComponent {
 
   protected onInit(): void {
     this.discoverMenus();
+
+    // Listen for menu-opened events to track which menu is open
     this.events.add(this, "menu-opened", this._handleMenuOpened);
+
+    // Listen for menu-action events (when menu item is clicked)
     this.events.add(this, "menu-action", this._handleMenuAction);
+
+    // Listen for clicks outside menubar to close menus
     this.events.add(document, "click", this._handleDocumentClick);
+
+    // Listen for keyboard navigation
     this.events.add(this, "keydown", this._handleKeydown as EventListener);
 
+    // Rediscover menus when children change
     this.cleanupMutationObserver = useMutationObserver(this, () => {
       this.discoverMenus();
     }, { childList: true, subtree: false });
@@ -88,10 +97,6 @@ export class MenuBar extends BaseComponent {
 
     if (!actionId) return;
 
-    // Future: Execute action via ActionService
-    // const actionService = getDefaultServiceLayer().actionService;
-    // actionService.doAction(actionId);
-
     console.log("Menu action triggered:", actionId, customEvent.detail);
 
     // Close all menus after action
@@ -102,14 +107,18 @@ export class MenuBar extends BaseComponent {
   };
 
   private _handleDocumentClick = (e: Event): void => {
-    const target = e.target as Node;
+    // Use composedPath() to check if click was inside menubar
+    const path = e.composedPath();
 
-    // If click is outside menubar, close all menus
-    if (!this.contains(target)) {
-      if (this._currentOpenMenu) {
-        (this._currentOpenMenu as any).close?.();
-        this._currentOpenMenu = null;
-      }
+    // If click was inside menubar, don't close menus
+    if (path.includes(this)) {
+      return;
+    }
+
+    // Click was outside menubar, close all menus
+    if (this._currentOpenMenu) {
+      (this._currentOpenMenu as any).close?.();
+      this._currentOpenMenu = null;
     }
   };
 

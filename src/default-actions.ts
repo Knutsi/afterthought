@@ -5,7 +5,8 @@ var newProjectAction: IAction = {
   id: "core.newProject",
   name: "New Project",
   shortcut: "Ctrl+N",
-  group: "File",
+  menuGroup: "File",
+  menuSubGroup: "Project",
   do: async () => {
     console.log("New Project");
   },
@@ -16,7 +17,8 @@ var quitAction: IAction = {
   id: "core.quit",
   name: "Quit",
   shortcut: "Ctrl+Q",
-  group: "File",
+  menuGroup: "File",
+  menuSubGroup: "App",
   do: async () => {
     console.log("Quit");
   },
@@ -25,9 +27,10 @@ var quitAction: IAction = {
 
 var helpAction: IAction = {
   id: "core.help",
-  name: "Help",
+  name: "Documentation",
   shortcut: "F1",
-  group: "Help",
+  menuGroup: "Help",
+  menuSubGroup: "Docs",
   do: async () => {
     console.log("Help");
   },
@@ -38,7 +41,8 @@ var undoAction: IAction = {
   id: "core.undo",
   name: "Undo",
   shortcut: "Ctrl+Z",
-  group: "Edit",
+  menuGroup: "Edit",
+  menuSubGroup: "Basic",
   do: async () => {
     console.log("Undo");
   },
@@ -49,7 +53,8 @@ var redoAction: IAction = {
   id: "core.redo",
   name: "Redo",
   shortcut: "Ctrl+Y",
-  group: "Edit",
+  menuGroup: "Edit",
+  menuSubGroup: "Basic",
   do: async () => {
     console.log("Redo");
   },
@@ -60,7 +65,8 @@ var cutAction: IAction = {
   id: "core.cut",
   name: "Cut",
   shortcut: "Ctrl+X",
-  group: "Edit",
+  menuGroup: "Edit",
+  menuSubGroup: "Clipboard",
   do: async () => {
     console.log("Cut");
   },
@@ -71,7 +77,8 @@ var copyAction: IAction = {
   id: "core.copy",
   name: "Copy",
   shortcut: "Ctrl+C",
-  group: "Edit",
+  menuGroup: "Edit",
+  menuSubGroup: "Clipboard",
   do: async () => {
     console.log("Copy");
   },
@@ -82,7 +89,8 @@ var pasteAction: IAction = {
   id: "core.paste",
   name: "Paste",
   shortcut: "Ctrl+V",
-  group: "Edit",
+  menuGroup: "Edit",
+  menuSubGroup: "Clipboard",
   do: async () => {
     console.log("Paste");
   },
@@ -93,7 +101,8 @@ var aboutAction: IAction = {
   id: "core.about",
   name: "About",
   shortcut: "",
-  group: "Help",
+  menuGroup: "Help",
+  menuSubGroup: "About",
   do: async () => {
     console.log("About");
   },

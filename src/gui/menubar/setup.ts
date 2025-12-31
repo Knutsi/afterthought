@@ -3,6 +3,7 @@
 import './MenuItem';
 import './Menu';
 import './MenuBar';
+import './DynamicMenuBar';
 
 /**
  * Sets up all menubar-related custom elements.
@@ -17,3 +18,4 @@ export function setupMenubar(): void {
 export { MenuItem } from './MenuItem';
 export { Menu } from './Menu';
 export { MenuBar } from './MenuBar';
+export { DynamicMenuBar } from './DynamicMenuBar';

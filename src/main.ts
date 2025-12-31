@@ -1,5 +1,3 @@
-import { IAction } from "./service/ActionService.ts";
-
 // core services and functions:
 import { setupSharedUxComponents } from "./gui/setup.ts";
 import { getDefaultServiceLayer } from "./service/ServiceLayer.ts";
@@ -19,3 +17,6 @@ setupDebugFeature();
 
 // setup default actions:
 setupDefaultActions();
+
+// Trigger initial action availability check after all initialization is complete
+getDefaultServiceLayer().actionService.updateActionAvailability();
