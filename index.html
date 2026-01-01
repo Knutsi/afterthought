@@ -9,11 +9,24 @@
   </head>
 
   <body>
-    <main-layout show-menus show-toolbar show-statusbar mode="normal">
+    <main-layout show-menus show-statusbar mode="normal">
       <dynamic-menu-bar slot="menubar"></dynamic-menu-bar>
       <div slot="toolbar">Toolbar!</div>
       <div slot="statusbar">Statusbar!</div>
-      <div slot="main">MAIN!</div>
+      <tab-view slot="main">
+        <div tab-label="Home">
+          <h1>Home</h1>
+          <p>Welcome to the home tab!</p>
+        </div>
+        <div tab-label="Settings" closeable>
+          <h1>Settings</h1>
+          <p>Configure your application settings here.</p>
+        </div>
+        <div tab-label="About" closeable>
+          <h1>About</h1>
+          <p>Information about this application.</p>
+        </div>
+      </tab-view>
     </main-layout>
   </body>
 </html>

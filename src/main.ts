@@ -6,8 +6,7 @@ import "./gui/layout/MainLayout";
 import "./gui/menubar/MenuItem";
 import "./gui/menubar/Menu";
 import "./gui/menubar/DynamicMenuBar";
-import "./gui/tabs/TabPage";
-import "./gui/tabs/TabContainer";
+import "./gui/activity/TabView";
 import "./feature/project-browser/ProjectBrowser";
 import "./feature/debug/ActionList";
 
