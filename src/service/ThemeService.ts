@@ -1,3 +1,5 @@
+import type { ActionService } from "./ActionService";
+
 export interface ITheme {
     name: string
     colors: {
@@ -176,5 +178,23 @@ export class ThemeService extends EventTarget {
     applyDefaultTheme(): void {
         const theme = this.isDarkModePreferred() ? defaultDarkTheme : defaultTheme;
         this.applyTheme(theme);
+    }
+
+    registerActions(actionService: ActionService): void {
+        const themes = this.listThemes();
+
+        themes.forEach((themeName) => {
+            actionService.addAction({
+                id: `theme.${themeName}`,
+                name: themeName === "default" ? "Light Theme" : themeName === "default-dark" ? "Dark Theme" : themeName,
+                shortcut: "",
+                menuGroup: "View",
+                menuSubGroup: "Theme",
+                do: async () => {
+                    this.applyThemeByName(themeName);
+                },
+                canDo: async () => true
+            });
+        });
     }
 }

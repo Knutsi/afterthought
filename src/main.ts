@@ -20,5 +20,8 @@ getDefaultServiceLayer().getThemeService().applyDefaultTheme();
 // setup default actions:
 setupDefaultActions();
 
+// register theme actions:
+getDefaultServiceLayer().getThemeService().registerActions(getDefaultServiceLayer().actionService);
+
 // Trigger initial action availability check after all initialization is complete
 getDefaultServiceLayer().actionService.updateActionAvailability();
