@@ -3,7 +3,9 @@
     "allow": [
       "Bash(dir:*)",
       "Bash(npm run build:*)",
-      "Bash(tsc:*)"
+      "Bash(tsc:*)",
+      "Bash(find:*)",
+      "Bash(grep:*)"
     ]
   }
 }

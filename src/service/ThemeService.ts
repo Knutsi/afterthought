@@ -1,5 +1,87 @@
-import { ITheme, defaultTheme, defaultDarkTheme } from "../gui/theme";
+export interface ITheme {
+    name: string
+    colors: {
+        primary: string
+        secondary: string
+        background: string
+        text: string
+    }
+    fonts: {
+        fontFamily: string
+        fontSize: string
+        fontWeight: string
+    }
+    sizes: {
+        menubarHeight: string
+        toolbarHeight: string
+        statusbarHeight: string
+    }
+    spacing: {
+        padding: string
+        borderRadius: string
+    }
 
+    time: {
+        formattingFunction: (value: Date) => string
+        parsingFunction: (value: string) => Date
+    }
+}
+
+const defaultTheme: ITheme = {
+    name: "default",
+    colors: {
+        primary: "#2563eb",          // Modern blue accent
+        secondary: "#64748b",        // Slate gray
+        background: "#ffffff",       // White background
+        text: "#1e293b"              // Dark slate text
+    },
+    fonts: {
+        fontFamily: "system-ui, -apple-system, sans-serif",
+        fontSize: "14px",
+        fontWeight: "400"
+    },
+    sizes: {
+        menubarHeight: "32px",
+        toolbarHeight: "40px",
+        statusbarHeight: "24px"
+    },
+    spacing: {
+        padding: "8px",
+        borderRadius: "4px"
+    },
+    time: {
+        formattingFunction: (value: Date) => value.toISOString(),
+        parsingFunction: (value: string) => new Date(value)
+    }
+}
+
+const defaultDarkTheme: ITheme = {
+    name: "default-dark",
+    colors: {
+        primary: "#0a84ff",          // macOS system blue (vibrant accent)
+        secondary: "#8e8e93",        // Neutral gray for borders/secondary
+        background: "#1c1c1e",       // macOS dark background (near-black, neutral)
+        text: "#ffffff"              // Pure white text (macOS standard)
+    },
+    fonts: {
+        fontFamily: "system-ui, -apple-system, sans-serif",
+        fontSize: "14px",
+        fontWeight: "400"
+    },
+    sizes: {
+        menubarHeight: "32px",
+        toolbarHeight: "40px",
+        statusbarHeight: "24px"
+    },
+    spacing: {
+        padding: "8px",
+        borderRadius: "4px"
+    },
+    time: {
+        formattingFunction: (value: Date) => value.toISOString(),
+        parsingFunction: (value: string) => new Date(value)
+    }
+}
 
 export class ThemeService extends EventTarget {
     private currentTheme: ITheme;
@@ -11,7 +93,7 @@ export class ThemeService extends EventTarget {
         this.currentTheme = defaultTheme;
         this.darkModeMediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
         this.setupThemeChangeListener();
-        
+
         // Register default themes
         this.registerTheme(defaultTheme);
         this.registerTheme(defaultDarkTheme);
