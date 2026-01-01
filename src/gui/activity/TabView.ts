@@ -42,39 +42,41 @@ export class TabView extends BaseComponent {
         }
 
         .tab-bar {
-          ${flexRow('0')}
-          padding: 0;
-          background: var(--theme-color-background, #fff);
-          border-bottom: 2px solid var(--theme-color-secondary, #e0e0e0);
+          ${flexRow('4px')}
+          padding: 4px 4px 0 4px;
+          background: rgb(193, 202, 228);
           flex-shrink: 0;
         }
 
         .tab-button {
           ${flexRow('8px')}
-          padding: 12px 24px;
-          border: none;
-          background: transparent;
+          padding: 8px 16px;
+          background: rgba(255, 255, 255, 0.6);
           cursor: pointer;
-          border-bottom: 3px solid transparent;
-          margin-bottom: -2px;
+          border-radius: 4px 4px 4px 4px;
           transition: all 0.2s ease;
           color: var(--theme-color-text, #666);
           font-size: var(--theme-font-size, 14px);
           font-weight: 400;
           ${noSelect()}
           position: relative;
+          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+          align-self: flex-start;
         }
 
-        .tab-button:hover {
-          background: color-mix(in srgb, var(--theme-color-primary, #0066cc) 5%, transparent);
-          color: var(--theme-color-text, #333);
+        .tab-button:hover:not(.active) {
+          background: rgba(255, 255, 255, 0.8);
+          box-shadow: 0 3px 6px rgba(0, 0, 0, 0.15);
         }
 
         .tab-button.active {
-          background: transparent;
-          color: var(--theme-color-primary, #0066cc);
-          border-bottom-color: var(--theme-color-primary, #0066cc);
-          font-weight: 500;
+          background: var(--theme-color-background, #fff);
+          color: var(--theme-color-text, #333);
+          font-weight: 400;
+          box-shadow: none;
+          padding-bottom: 12px;
+          border-radius: 4px 4px 0 0;
+          z-index: 1;
         }
 
         .tab-label {
@@ -98,11 +100,11 @@ export class TabView extends BaseComponent {
           font-size: 18px;
           line-height: 1;
           ${clickable()}
-          opacity: 0.6;
+          opacity: 0.5;
         }
 
         .close-button:hover {
-          background: color-mix(in srgb, var(--theme-color-primary, #0066cc) 15%, transparent);
+          background: rgba(0, 0, 0, 0.1);
           opacity: 1;
         }
 
@@ -116,6 +118,7 @@ export class TabView extends BaseComponent {
           flex: 1;
           overflow: auto;
           display: block;
+          background: var(--theme-color-background, #fff);
         }
       </style>
       <div class="tab-bar">${tabButtons}</div>
@@ -166,11 +169,11 @@ export class TabView extends BaseComponent {
         : '';
 
       return `
-        <button class="tab-button ${isActive ? 'active' : ''}"
-                data-tab-index="${index}">
+        <div class="tab-button ${isActive ? 'active' : ''}"
+             data-tab-index="${index}">
           <span class="${labelClass}">${displayLabel}</span>
           ${closeButton}
-        </button>
+        </div>
       `;
     }).join('');
   }
