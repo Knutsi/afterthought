@@ -43,10 +43,25 @@ export class TabView extends BaseComponent {
         }
 
         .tab-bar {
-          ${flexRow('4px')}
+          display: grid;
+          grid-template-columns: 1fr auto;
+          gap: 4px;
           padding: 4px 4px 0 4px;
           background: rgb(193, 202, 228);
           flex-shrink: 0;
+        }
+
+        .tab-group-left {
+          display: flex;
+          align-items: center;
+          gap: 4px;
+        }
+
+        .tab-group-right {
+          display: flex;
+          align-items: center;
+          gap: 4px;
+          justify-self: end;
         }
 
         .tab-button {
@@ -172,15 +187,24 @@ export class TabView extends BaseComponent {
       return '<div class="empty-message">No tabs available</div>';
     }
 
-    return this._visibleChildren.map((child, index) => {
+    // Separate tabs into left and right groups
+    const leftTabs: string[] = [];
+    const rightTabs: string[] = [];
+
+    this._visibleChildren.forEach((child, index) => {
       const label = child.getAttribute('tab-label');
       const displayLabel = label || 'NO LABEL';
       const isError = !label;
       const iconName = child.getAttribute('tab-icon');
       const closeable = child.hasAttribute('closeable');
+      const isRight = child.hasAttribute('tab-right');
       const isActive = index === this._activeTabIndex;
 
       const labelClass = isError ? 'tab-label error-label' : 'tab-label';
+      const tabClasses = [
+        'tab-button',
+        isActive ? 'active' : ''
+      ].filter(Boolean).join(' ');
 
       // Render icon if specified and exists in dictionary
       const iconSvg = iconName && icons[iconName]
@@ -191,15 +215,28 @@ export class TabView extends BaseComponent {
         ? `<span class="close-button" data-tab-index="${index}">×</span>`
         : '';
 
-      return `
-        <div class="tab-button ${isActive ? 'active' : ''}"
+      const tabHtml = `
+        <div class="${tabClasses}"
              data-tab-index="${index}">
           ${iconSvg}
           <span class="${labelClass}">${displayLabel}</span>
           ${closeButton}
         </div>
       `;
-    }).join('');
+
+      // Add to appropriate group
+      if (isRight) {
+        rightTabs.push(tabHtml);
+      } else {
+        leftTabs.push(tabHtml);
+      }
+    });
+
+    // Return two groups in separate containers
+    return `
+      <div class="tab-group-left">${leftTabs.join('')}</div>
+      <div class="tab-group-right">${rightTabs.join('')}</div>
+    `;
   }
 
   private updateTabVisibility(): void {
@@ -282,7 +319,7 @@ export class TabView extends BaseComponent {
         childList: true,
         subtree: false,
         attributes: true,
-        attributeFilter: ['tab-label', 'closeable', 'tab-icon']
+        attributeFilter: ['tab-label', 'closeable', 'tab-icon', 'tab-right']
       }
     );
   }
