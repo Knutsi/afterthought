@@ -3,12 +3,15 @@ import { ActiveContextService } from "./ActiveContextService";
 import { ObjectService } from "./ObjectService";
 import { ThemeService } from "./ThemeService";
 import { ActivityService } from "./ActivityService";
+
 export class ServiceLayer {
   actionService: ActionService;
   activeContextService: ActiveContextService;
   objectService: ObjectService;
   themeService: ThemeService;
   activityService: ActivityService;
+
+  private featureServices: Record<string, any> = {};
 
   constructor() {
     this.actionService = new ActionService(this);
@@ -28,6 +31,14 @@ export class ServiceLayer {
 
   public getThemeService(): ThemeService {
     return this.themeService;
+  }
+
+  public getFeatureService<T>(featureName: string): T {
+    return this.featureServices[featureName] as T;
+  }
+
+  public registerFeatureService<T>(featureName: string, featureService: T) {
+    this.featureServices[featureName] = featureService;
   }
 }
 

@@ -26,7 +26,7 @@ export class BoardActivity extends BaseComponent {
           font-size: var(--theme-font-size, 14px);
         }
       </style>
-      <div class="board-content">BOARD ACTIVITY</div>
+      <div class="board-content">BOARD</div>
     `;
   }
 

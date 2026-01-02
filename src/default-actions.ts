@@ -1,5 +1,5 @@
 import { IAction } from "./service/ActionService";
-import { getDefaultServiceLayer } from "./service/ServiceLayer";
+import { getDefaultServiceLayer, ServiceLayer } from "./service/ServiceLayer";
 
 var newProjectAction: IAction = {
   id: "core.newProject",
@@ -109,8 +109,8 @@ var aboutAction: IAction = {
   canDo: async () => true,
 };
 
-export function setupDefaultActions() {
-  const actionService = getDefaultServiceLayer().actionService;
+export function setupDefaultActions(serviceLayer: ServiceLayer) {
+  const actionService = serviceLayer.actionService;
   actionService.addAction(newProjectAction);
   actionService.addAction(quitAction);
   actionService.addAction(helpAction);

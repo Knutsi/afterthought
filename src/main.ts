@@ -14,28 +14,35 @@ import "./feature/board/BoardActivity.ts";
 
 // Import default actions setup:
 import { setupDefaultActions } from "./default-actions.ts";
+import { setupBoardFeature } from "./feature/board/setupBoardFeature.ts";
+import { setupHomeFeature } from "./feature/home/setupHomeFeature.ts";
 
 // apply default theme:
-getDefaultServiceLayer().getThemeService().applyDefaultTheme();
 
 // setup default actions:
-setupDefaultActions();
-
 const serviceLayer = getDefaultServiceLayer();
+setupDefaultActions(serviceLayer);
 
-// register theme actions:
-serviceLayer.getThemeService().registerActions(serviceLayer.actionService);
-
-// register activity container (set up in index.html):
-const activityContainer = document.getElementById("activity-container") as HTMLElement;
-if (!activityContainer) {
-  throw new Error("Activity container not found");
-}
+// main container for activities:
+const activityContainer = getActivityContainer();
 serviceLayer.activityService.registerActivityContainer(activityContainer);
 
-serviceLayer.activityService.startActivity("home-activity", {});
-serviceLayer.activityService.startActivity("board-activity", {});
-serviceLayer.activityService.startActivity("board-activity", {});
+// theme:
+serviceLayer.getThemeService().registerActions(serviceLayer.actionService);
+getDefaultServiceLayer().getThemeService().applyDefaultTheme();
+
+// register all features:
+setupHomeFeature(serviceLayer);
+setupBoardFeature(serviceLayer);
 
 // Trigger initial action availability check after all initialization is complete
 serviceLayer.actionService.updateActionAvailability();
+
+/* SUPPORTING FUNCTIONS */
+function getActivityContainer(): HTMLElement {
+  const activityContainer = document.getElementById("activity-container") as HTMLElement;
+  if (!activityContainer) {
+    throw new Error("Activity container not found");
+  }
+  return activityContainer;
+}
