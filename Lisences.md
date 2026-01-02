@@ -1,0 +1,2 @@
+Icons:
+https://www.svgrepo.com/collection/solar-linear-icons/
