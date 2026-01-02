@@ -9,6 +9,7 @@ import "./gui/menubar/DynamicMenuBar";
 import "./gui/activity/TabView";
 import "./feature/project-browser/ProjectBrowser";
 import "./feature/debug/ActionList";
+import "./feature/home/HomeActivity.ts";
 
 // Import default actions setup:
 import { setupDefaultActions } from "./default-actions.ts";
@@ -30,6 +31,8 @@ if (!activityContainer) {
   throw new Error("Activity container not found");
 }
 serviceLayer.activityService.registerActivityContainer(activityContainer);
+
+serviceLayer.activityService.startActivity("home-activity", {});
 
 // Trigger initial action availability check after all initialization is complete
 serviceLayer.actionService.updateActionAvailability();
