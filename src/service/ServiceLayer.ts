@@ -2,17 +2,20 @@ import { ActionService } from "./ActionService";
 import { ActiveContextService } from "./ActiveContextService";
 import { ObjectService } from "./ObjectService";
 import { ThemeService } from "./ThemeService";
-
+import { ActivityService } from "./ActivityService";
 export class ServiceLayer {
   actionService: ActionService;
   activeContextService: ActiveContextService;
   objectService: ObjectService;
   themeService: ThemeService;
+  activityService: ActivityService;
+
   constructor() {
     this.actionService = new ActionService(this);
     this.activeContextService = new ActiveContextService(this);
     this.objectService = new ObjectService(this);
     this.themeService = new ThemeService();
+    this.activityService = new ActivityService();
   }
 
   public getActiveContextService(): ActiveContextService {

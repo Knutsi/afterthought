@@ -19,8 +19,17 @@ getDefaultServiceLayer().getThemeService().applyDefaultTheme();
 // setup default actions:
 setupDefaultActions();
 
+const serviceLayer = getDefaultServiceLayer();
+
 // register theme actions:
-getDefaultServiceLayer().getThemeService().registerActions(getDefaultServiceLayer().actionService);
+serviceLayer.getThemeService().registerActions(serviceLayer.actionService);
+
+// register activity container (set up in index.html):
+const activityContainer = document.getElementById("activity-container") as HTMLElement;
+if (!activityContainer) {
+  throw new Error("Activity container not found");
+}
+serviceLayer.activityService.registerActivityContainer(activityContainer);
 
 // Trigger initial action availability check after all initialization is complete
-getDefaultServiceLayer().actionService.updateActionAvailability();
+serviceLayer.actionService.updateActionAvailability();
