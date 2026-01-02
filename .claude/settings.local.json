@@ -5,7 +5,8 @@
       "Bash(npm run build:*)",
       "Bash(tsc:*)",
       "Bash(find:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(cat:*)"
     ]
   }
 }

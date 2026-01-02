@@ -1,6 +1,7 @@
 import { BaseComponent, defineComponent } from '../core/BaseComponent';
 import { EventListeners, useMutationObserver } from '../core/utilities';
 import { noSelect, flexRow, flexCenter, clickable } from '../styles/cssUtilities';
+import { icons } from '../icons';
 
 export class TabView extends BaseComponent {
   private _activeTabIndex: number = 0;
@@ -108,6 +109,21 @@ export class TabView extends BaseComponent {
           opacity: 1;
         }
 
+        .tab-icon {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          width: 18px;
+          height: 18px;
+          flex-shrink: 0;
+        }
+
+        .tab-icon svg {
+          width: 100%;
+          height: 100%;
+          display: block;
+        }
+
         .empty-message {
           padding: 12px 24px;
           color: var(--theme-color-text-muted, #999);
@@ -160,10 +176,17 @@ export class TabView extends BaseComponent {
       const label = child.getAttribute('tab-label');
       const displayLabel = label || 'NO LABEL';
       const isError = !label;
+      const iconName = child.getAttribute('tab-icon');
       const closeable = child.hasAttribute('closeable');
       const isActive = index === this._activeTabIndex;
 
       const labelClass = isError ? 'tab-label error-label' : 'tab-label';
+
+      // Render icon if specified and exists in dictionary
+      const iconSvg = iconName && icons[iconName]
+        ? `<span class="tab-icon">${icons[iconName]}</span>`
+        : '';
+
       const closeButton = closeable
         ? `<span class="close-button" data-tab-index="${index}">×</span>`
         : '';
@@ -171,6 +194,7 @@ export class TabView extends BaseComponent {
       return `
         <div class="tab-button ${isActive ? 'active' : ''}"
              data-tab-index="${index}">
+          ${iconSvg}
           <span class="${labelClass}">${displayLabel}</span>
           ${closeButton}
         </div>
@@ -258,7 +282,7 @@ export class TabView extends BaseComponent {
         childList: true,
         subtree: false,
         attributes: true,
-        attributeFilter: ['tab-label', 'closeable']
+        attributeFilter: ['tab-label', 'closeable', 'tab-icon']
       }
     );
   }
