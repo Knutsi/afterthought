@@ -10,6 +10,7 @@ import "./gui/activity/TabView";
 import "./feature/project-browser/ProjectBrowser";
 import "./feature/debug/ActionList";
 import "./feature/home/HomeActivity.ts";
+import "./feature/board/BoardActivity.ts";
 
 // Import default actions setup:
 import { setupDefaultActions } from "./default-actions.ts";
@@ -33,6 +34,8 @@ if (!activityContainer) {
 serviceLayer.activityService.registerActivityContainer(activityContainer);
 
 serviceLayer.activityService.startActivity("home-activity", {});
+serviceLayer.activityService.startActivity("board-activity", {});
+serviceLayer.activityService.startActivity("board-activity", {});
 
 // Trigger initial action availability check after all initialization is complete
 serviceLayer.actionService.updateActionAvailability();
