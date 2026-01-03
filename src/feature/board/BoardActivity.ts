@@ -2,6 +2,8 @@ import { BaseComponent, defineComponent } from "../../gui/core/BaseComponent";
 import { BOARD_ACTIVITY_TAG, BOARD_SERVICE_NAME } from "./types";
 import { BoardService } from "./BoardService";
 import { getDefaultServiceLayer, ServiceLayer } from "../../service/ServiceLayer";
+import { createBoardDiagram } from "./editor/diagram-board/BoardDiagram";
+import { Diagram } from "./editor/diagram-core/Diagram";
 
 export interface IBoardActivityData {
   name: string;
@@ -11,7 +13,7 @@ export class BoardActivity extends BaseComponent {
   private boardService!: BoardService;
   private serviceLayer!: ServiceLayer;
   private data!: IBoardActivityData;
-
+  private diagram: Diagram | null = null;
   static get observedAttributes(): string[] {
     return [];
   }
@@ -26,6 +28,12 @@ export class BoardActivity extends BaseComponent {
     this.data = this.boardService.getEmptyBoardData();
     this.setAttribute("tab-label", this.data.name);
     this.render();
+
+    const container = this.shadowRoot!.querySelector(".board-container") as HTMLElement;
+    if (!container) {
+      throw new Error("Board container not found");
+    }
+    this.diagram = createBoardDiagram(container);
   }
 
   protected render(): void {
@@ -36,6 +44,10 @@ export class BoardActivity extends BaseComponent {
       return;
     }
 
+    if (this.diagram) {
+      throw new Error("Diagram already exists. BoardActivity cannot render twice after data is set.");
+    }
+
     this.shadowRoot.innerHTML = `
       <style>
         :host {
@@ -44,13 +56,12 @@ export class BoardActivity extends BaseComponent {
           height: 100%;
         }
 
-        .board-content {
-          padding: 16px;
-          color: var(--theme-color-text, #333);
-          font-size: var(--theme-font-size, 14px);
+        .board-container {
+          width: 100%;
+          height: 100%;
         }
       </style>
-      <div class="board-content">BOARD: ${this.data.name}</div>
+      <div class="board-container"></div>
     `;
   }
 
