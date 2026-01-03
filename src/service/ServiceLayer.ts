@@ -1,5 +1,5 @@
 import { ActionService } from "./ActionService";
-import { ActiveContextService } from "./ActiveContextService";
+import { ActiveContextService } from "./ContextService";
 import { ObjectService } from "./ObjectService";
 import { ThemeService } from "./ThemeService";
 import { ActivityService } from "./ActivityService";
@@ -21,7 +21,7 @@ export class ServiceLayer {
     this.activityService = new ActivityService();
   }
 
-  public getActiveContextService(): ActiveContextService {
+  public getContextService(): ActiveContextService {
     return this.activeContextService;
   }
 
@@ -33,12 +33,30 @@ export class ServiceLayer {
     return this.themeService;
   }
 
+  public getActivityService(): ActivityService {
+    return this.activityService;
+  }
+
   public getFeatureService<T>(featureName: string): T {
     return this.featureServices[featureName] as T;
   }
 
   public registerFeatureService<T>(featureName: string, featureService: T) {
     this.featureServices[featureName] = featureService;
+  }
+
+  public getLoggers() {
+    return {
+      logInfo: (message: string) => {
+        console.log(message);
+      },
+      logError: (message: string) => {
+        console.error(message);
+      },
+      logWarn: (message: string) => {
+        console.warn(message);
+      },
+    };
   }
 }
 

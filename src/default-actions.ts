@@ -1,5 +1,6 @@
 import { IAction } from "./service/ActionService";
-import { getDefaultServiceLayer, ServiceLayer } from "./service/ServiceLayer";
+import { ServiceLayer } from "./service/ServiceLayer";
+import { invoke } from '@tauri-apps/api/core';
 
 var newProjectAction: IAction = {
   id: "core.newProject",
@@ -20,7 +21,7 @@ var quitAction: IAction = {
   menuGroup: "File",
   menuSubGroup: "exit",
   do: async () => {
-    console.log("Quit");
+    await invoke('quit_app');
   },
   canDo: async () => true,
 };

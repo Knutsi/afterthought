@@ -16,6 +16,7 @@ import "./feature/board/BoardActivity.ts";
 import { setupDefaultActions } from "./default-actions.ts";
 import { setupBoardFeature } from "./feature/board/setupBoardFeature.ts";
 import { setupHomeFeature } from "./feature/home/setupHomeFeature.ts";
+import { CREATE_BOARD_ACTION_ID } from "./feature/board/types.ts";
 
 // apply default theme:
 
@@ -37,6 +38,9 @@ setupBoardFeature(serviceLayer);
 
 // Trigger initial action availability check after all initialization is complete
 serviceLayer.actionService.updateActionAvailability();
+
+// DEBUG:
+serviceLayer.actionService.doAction(CREATE_BOARD_ACTION_ID);
 
 /* SUPPORTING FUNCTIONS */
 function getActivityContainer(): HTMLElement {

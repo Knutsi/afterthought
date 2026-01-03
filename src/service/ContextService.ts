@@ -1,18 +1,16 @@
 import type { ServiceLayer } from "./ServiceLayer";
 
-const DefaultContext: IContext = {
-  objectIds: [],
-  selectionIds: [],
-};
-
 export const ActiveContextEvents = {
   ACTIVE_CONTEXT_CHANGED: "activeContextChanged",
 };
 
 export interface IContext {
-  objectIds: string[];
-  selectionIds: string[];
+  activityId: string;
 }
+
+const DefaultContext: IContext = {
+  activityId: "",
+};
 
 export class ActiveContextService extends EventTarget {
   private activeContext: IContext;

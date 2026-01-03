@@ -1,4 +1,5 @@
-import { BaseComponent, defineComponent } from '../../gui/core/BaseComponent';
+import { BaseComponent, defineComponent } from "../../gui/core/BaseComponent";
+import { HOME_ACTIVITY_TAG } from "./types";
 
 export class HomeActivity extends BaseComponent {
   static get observedAttributes(): string[] {
@@ -31,28 +32,28 @@ export class HomeActivity extends BaseComponent {
   }
 
   private ensureTabAttributes(): void {
-    if (!this.hasAttribute('tab-label')) {
-      this.setAttribute('tab-label', 'Home');
+    if (!this.hasAttribute("tab-label")) {
+      this.setAttribute("tab-label", "Home");
     }
 
-    if (!this.hasAttribute('tab-icon')) {
-      this.setAttribute('tab-icon', 'home');
+    if (!this.hasAttribute("tab-icon")) {
+      this.setAttribute("tab-icon", "home");
     }
 
-    if (!this.hasAttribute('tab-right')) {
-      this.setAttribute('tab-right', '');
+    if (!this.hasAttribute("tab-right")) {
+      this.setAttribute("tab-right", "");
     }
 
-    if (this.hasAttribute('closeable')) {
-      this.removeAttribute('closeable');
+    if (this.hasAttribute("closeable")) {
+      this.removeAttribute("closeable");
     }
   }
 }
 
-defineComponent('home-activity', HomeActivity);
+defineComponent(HOME_ACTIVITY_TAG, HomeActivity);
 
 declare global {
   interface HTMLElementTagNameMap {
-    'home-activity': HomeActivity;
+    [HOME_ACTIVITY_TAG]: HomeActivity;
   }
 }

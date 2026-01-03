@@ -1,13 +1,16 @@
-import { BaseComponent, defineComponent } from '../core/BaseComponent';
-import { EventListeners, useMutationObserver } from '../core/utilities';
-import { noSelect, flexRow, flexCenter, clickable } from '../styles/cssUtilities';
-import { icons } from '../icons';
+import { BaseComponent, defineComponent } from "../core/BaseComponent";
+import { EventListeners, useMutationObserver } from "../core/utilities";
+import { noSelect, flexRow, flexCenter, clickable } from "../styles/cssUtilities";
+import { icons } from "../icons";
+import { ActivityService, ActivityEvents } from "../../service/ActivityService";
+import { getDefaultServiceLayer } from "../../service/ServiceLayer";
 
 export class TabView extends BaseComponent {
   private _activeTabIndex: number = 0;
   private _visibleChildren: HTMLElement[] = [];
   private events = new EventListeners();
   private cleanupMutationObserver: (() => void) | null = null;
+  private activityService: ActivityService | null = null;
 
   static get observedAttributes(): string[] {
     return [];
@@ -15,6 +18,9 @@ export class TabView extends BaseComponent {
 
   protected onInit(): void {
     this.setupMutationObserver();
+    const serviceLayer = getDefaultServiceLayer();
+    this.activityService = serviceLayer.getActivityService();
+    this.activityService.addEventListener(ActivityEvents.ACTIVITY_SWITCHED, this.handleActivitySwitch);
   }
 
   protected onDestroy(): void {
@@ -23,7 +29,26 @@ export class TabView extends BaseComponent {
       this.cleanupMutationObserver();
       this.cleanupMutationObserver = null;
     }
+    if (this.activityService) {
+      this.activityService.removeEventListener(ActivityEvents.ACTIVITY_SWITCHED, this.handleActivitySwitch);
+    }
   }
+
+  private handleActivitySwitch = (): void => {
+    if (!this.activityService) return;
+
+    // Sync update visible children from current DOM state before searching
+    this.discoverChildren();
+
+    const activeActivityId = this.activityService.getActiveActivityId();
+    console.log("handleActivitySwitch: Active activity id", activeActivityId);
+    const targetIndex = this._visibleChildren.findIndex((child) => child.id === activeActivityId);
+
+    if (targetIndex !== -1 && targetIndex !== this._activeTabIndex) {
+      this._activeTabIndex = targetIndex;
+      this.render();
+    }
+  };
 
   protected render(): void {
     if (!this.shadowRoot) return;
@@ -65,7 +90,7 @@ export class TabView extends BaseComponent {
         }
 
         .tab-button {
-          ${flexRow('8px')}
+          ${flexRow("8px")}
           padding: 8px 16px;
           background: rgba(255, 255, 255, 0.6);
           cursor: pointer;
@@ -159,7 +184,7 @@ export class TabView extends BaseComponent {
     `;
 
     // Add event listeners after render
-    this.events.addToShadow(this.shadowRoot, '.tab-bar', 'click', this._handleTabClick);
+    this.events.addToShadow(this.shadowRoot, ".tab-bar", "click", this._handleTabClick);
 
     this.updateTabVisibility();
   }
@@ -169,9 +194,7 @@ export class TabView extends BaseComponent {
     const allChildren = Array.from(this.children) as HTMLElement[];
 
     // Filter to only visible children (not hidden)
-    this._visibleChildren = allChildren.filter(
-      child => child.getAttribute('data-tab-hidden') !== 'true'
-    );
+    this._visibleChildren = allChildren.filter((child) => child.getAttribute("data-tab-hidden") !== "true");
 
     // Ensure active tab index is valid
     if (this._activeTabIndex >= this._visibleChildren.length) {
@@ -192,28 +215,21 @@ export class TabView extends BaseComponent {
     const rightTabs: string[] = [];
 
     this._visibleChildren.forEach((child, index) => {
-      const label = child.getAttribute('tab-label');
-      const displayLabel = label || 'NO LABEL';
+      const label = child.getAttribute("tab-label");
+      const displayLabel = label || "NO LABEL";
       const isError = !label;
-      const iconName = child.getAttribute('tab-icon');
-      const closeable = child.hasAttribute('closeable');
-      const isRight = child.hasAttribute('tab-right');
+      const iconName = child.getAttribute("tab-icon");
+      const closeable = child.hasAttribute("closeable");
+      const isRight = child.hasAttribute("tab-right");
       const isActive = index === this._activeTabIndex;
 
-      const labelClass = isError ? 'tab-label error-label' : 'tab-label';
-      const tabClasses = [
-        'tab-button',
-        isActive ? 'active' : ''
-      ].filter(Boolean).join(' ');
+      const labelClass = isError ? "tab-label error-label" : "tab-label";
+      const tabClasses = ["tab-button", isActive ? "active" : ""].filter(Boolean).join(" ");
 
       // Render icon if specified and exists in dictionary
-      const iconSvg = iconName && icons[iconName]
-        ? `<span class="tab-icon">${icons[iconName]}</span>`
-        : '';
+      const iconSvg = iconName && icons[iconName] ? `<span class="tab-icon">${icons[iconName]}</span>` : "";
 
-      const closeButton = closeable
-        ? `<span class="close-button" data-tab-index="${index}">×</span>`
-        : '';
+      const closeButton = closeable ? `<span class="close-button" data-tab-index="${index}">×</span>` : "";
 
       const tabHtml = `
         <div class="${tabClasses}"
@@ -234,8 +250,8 @@ export class TabView extends BaseComponent {
 
     // Return two groups in separate containers
     return `
-      <div class="tab-group-left">${leftTabs.join('')}</div>
-      <div class="tab-group-right">${rightTabs.join('')}</div>
+      <div class="tab-group-left">${leftTabs.join("")}</div>
+      <div class="tab-group-right">${rightTabs.join("")}</div>
     `;
   }
 
@@ -243,9 +259,9 @@ export class TabView extends BaseComponent {
     this._visibleChildren.forEach((child, index) => {
       const shouldShow = index === this._activeTabIndex;
       if (shouldShow) {
-        child.style.display = 'block';
+        child.style.display = "block";
       } else {
-        child.style.display = 'none';
+        child.style.display = "none";
       }
     });
   }
@@ -254,19 +270,17 @@ export class TabView extends BaseComponent {
     const target = e.target as HTMLElement;
 
     // Handle close button
-    if (target.classList.contains('close-button')) {
+    if (target.classList.contains("close-button")) {
       e.stopPropagation();
-      const index = parseInt(target.dataset.tabIndex || '0', 10);
+      const index = parseInt(target.dataset.tabIndex || "0", 10);
       this.closeTab(index);
       return;
     }
 
     // Handle tab selection
-    if (target.classList.contains('tab-button') || target.closest('.tab-button')) {
-      const button = target.classList.contains('tab-button')
-        ? target
-        : target.closest('.tab-button') as HTMLElement;
-      const index = parseInt(button.dataset.tabIndex || '0', 10);
+    if (target.classList.contains("tab-button") || target.closest(".tab-button")) {
+      const button = target.classList.contains("tab-button") ? target : (target.closest(".tab-button") as HTMLElement);
+      const index = parseInt(button.dataset.tabIndex || "0", 10);
       this.setActiveTab(index);
     }
   };
@@ -285,8 +299,8 @@ export class TabView extends BaseComponent {
     const child = this._visibleChildren[index];
 
     // Hide the child
-    child.setAttribute('data-tab-hidden', 'true');
-    child.style.display = 'none';
+    child.setAttribute("data-tab-hidden", "true");
+    child.style.display = "none";
 
     // Re-discover children to update visible list
     this.discoverChildren();
@@ -319,16 +333,16 @@ export class TabView extends BaseComponent {
         childList: true,
         subtree: false,
         attributes: true,
-        attributeFilter: ['tab-label', 'closeable', 'tab-icon', 'tab-right']
-      }
+        attributeFilter: ["tab-label", "closeable", "tab-icon", "tab-right"],
+      },
     );
   }
 }
 
-defineComponent('tab-view', TabView);
+defineComponent("tab-view", TabView);
 
 declare global {
   interface HTMLElementTagNameMap {
-    'tab-view': TabView;
+    "tab-view": TabView;
   }
 }

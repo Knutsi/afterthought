@@ -69,8 +69,9 @@ export class MenuItem extends BaseComponent {
           }
 
           .menu-item {
-            display: flex;
-            justify-content: space-between;
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 32px;
             align-items: center;
             padding: 4px 24px 4px 12px;
             min-height: 24px;
@@ -80,6 +81,7 @@ export class MenuItem extends BaseComponent {
             color: var(--theme-color-text);
             background-color: var(--theme-color-background);
             transition: background-color 0.1s ease;
+            white-space: nowrap;
             ${noSelect()}
           }
 
@@ -95,18 +97,14 @@ export class MenuItem extends BaseComponent {
           }
 
           .label {
-            flex: 1;
             white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            max-width: 250px;
             ${noSelect()}
           }
 
           .shortcut {
-            margin-left: 32px;
             font-size: 12px;
             opacity: 0.7;
+            white-space: nowrap;
             ${noSelect()}
           }
         </style>
