@@ -1,31 +1,57 @@
 import type { ServiceLayer } from "./ServiceLayer";
 
-export const ActiveContextEvents = {
-  ACTIVE_CONTEXT_CHANGED: "activeContextChanged",
+export const ContextEvents = {
+  CONTEXT_CHANGED: "contextChanged",
+  SELECTION_CHANGED: "selectionChanged",
 };
 
 export interface IContext {
   activityId: string;
+  objects: unknown[];
+  selection: unknown[];
 }
 
-const DefaultContext: IContext = {
-  activityId: "",
-};
+function DefaultContext(): IContext {
+  return {
+    activityId: "",
+    objects: [],
+    selection: [],
+  };
+}
 
-export class ActiveContextService extends EventTarget {
+export class ContextService extends EventTarget {
   private activeContext: IContext;
 
   constructor(_: ServiceLayer) {
     super();
-    this.activeContext = DefaultContext;
+    this.activeContext = DefaultContext();
   }
 
   public getActiveContext(): IContext {
     return this.activeContext;
   }
 
-  public setActiveContext(context: IContext) {
-    this.activeContext = context;
-    this.dispatchEvent(new CustomEvent(ActiveContextEvents.ACTIVE_CONTEXT_CHANGED, { detail: context }));
+  public addObject(object: unknown) {
+    this.activeContext.objects.push(object);
+    this.dispatchEvent(new CustomEvent(ContextEvents.CONTEXT_CHANGED));
+  }
+
+  public removeObject(object: unknown) {
+    this.activeContext.objects = this.activeContext.objects.filter((o) => o !== object);
+    this.dispatchEvent(new CustomEvent(ContextEvents.CONTEXT_CHANGED));
+  }
+
+  public updateObject(object: unknown) {
+    this.activeContext.objects = this.activeContext.objects.map((o) => (o === object ? object : o));
+    this.dispatchEvent(new CustomEvent(ContextEvents.CONTEXT_CHANGED));
+  }
+
+  public setSelection(selection: unknown[]) {
+    this.activeContext.selection = selection;
+    this.dispatchEvent(new CustomEvent(ContextEvents.SELECTION_CHANGED));
+  }
+
+  public getSelection(): unknown[] {
+    return this.activeContext.selection;
   }
 }

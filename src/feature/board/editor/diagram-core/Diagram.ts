@@ -10,12 +10,17 @@ export class Diagram {
   private resizeObserver?: ResizeObserver;
   private statusDiv!: HTMLDivElement;
 
+  // Touch gesture state
+  private touchStartDistance: number = 0;
+  private touchStartZoom: number = 1;
+
   constructor(container: HTMLElement) {
     this.data = new DiagramModel();
     this.container = container;
     this.createDOMStructure();
     this.updateExtentDivSize();
     this.setupScrollListener();
+    this.setupTouchListeners();
     this.setupResizeObserver();
   }
 
@@ -125,6 +130,76 @@ export class Diagram {
     this.data.offsetY = this.scrollArea.scrollTop / this.data.zoom;
     this.render();
   };
+
+  /**
+   * Setup touch event listeners for pinch-to-zoom.
+   */
+  private setupTouchListeners(): void {
+    this.scrollArea.addEventListener("touchstart", this.handleTouchStart, { passive: false });
+    this.scrollArea.addEventListener("touchmove", this.handleTouchMove, { passive: false });
+    this.scrollArea.addEventListener("touchend", this.handleTouchEnd, { passive: false });
+  }
+
+  /**
+   * Handle touch start - detect two-finger pinch.
+   */
+  private handleTouchStart = (e: TouchEvent): void => {
+    if (e.touches.length === 2) {
+      // Two-finger touch - start pinch gesture
+      e.preventDefault();
+      const touch1 = e.touches[0];
+      const touch2 = e.touches[1];
+      this.touchStartDistance = this.getTouchDistance(touch1, touch2);
+      this.touchStartZoom = this.data.zoom;
+    }
+  };
+
+  /**
+   * Handle touch move - perform pinch zoom.
+   */
+  private handleTouchMove = (e: TouchEvent): void => {
+    if (e.touches.length === 2) {
+      // Two-finger pinch zoom
+      e.preventDefault();
+
+      const touch1 = e.touches[0];
+      const touch2 = e.touches[1];
+      const currentDistance = this.getTouchDistance(touch1, touch2);
+
+      // Calculate zoom factor based on distance change
+      const zoomFactor = currentDistance / this.touchStartDistance;
+      const newZoom = this.touchStartZoom * zoomFactor;
+
+      // Clamp zoom to reasonable bounds
+      const clampedZoom = Math.max(0.1, Math.min(5.0, newZoom));
+
+      // Get pinch center point (midpoint between fingers)
+      const centerX = (touch1.clientX + touch2.clientX) / 2;
+      const centerY = (touch1.clientY + touch2.clientY) / 2;
+
+      // Apply zoom anchored at pinch center
+      this.setZoomAtPoint(clampedZoom, centerX, centerY);
+    }
+  };
+
+  /**
+   * Handle touch end - cleanup pinch state.
+   */
+  private handleTouchEnd = (e: TouchEvent): void => {
+    if (e.touches.length < 2) {
+      // Less than two fingers - end pinch gesture
+      this.touchStartDistance = 0;
+    }
+  };
+
+  /**
+   * Calculate distance between two touch points.
+   */
+  private getTouchDistance(touch1: Touch, touch2: Touch): number {
+    const dx = touch2.clientX - touch1.clientX;
+    const dy = touch2.clientY - touch1.clientY;
+    return Math.sqrt(dx * dx + dy * dy);
+  }
 
   /**
    * Setup ResizeObserver to handle container size changes.
@@ -342,6 +417,56 @@ export class Diagram {
     }
     this.data.zoom = zoom;
     this.updateExtentDivSize();
+    this.render();
+  }
+
+  /**
+   * Set zoom level anchored at a specific screen point.
+   * The world point under the anchor stays under the anchor after zoom.
+   * @param newZoom - New zoom factor
+   * @param anchorClientX - Anchor X in client coordinates (optional, defaults to center)
+   * @param anchorClientY - Anchor Y in client coordinates (optional, defaults to center)
+   */
+  public setZoomAtPoint(newZoom: number, anchorClientX?: number, anchorClientY?: number): void {
+    if (newZoom <= 0) {
+      throw new Error("Zoom must be positive");
+    }
+    if (newZoom < 0.1 || newZoom > 5.0) {
+      console.warn("Zoom value outside recommended range (0.1 - 5.0)");
+    }
+
+    const oldZoom = this.data.zoom;
+    const rect = this.canvas.getBoundingClientRect();
+
+    // Default anchor to center of canvas
+    const ax = anchorClientX !== undefined ? anchorClientX - rect.left : rect.width / 2;
+    const ay = anchorClientY !== undefined ? anchorClientY - rect.top : rect.height / 2;
+
+    // Calculate world position at anchor point (before zoom)
+    const anchorWorldX = this.data.offsetX + ax / oldZoom;
+    const anchorWorldY = this.data.offsetY + ay / oldZoom;
+
+    // Update zoom
+    this.data.zoom = newZoom;
+    this.updateExtentDivSize();
+
+    // Calculate new offset to keep anchor point fixed
+    const newOffsetX = anchorWorldX - ax / newZoom;
+    const newOffsetY = anchorWorldY - ay / newZoom;
+
+    // Clamp offsets to valid range
+    const viewW = rect.width / newZoom;
+    const viewH = rect.height / newZoom;
+    const maxX = Math.max(0, this.data.extentWidth - viewW);
+    const maxY = Math.max(0, this.data.extentHeight - viewH);
+
+    this.data.offsetX = Math.min(Math.max(0, newOffsetX), maxX);
+    this.data.offsetY = Math.min(Math.max(0, newOffsetY), maxY);
+
+    // Update scroll position to match new offset
+    this.scrollArea.scrollLeft = this.data.offsetX * newZoom;
+    this.scrollArea.scrollTop = this.data.offsetY * newZoom;
+
     this.render();
   }
 

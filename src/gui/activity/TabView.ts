@@ -91,7 +91,7 @@ export class TabView extends BaseComponent {
 
         .tab-button {
           ${flexRow("8px")}
-          padding: 8px 16px;
+          padding: var(--theme-spacing-tab-padding, 8px 16px);
           background: rgba(255, 255, 255, 0.6);
           cursor: pointer;
           border-radius: 4px 4px 4px 4px;
@@ -115,7 +115,7 @@ export class TabView extends BaseComponent {
           color: var(--theme-color-text, #333);
           font-weight: 400;
           box-shadow: none;
-          padding-bottom: 12px;
+          padding-bottom: 10px;
           border-radius: 4px 4px 0 0;
           z-index: 1;
         }
