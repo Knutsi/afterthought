@@ -1,3 +1,4 @@
+import type { IContext } from "./ContextService";
 import type { ServiceLayer } from "./ServiceLayer";
 
 export interface IAction {
@@ -9,7 +10,7 @@ export interface IAction {
   do: () => Promise<void>;
   undo?: () => Promise<void>;
   canUndo?: () => Promise<boolean>;
-  canDo: () => Promise<boolean>;
+  canDo: (context: IContext) => Promise<boolean>;
 }
 
 export const ActionEvents = {

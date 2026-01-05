@@ -41,7 +41,7 @@ const defaultTheme: ITheme = {
   fonts: {
     fontFamily: "system-ui, -apple-system, sans-serif",
     fontSize: "13px",
-    fontWeight: "800",
+    fontWeight: "400",
   },
   sizes: {
     menubarHeight: "30px",

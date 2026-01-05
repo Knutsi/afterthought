@@ -289,14 +289,14 @@ export class Diagram {
     // offsetX/offsetY are already in world units
     const visibleLeft = this.data.offsetX;
     const visibleTop = this.data.offsetY;
-    const visibleWidth = (this.canvas.width / window.devicePixelRatio) / this.data.zoom;
-    const visibleHeight = (this.canvas.height / window.devicePixelRatio) / this.data.zoom;
+    const visibleWidth = this.canvas.width / window.devicePixelRatio / this.data.zoom;
+    const visibleHeight = this.canvas.height / window.devicePixelRatio / this.data.zoom;
 
     // Clamp to extent bounds
-    const gridStartX = Math.max(0, Math.floor(visibleLeft / 100) * 100);
-    const gridEndX = Math.min(this.data.extentWidth, visibleLeft + visibleWidth);
-    const gridStartY = Math.max(0, Math.floor(visibleTop / 100) * 100);
-    const gridEndY = Math.min(this.data.extentHeight, visibleTop + visibleHeight);
+    const gridStartX = Math.max(0, Math.floor(visibleLeft / 100) * 100) - 1;
+    const gridEndX = Math.min(this.data.extentWidth, visibleLeft + visibleWidth) - 1;
+    const gridStartY = Math.max(0, Math.floor(visibleTop / 100) * 100) - 1;
+    const gridEndY = Math.min(this.data.extentHeight, visibleTop + visibleHeight) - 1;
 
     // Draw vertical lines
     for (let x = gridStartX; x <= gridEndX; x += 100) {
