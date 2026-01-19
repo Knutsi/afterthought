@@ -23,7 +23,6 @@ export class BoardActivity extends BaseComponent {
 
     this.serviceLayer = getDefaultServiceLayer();
     this.boardService = this.serviceLayer.getFeatureService(BOARD_SERVICE_NAME);
-    console.log("BoardActivity initialized", this.boardService);
 
     this.data = this.boardService.getEmptyBoardData();
     this.setAttribute("tab-label", this.data.name);
@@ -33,7 +32,9 @@ export class BoardActivity extends BaseComponent {
     if (!container) {
       throw new Error("Board container not found");
     }
+    // sets up the main event loop of the board:
     this.diagram = createBoardDiagram(container);
+    // TODO: load board data
   }
 
   protected render(): void {

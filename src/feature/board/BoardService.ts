@@ -2,7 +2,7 @@ import { ActivityService } from "../../service/ActivityService";
 import { ServiceLayer } from "../../service/ServiceLayer";
 import type { IBoardActivityData } from "./BoardActivity";
 import { BoardRepository } from "./BoardRepository";
-import { BOARD_ACTIVITY_TAG, CREATE_BOARD_ACTION_ID } from "./types";
+import { BOARD_ACTIVITY_TAG, CREATE_BOARD_ACTION_ID, IBoardActivityParams } from "./types";
 
 export class BoardService {
   private boardRepository: BoardRepository;
@@ -37,7 +37,7 @@ export class BoardService {
       menuGroup: "File",
       menuSubGroup: "create",
       do: async () => {
-        const activity = this.activityService.startActivity(BOARD_ACTIVITY_TAG, {});
+        const activity = this.activityService.startActivity<IBoardActivityParams>(BOARD_ACTIVITY_TAG, {});
         this.activityService.switchToActivity(activity.id);
       },
       canDo: async () => true,
