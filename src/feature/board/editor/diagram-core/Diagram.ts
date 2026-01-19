@@ -1,6 +1,8 @@
 import { DiagramModel } from "./types";
 
 export class Diagram {
+  private static instanceCounter = 0;
+  private readonly instanceId: number;
   private data: DiagramModel;
   private container: HTMLElement;
   private scrollArea!: HTMLDivElement;
@@ -10,17 +12,13 @@ export class Diagram {
   private resizeObserver?: ResizeObserver;
   private statusDiv!: HTMLDivElement;
 
-  // Touch gesture state
-  private touchStartDistance: number = 0;
-  private touchStartZoom: number = 1;
-
   constructor(container: HTMLElement) {
+    this.instanceId = Diagram.instanceCounter++;
     this.data = new DiagramModel();
     this.container = container;
     this.createDOMStructure();
     this.updateExtentDivSize();
     this.setupScrollListener();
-    this.setupTouchListeners();
     this.setupResizeObserver();
   }
 
@@ -30,6 +28,7 @@ export class Diagram {
   private createDOMStructure(): void {
     // Create root container
     const root = document.createElement("div");
+    root.id = `diagram-root-${this.instanceId}`;
     root.className = "diagram-root";
     root.style.cssText = `
       position: relative;
@@ -40,6 +39,7 @@ export class Diagram {
 
     // Create canvas (below scroll area)
     this.canvas = document.createElement("canvas");
+    this.canvas.id = `diagram-canvas-${this.instanceId}`;
     this.canvas.className = "diagram-canvas";
     this.canvas.style.cssText = `
       position: absolute;
@@ -50,6 +50,7 @@ export class Diagram {
 
     // Create scroll area (on top of canvas, transparent)
     this.scrollArea = document.createElement("div");
+    this.scrollArea.id = `diagram-scroll-area-${this.instanceId}`;
     this.scrollArea.className = "diagram-scroll-area";
     this.scrollArea.style.cssText = `
       position: absolute;
@@ -63,6 +64,7 @@ export class Diagram {
 
     // Create extent div (creates scrollbars)
     this.extentDiv = document.createElement("div");
+    this.extentDiv.id = `diagram-extent-${this.instanceId}`;
     this.extentDiv.className = "diagram-extent";
     this.extentDiv.style.cssText = `
       width: ${this.data.extentWidth}px;
@@ -78,6 +80,7 @@ export class Diagram {
 
     // Create status text overlay (sibling to scroll area)
     this.statusDiv = document.createElement("div");
+    this.statusDiv.id = `diagram-status-${this.instanceId}`;
     this.statusDiv.className = "diagram-status";
     this.statusDiv.style.cssText = `
       position: absolute;
@@ -130,76 +133,6 @@ export class Diagram {
     this.data.offsetY = this.scrollArea.scrollTop / this.data.zoom;
     this.render();
   };
-
-  /**
-   * Setup touch event listeners for pinch-to-zoom.
-   */
-  private setupTouchListeners(): void {
-    this.scrollArea.addEventListener("touchstart", this.handleTouchStart, { passive: false });
-    this.scrollArea.addEventListener("touchmove", this.handleTouchMove, { passive: false });
-    this.scrollArea.addEventListener("touchend", this.handleTouchEnd, { passive: false });
-  }
-
-  /**
-   * Handle touch start - detect two-finger pinch.
-   */
-  private handleTouchStart = (e: TouchEvent): void => {
-    if (e.touches.length === 2) {
-      // Two-finger touch - start pinch gesture
-      e.preventDefault();
-      const touch1 = e.touches[0];
-      const touch2 = e.touches[1];
-      this.touchStartDistance = this.getTouchDistance(touch1, touch2);
-      this.touchStartZoom = this.data.zoom;
-    }
-  };
-
-  /**
-   * Handle touch move - perform pinch zoom.
-   */
-  private handleTouchMove = (e: TouchEvent): void => {
-    if (e.touches.length === 2) {
-      // Two-finger pinch zoom
-      e.preventDefault();
-
-      const touch1 = e.touches[0];
-      const touch2 = e.touches[1];
-      const currentDistance = this.getTouchDistance(touch1, touch2);
-
-      // Calculate zoom factor based on distance change
-      const zoomFactor = currentDistance / this.touchStartDistance;
-      const newZoom = this.touchStartZoom * zoomFactor;
-
-      // Clamp zoom to reasonable bounds
-      const clampedZoom = Math.max(0.1, Math.min(5.0, newZoom));
-
-      // Get pinch center point (midpoint between fingers)
-      const centerX = (touch1.clientX + touch2.clientX) / 2;
-      const centerY = (touch1.clientY + touch2.clientY) / 2;
-
-      // Apply zoom anchored at pinch center
-      this.setZoomAtPoint(clampedZoom, centerX, centerY);
-    }
-  };
-
-  /**
-   * Handle touch end - cleanup pinch state.
-   */
-  private handleTouchEnd = (e: TouchEvent): void => {
-    if (e.touches.length < 2) {
-      // Less than two fingers - end pinch gesture
-      this.touchStartDistance = 0;
-    }
-  };
-
-  /**
-   * Calculate distance between two touch points.
-   */
-  private getTouchDistance(touch1: Touch, touch2: Touch): number {
-    const dx = touch2.clientX - touch1.clientX;
-    const dy = touch2.clientY - touch1.clientY;
-    return Math.sqrt(dx * dx + dy * dy);
-  }
 
   /**
    * Setup ResizeObserver to handle container size changes.
