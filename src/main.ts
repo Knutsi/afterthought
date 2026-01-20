@@ -37,7 +37,7 @@ async function initializeApp(): Promise<void> {
 
   // register all features:
   setupHomeFeature(serviceLayer);
-  setupBoardFeature(serviceLayer);
+  await setupBoardFeature(serviceLayer);
 
   // Trigger initial action availability check after all initialization is complete
   serviceLayer.actionService.updateActionAvailability();

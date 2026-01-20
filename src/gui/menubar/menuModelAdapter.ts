@@ -124,8 +124,11 @@ function groupActionsBySubgroup(actions: IAction[]): Map<string | undefined, IAc
  * Builds menu items from actions, checking canDo() in parallel.
  */
 async function buildMenuItems(actions: IAction[]): Promise<IMenuItem[]> {
+  // Empty context for menu building - actions that need context should handle empty values
+  const emptyContext = { activityId: '', objects: [], selection: [] };
+
   const itemPromises = actions.map(async (action) => {
-    const canDo = await action.canDo().catch(() => false);
+    const canDo = await action.canDo(emptyContext).catch(() => false);
     return {
       id: action.id,
       label: action.name,

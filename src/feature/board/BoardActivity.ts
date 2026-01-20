@@ -1,7 +1,5 @@
 import { BaseComponent, defineComponent } from "../../gui/core/BaseComponent";
-import { BOARD_ACTIVITY_TAG, BOARD_SERVICE_NAME, IBoardActivityParams } from "./types";
-import { BoardService } from "./BoardService";
-import { getDefaultServiceLayer, ServiceLayer } from "../../service/ServiceLayer";
+import { BOARD_ACTIVITY_TAG, IBoardActivityParams } from "./types";
 import { createBoardDiagram } from "./editor/diagram-board/BoardDiagram";
 import { Diagram } from "./editor/diagram-core/Diagram";
 
@@ -10,8 +8,6 @@ export interface IBoardActivityData {
 }
 
 export class BoardActivity extends BaseComponent {
-  private boardService!: BoardService;
-  private serviceLayer!: ServiceLayer;
   private data!: IBoardActivityData;
   private diagram: Diagram | null = null;
   static get observedAttributes(): string[] {
@@ -21,14 +17,11 @@ export class BoardActivity extends BaseComponent {
   protected onInit(): void {
     this.ensureTabAttributes();
 
-    this.serviceLayer = getDefaultServiceLayer();
-    this.boardService = this.serviceLayer.getFeatureService(BOARD_SERVICE_NAME);
-
     const argumentJson = this.getAttribute("data-parameters");
-    const args = JSON.parse(argumentJson) as IBoardActivityParams;
+    const args = JSON.parse(argumentJson!) as IBoardActivityParams;
 
-    this.data = this.boardService.getEmptyBoardData();
-    this.setAttribute("tab-label", args.name!);
+    this.data = { name: args.name };
+    this.setAttribute("tab-label", args.name);
     this.render();
 
     const container = this.shadowRoot!.querySelector(".board-container") as HTMLElement;

@@ -33,6 +33,10 @@ export class StoreManager {
 
   async createStore(name: string): Promise<IStore> {
     const id = this.generateId();
+    return this.createStoreWithId(id, name);
+  }
+
+  async createStoreWithId(id: string, name: string): Promise<IStore> {
     const now = this.getTimestamp();
 
     const store: IStore = {
@@ -46,8 +50,10 @@ export class StoreManager {
     await this.storageProvider.writeJson(`stores/${id}/meta.json`, store);
 
     const registry = await this.getStoreRegistry();
-    registry.stores.push(id);
-    await this.saveStoreRegistry(registry);
+    if (!registry.stores.includes(id)) {
+      registry.stores.push(id);
+      await this.saveStoreRegistry(registry);
+    }
 
     return store;
   }

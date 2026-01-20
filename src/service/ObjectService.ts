@@ -68,6 +68,15 @@ export class ObjectService {
     return deleted;
   }
 
+  async getOrCreateStore(id: string, name: string): Promise<IStore> {
+    const existing = await this.storeManager.getStore(id);
+    if (existing) return existing;
+
+    const store = await this.storeManager.createStoreWithId(id, name);
+    this.notifyStoreSubscribers({ type: 'created', store });
+    return store;
+  }
+
   // Object API
 
   async createObject(storeId: string, type: string, data: any): Promise<IObject> {

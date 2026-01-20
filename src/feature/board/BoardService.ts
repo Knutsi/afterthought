@@ -1,7 +1,7 @@
 import { ActivityService } from "../../service/ActivityService";
+import { ObjectService, IObject } from "../../service/ObjectService";
 import { ServiceLayer } from "../../service/ServiceLayer";
 import type { IBoardActivityData } from "./BoardActivity";
-import { BoardRepository } from "./BoardRepository";
 import {
   BOARD_ACTIVITY_TAG,
   CREATE_BOARD_ACTION_ID,
@@ -9,27 +9,41 @@ import {
   OPEN_BOARD_ACTION_ID
 } from "./types";
 
+const BOARD_STORE_ID = 'board-store';
+
 export class BoardService {
-  private boardRepository: BoardRepository;
   private serviceLayer: ServiceLayer;
   private activityService: ActivityService;
+  private objectService: ObjectService;
+  private boardCount = 0;
 
   constructor(serviceLayer: ServiceLayer) {
     this.serviceLayer = serviceLayer;
     this.activityService = serviceLayer.activityService;
-    this.boardRepository = new BoardRepository();
+    this.objectService = serviceLayer.objectService;
   }
 
-  public getEmptyBoardData(): IBoardActivityData {
+  async initialize(): Promise<void> {
+    await this.objectService.getOrCreateStore(BOARD_STORE_ID, 'boards');
+    const existingBoards = await this.objectService.getObjectsByStore(BOARD_STORE_ID);
+    this.boardCount = existingBoards.length;
+  }
+
+  public async createNewBoard(): Promise<IObject> {
+    const name = this.getNextBoardName();
+    return this.objectService.createObject(BOARD_STORE_ID, 'board', { name });
+  }
+
+  public openBoard(_id: string): IBoardActivityData {
+    // TODO: re-open a store based on the ID
     return {
-      name: this.getNextBoardName(),
-    };
+      name: "Old board!",
+    }
   }
 
   public getNextBoardName(): string {
-    const name = "Board " + this.boardRepository.getBoardCount();
-    this.boardRepository.incrementBoardCount();
-    debugger
+    const name = "Board " + this.boardCount;
+    this.boardCount++;
     return name;
   }
 
@@ -43,14 +57,15 @@ export class BoardService {
       menuGroup: "File",
       menuSubGroup: "create",
       do: async () => {
+        const board = await this.createNewBoard();
         const args: IBoardActivityParams = {
-          openBoardId: null,
-          name: this.getNextBoardName()
+          openBoardId: board.id,
+          name: board.data.name
         }
         const activity = this.activityService.startActivity<IBoardActivityParams>(BOARD_ACTIVITY_TAG, args);
         this.activityService.switchToActivity(activity.id);
       },
-      canDo: async () => true,
+      canDo: async (_context) => true,
     });
 
     actionService.addAction({
@@ -60,21 +75,18 @@ export class BoardService {
       menuGroup: "File",
       menuSubGroup: "open",
       do: async () => {
+        const board = await this.createNewBoard();
         const args: IBoardActivityParams = {
-          openBoardId: null,
-          name: this.getNextBoardName()
+          openBoardId: board.id,
+          name: board.data.name
         }
         const activity = this.activityService.startActivity<IBoardActivityParams>(BOARD_ACTIVITY_TAG, args);
         this.activityService.switchToActivity(activity.id);
       },
-      canDo: async () => true,
+      canDo: async (_context) => true,
     });
   }
 
-  /* TODO: This method should return an object that we attach to adapter method that translates straoge (persisted) to and from the diagram model.
-   * We may want to create some context for each diagram that contains the data it needs, and that it can dynamically work on. */
-  public subscribeBoardData() {
 
-  }
 }
 
