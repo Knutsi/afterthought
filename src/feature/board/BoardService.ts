@@ -13,25 +13,23 @@ const BOARD_STORE_ID = 'board-store';
 
 export class BoardService {
   private serviceLayer: ServiceLayer;
-  private activityService: ActivityService;
-  private objectService: ObjectService;
   private boardCount = 0;
 
   constructor(serviceLayer: ServiceLayer) {
     this.serviceLayer = serviceLayer;
-    this.activityService = serviceLayer.activityService;
-    this.objectService = serviceLayer.objectService;
   }
 
   async initialize(): Promise<void> {
-    await this.objectService.getOrCreateStore(BOARD_STORE_ID, 'boards');
-    const existingBoards = await this.objectService.getObjectsByStore(BOARD_STORE_ID);
+    const objectService = this.serviceLayer.getObjectService();
+    await objectService.getOrCreateStore(BOARD_STORE_ID, 'boards');
+    const existingBoards = await objectService.getObjectsByStore(BOARD_STORE_ID);
     this.boardCount = existingBoards.length;
   }
 
-  public async createNewBoard(): Promise<IObject> {
+  public async newBoard(): Promise<IObject> {
+    const objectService = this.serviceLayer.getObjectService();
     const name = this.getNextBoardName();
-    return this.objectService.createObject(BOARD_STORE_ID, 'board', { name });
+    return objectService.createObject(BOARD_STORE_ID, 'board', { name });
   }
 
   public openBoard(_id: string): IBoardActivityData {
@@ -39,6 +37,10 @@ export class BoardService {
     return {
       name: "Old board!",
     }
+  }
+
+  public saveBoard() {
+
   }
 
   public getNextBoardName(): string {
@@ -49,6 +51,7 @@ export class BoardService {
 
   public registerActions(): void {
     const actionService = this.serviceLayer.actionService;
+    const activityService = this.serviceLayer.getActivityService()
 
     actionService.addAction({
       id: CREATE_BOARD_ACTION_ID,
@@ -57,13 +60,13 @@ export class BoardService {
       menuGroup: "File",
       menuSubGroup: "create",
       do: async () => {
-        const board = await this.createNewBoard();
+        const board = await this.newBoard();
         const args: IBoardActivityParams = {
           openBoardId: board.id,
           name: board.data.name
         }
-        const activity = this.activityService.startActivity<IBoardActivityParams>(BOARD_ACTIVITY_TAG, args);
-        this.activityService.switchToActivity(activity.id);
+        const activity = activityService.startActivity<IBoardActivityParams>(BOARD_ACTIVITY_TAG, args);
+        activityService.switchToActivity(activity.id);
       },
       canDo: async (_context) => true,
     });
@@ -75,13 +78,13 @@ export class BoardService {
       menuGroup: "File",
       menuSubGroup: "open",
       do: async () => {
-        const board = await this.createNewBoard();
+        const board = await this.newBoard();
         const args: IBoardActivityParams = {
           openBoardId: board.id,
           name: board.data.name
         }
-        const activity = this.activityService.startActivity<IBoardActivityParams>(BOARD_ACTIVITY_TAG, args);
-        this.activityService.switchToActivity(activity.id);
+        const activity = activityService.startActivity<IBoardActivityParams>(BOARD_ACTIVITY_TAG, args);
+        activityService.switchToActivity(activity.id);
       },
       canDo: async (_context) => true,
     });
