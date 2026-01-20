@@ -70,4 +70,11 @@ export class BoardService {
       canDo: async () => true,
     });
   }
+
+  /* TODO: This method should return an object that we attach to adapter method that translates straoge (persisted) to and from the diagram model.
+   * We may want to create some context for each diagram that contains the data it needs, and that it can dynamically work on. */
+  public subscribeBoardData() {
+
+  }
 }
+

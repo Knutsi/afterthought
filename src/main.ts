@@ -18,29 +18,35 @@ import { setupBoardFeature } from "./feature/board/setupBoardFeature.ts";
 import { setupHomeFeature } from "./feature/home/setupHomeFeature.ts";
 import { CREATE_BOARD_ACTION_ID } from "./feature/board/types.ts";
 
-// apply default theme:
+async function initializeApp(): Promise<void> {
+  const serviceLayer = getDefaultServiceLayer();
 
-// setup default actions:
-const serviceLayer = getDefaultServiceLayer();
-setupDefaultActions(serviceLayer);
+  // Initialize storage layer first
+  await serviceLayer.objectService.initialize();
 
-// main container for activities:
-const activityContainer = getActivityContainer();
-serviceLayer.activityService.registerActivityContainer(activityContainer);
+  // setup default actions:
+  setupDefaultActions(serviceLayer);
 
-// theme:
-serviceLayer.getThemeService().registerActions(serviceLayer.actionService);
-getDefaultServiceLayer().getThemeService().applyDefaultTheme();
+  // main container for activities:
+  const activityContainer = getActivityContainer();
+  serviceLayer.activityService.registerActivityContainer(activityContainer);
 
-// register all features:
-setupHomeFeature(serviceLayer);
-setupBoardFeature(serviceLayer);
+  // theme:
+  serviceLayer.getThemeService().registerActions(serviceLayer.actionService);
+  getDefaultServiceLayer().getThemeService().applyDefaultTheme();
 
-// Trigger initial action availability check after all initialization is complete
-serviceLayer.actionService.updateActionAvailability();
+  // register all features:
+  setupHomeFeature(serviceLayer);
+  setupBoardFeature(serviceLayer);
 
-// DEBUG:
-serviceLayer.actionService.doAction(CREATE_BOARD_ACTION_ID);
+  // Trigger initial action availability check after all initialization is complete
+  serviceLayer.actionService.updateActionAvailability();
+
+  // DEBUG:
+  serviceLayer.actionService.doAction(CREATE_BOARD_ACTION_ID);
+}
+
+initializeApp().catch(console.error);
 
 /* SUPPORTING FUNCTIONS */
 function getActivityContainer(): HTMLElement {
