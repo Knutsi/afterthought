@@ -1,3 +1,5 @@
+import { IDiagramMode } from "./modes/types";
+
 export class DiagramElement {
   id: string;
   type: string;
@@ -46,6 +48,9 @@ export class DiagramModel {
   // Zoom properties
   zoom: number;         // Zoom factor (1.0 = 100%, 0.5 = 50%, 2.0 = 200%)
 
+  // Mode stack (initialized by Diagram)
+  modeStack: IDiagramMode[];
+
   constructor() {
     this.elements = [];
     this.connections = [];
@@ -54,5 +59,6 @@ export class DiagramModel {
     this.extentWidth = 5000;  // Default extent: 5000x5000
     this.extentHeight = 5000;
     this.zoom = 1.0;          // Default zoom: 100%
+    this.modeStack = [];      // Will be initialized by Diagram
   }
 }

@@ -1,6 +1,8 @@
 import { DiagramModel } from "./types";
+import { IDiagramMode, IDiagramModeContext } from "./modes/types";
+import { IdleMode } from "./modes/IdleMode";
 
-export class Diagram {
+export class Diagram implements IDiagramModeContext {
   private static instanceCounter = 0;
   private readonly instanceId: number;
   private data: DiagramModel;
@@ -12,6 +14,10 @@ export class Diagram {
   private resizeObserver?: ResizeObserver;
   private statusDiv!: HTMLDivElement;
 
+  // Input tracking for delta calculation
+  private lastPointerWorldX = 0;
+  private lastPointerWorldY = 0;
+
   constructor(container: HTMLElement) {
     this.instanceId = Diagram.instanceCounter++;
     this.data = new DiagramModel();
@@ -20,6 +26,8 @@ export class Diagram {
     this.updateExtentDivSize();
     this.setupScrollListener();
     this.setupResizeObserver();
+    this.setupInputListeners();
+    this.initializeModeStack();
   }
 
   /**
@@ -52,6 +60,7 @@ export class Diagram {
     this.scrollArea = document.createElement("div");
     this.scrollArea.id = `diagram-scroll-area-${this.instanceId}`;
     this.scrollArea.className = "diagram-scroll-area";
+    this.scrollArea.tabIndex = 0; // Make focusable to capture keyboard events
     this.scrollArea.style.cssText = `
       position: absolute;
       inset: 0;
@@ -168,35 +177,139 @@ export class Diagram {
 
   /**
    * Convert browser event coordinates to diagram space coordinates.
-   * @param browserX - event.clientX (physical pixels relative to viewport)
-   * @param browserY - event.clientY (physical pixels relative to viewport)
+   * @param browserX - event.clientX (CSS pixels relative to viewport)
+   * @param browserY - event.clientY (CSS pixels relative to viewport)
    * @returns {x, y} in diagram space
-   *
-   * TODO: This will be used for event handlers (click, drag, etc.) in future tasks
    */
-  // @ts-expect-error - Method reserved for future event handling implementation
   private browserToDiagram(browserX: number, browserY: number): { x: number; y: number } {
     const rect = this.canvas.getBoundingClientRect();
-    const dpr = window.devicePixelRatio || 1;
 
-    // Step 1: Canvas-relative physical pixels
-    const canvasPhysicalX = browserX - rect.left;
-    const canvasPhysicalY = browserY - rect.top;
+    // Step 1: Get canvas-relative position in CSS pixels
+    // (clientX and getBoundingClientRect are both in CSS pixels)
+    const canvasX = browserX - rect.left;
+    const canvasY = browserY - rect.top;
 
-    // Step 2: Remove DPI scaling → viewport space
-    const viewportX = canvasPhysicalX / dpr;
-    const viewportY = canvasPhysicalY / dpr;
-
-    // Step 3: Add scroll offset → zoomed space
-    const zoomedX = viewportX + this.data.offsetX;
-    const zoomedY = viewportY + this.data.offsetY;
-
-    // Step 4: Divide by zoom → diagram space
-    const diagramX = zoomedX / this.data.zoom;
-    const diagramY = zoomedY / this.data.zoom;
+    // Step 2: Convert to world coordinates
+    // Divide by zoom to get world units, add world offset
+    // Note: DPR is NOT used here - it's only relevant for canvas rendering transforms
+    const diagramX = canvasX / this.data.zoom + this.data.offsetX;
+    const diagramY = canvasY / this.data.zoom + this.data.offsetY;
 
     return { x: diagramX, y: diagramY };
   }
+
+  // ==================== Mode Management ====================
+
+  /**
+   * Initialize mode stack with IdleMode as the base.
+   */
+  private initializeModeStack(): void {
+    const idleMode = new IdleMode(this);
+    this.data.modeStack.push(idleMode);
+    idleMode.onEnter();
+  }
+
+  /**
+   * Get the current active mode (top of stack).
+   */
+  private get currentMode(): IDiagramMode {
+    return this.data.modeStack[this.data.modeStack.length - 1];
+  }
+
+  /**
+   * Push a new mode onto the stack.
+   * @param mode - Mode to push
+   */
+  public pushMode(mode: IDiagramMode): void {
+    this.data.modeStack.push(mode);
+    mode.onEnter();
+  }
+
+  /**
+   * Pop the current mode from the stack.
+   * Will not pop if only one mode (Idle) remains.
+   */
+  public popMode(): void {
+    if (this.data.modeStack.length <= 1) {
+      return;
+    }
+    const mode = this.data.modeStack.pop();
+    mode?.onExit();
+  }
+
+  // ==================== Input Handling ====================
+
+  /**
+   * Setup input event listeners for pointer and keyboard events.
+   */
+  private setupInputListeners(): void {
+    this.scrollArea.addEventListener("pointerdown", this.handlePointerDown);
+    this.scrollArea.addEventListener("pointermove", this.handlePointerMove);
+    this.scrollArea.addEventListener("pointerup", this.handlePointerUp);
+    this.scrollArea.addEventListener("pointercancel", this.handlePointerUp);
+
+    // Prevent space key from scrolling the scroll area (capture phase to intercept before default behavior)
+    this.scrollArea.addEventListener("keydown", this.handleScrollAreaKeyDown, { capture: true });
+
+    window.addEventListener("keydown", this.handleKeyDown);
+    window.addEventListener("keyup", this.handleKeyUp);
+  }
+
+  /**
+   * Handle pointer down events.
+   */
+  private handlePointerDown = (event: PointerEvent): void => {
+    this.scrollArea.focus(); // Ensure we capture keyboard events
+    const world = this.browserToDiagram(event.clientX, event.clientY);
+    this.lastPointerWorldX = world.x;
+    this.lastPointerWorldY = world.y;
+    this.currentMode.onPointerDown(world.x, world.y, event);
+  };
+
+  /**
+   * Handle pointer move events.
+   */
+  private handlePointerMove = (event: PointerEvent): void => {
+    const world = this.browserToDiagram(event.clientX, event.clientY);
+    const deltaX = world.x - this.lastPointerWorldX;
+    const deltaY = world.y - this.lastPointerWorldY;
+    this.lastPointerWorldX = world.x;
+    this.lastPointerWorldY = world.y;
+    this.currentMode.onPointerMove(world.x, world.y, deltaX, deltaY, event);
+  };
+
+  /**
+   * Handle pointer up events.
+   */
+  private handlePointerUp = (event: PointerEvent): void => {
+    const world = this.browserToDiagram(event.clientX, event.clientY);
+    this.currentMode.onPointerUp(world.x, world.y, event);
+  };
+
+  /**
+   * Handle key down events.
+   */
+  private handleKeyDown = (event: KeyboardEvent): void => {
+    this.currentMode.onKeyDown(event);
+  };
+
+  /**
+   * Handle key up events.
+   */
+  private handleKeyUp = (event: KeyboardEvent): void => {
+    this.currentMode.onKeyUp(event);
+  };
+
+  /**
+   * Handle keydown on scroll area to prevent space from scrolling.
+   */
+  private handleScrollAreaKeyDown = (event: KeyboardEvent): void => {
+    if (event.code === "Space") {
+      event.preventDefault();
+    }
+  };
+
+  // ==================== Rendering ====================
 
   /**
    * Configure canvas context transformation matrix for rendering in diagram space.
@@ -278,6 +391,7 @@ export class Diagram {
   private updateStatusText(): void {
     const dpr = window.devicePixelRatio || 1;
     this.statusDiv.textContent =
+      `Mode: ${this.currentMode.name}\n` +
       `Offset: (${this.data.offsetX.toFixed(1)}, ${this.data.offsetY.toFixed(1)})\n` +
       `Extent: ${this.data.extentWidth} × ${this.data.extentHeight}\n` +
       `Zoom: ${(this.data.zoom * 100).toFixed(0)}%\n` +
