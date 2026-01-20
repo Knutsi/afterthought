@@ -2,7 +2,12 @@ import { ActivityService } from "../../service/ActivityService";
 import { ServiceLayer } from "../../service/ServiceLayer";
 import type { IBoardActivityData } from "./BoardActivity";
 import { BoardRepository } from "./BoardRepository";
-import { BOARD_ACTIVITY_TAG, CREATE_BOARD_ACTION_ID, IBoardActivityParams, OPEN_BOARD_ACTION_ID } from "./types";
+import {
+  BOARD_ACTIVITY_TAG,
+  CREATE_BOARD_ACTION_ID,
+  IBoardActivityParams,
+  OPEN_BOARD_ACTION_ID
+} from "./types";
 
 export class BoardService {
   private boardRepository: BoardRepository;

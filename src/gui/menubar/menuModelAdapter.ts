@@ -3,6 +3,7 @@ import type { IAction } from "../../service/ActionService";
 const preferredMenuOrder = ["File", "Edit", "View", "Project", "Task", "Tools", "Window", "Help", "Settings", "About"];
 const preferredMenuGroupOrder = [
   "create",
+  "open",
   "exit",
   "edit",
   "view",
