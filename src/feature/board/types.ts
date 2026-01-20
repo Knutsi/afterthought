@@ -5,5 +5,6 @@ export const BOARD_SERVICE_NAME = "board-service";
 export const CREATE_BOARD_ACTION_ID = "create-board";
 
 export interface IBoardActivityParams {
-  openBoardId: string
+  name: string,
+  openBoardId: string | null /* new if null */
 } 

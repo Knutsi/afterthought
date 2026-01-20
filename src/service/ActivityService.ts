@@ -21,7 +21,7 @@ export class ActivityService extends EventTarget {
 
     const activityElement = document.createElement(elementName);
     activityElement.setAttribute("id", crypto.randomUUID().substring(0, 8));
-    activityElement.setAttribute("data-activity-parameters", JSON.stringify(parameters));
+    activityElement.setAttribute("data-parameters", JSON.stringify(parameters));
     this.activityContainer.appendChild(activityElement);
 
     return { id: activityElement.id };

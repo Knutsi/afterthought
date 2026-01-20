@@ -1,5 +1,5 @@
 import { BaseComponent, defineComponent } from "../../gui/core/BaseComponent";
-import { BOARD_ACTIVITY_TAG, BOARD_SERVICE_NAME } from "./types";
+import { BOARD_ACTIVITY_TAG, BOARD_SERVICE_NAME, IBoardActivityParams } from "./types";
 import { BoardService } from "./BoardService";
 import { getDefaultServiceLayer, ServiceLayer } from "../../service/ServiceLayer";
 import { createBoardDiagram } from "./editor/diagram-board/BoardDiagram";
@@ -24,8 +24,11 @@ export class BoardActivity extends BaseComponent {
     this.serviceLayer = getDefaultServiceLayer();
     this.boardService = this.serviceLayer.getFeatureService(BOARD_SERVICE_NAME);
 
+    const argumentJson = this.getAttribute("data-parameters");
+    const args = JSON.parse(argumentJson) as IBoardActivityParams;
+
     this.data = this.boardService.getEmptyBoardData();
-    this.setAttribute("tab-label", this.data.name);
+    this.setAttribute("tab-label", args.name!);
     this.render();
 
     const container = this.shadowRoot!.querySelector(".board-container") as HTMLElement;
@@ -35,6 +38,7 @@ export class BoardActivity extends BaseComponent {
     // sets up the main event loop of the board:
     this.diagram = createBoardDiagram(container);
     // TODO: load board data
+    console.log("Board arguments: ", this.getAttribute("data-parameters"))
   }
 
   protected render(): void {

@@ -2,7 +2,7 @@ import { ActivityService } from "../../service/ActivityService";
 import { ServiceLayer } from "../../service/ServiceLayer";
 import type { IBoardActivityData } from "./BoardActivity";
 import { BoardRepository } from "./BoardRepository";
-import { BOARD_ACTIVITY_TAG, CREATE_BOARD_ACTION_ID, IBoardActivityParams } from "./types";
+import { BOARD_ACTIVITY_TAG, CREATE_BOARD_ACTION_ID, IBoardActivityParams, OPEN_BOARD_ACTION_ID } from "./types";
 
 export class BoardService {
   private boardRepository: BoardRepository;
@@ -24,6 +24,7 @@ export class BoardService {
   public getNextBoardName(): string {
     const name = "Board " + this.boardRepository.getBoardCount();
     this.boardRepository.incrementBoardCount();
+    debugger
     return name;
   }
 
@@ -37,7 +38,28 @@ export class BoardService {
       menuGroup: "File",
       menuSubGroup: "create",
       do: async () => {
-        const activity = this.activityService.startActivity<IBoardActivityParams>(BOARD_ACTIVITY_TAG, {});
+        const args: IBoardActivityParams = {
+          openBoardId: null,
+          name: this.getNextBoardName()
+        }
+        const activity = this.activityService.startActivity<IBoardActivityParams>(BOARD_ACTIVITY_TAG, args);
+        this.activityService.switchToActivity(activity.id);
+      },
+      canDo: async () => true,
+    });
+
+    actionService.addAction({
+      id: OPEN_BOARD_ACTION_ID,
+      name: "Open Board",
+      shortcut: "Ctrl+O B",
+      menuGroup: "File",
+      menuSubGroup: "open",
+      do: async () => {
+        const args: IBoardActivityParams = {
+          openBoardId: null,
+          name: this.getNextBoardName()
+        }
+        const activity = this.activityService.startActivity<IBoardActivityParams>(BOARD_ACTIVITY_TAG, args);
         this.activityService.switchToActivity(activity.id);
       },
       canDo: async () => true,
