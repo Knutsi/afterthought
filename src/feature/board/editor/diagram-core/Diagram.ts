@@ -33,6 +33,9 @@ export class Diagram implements IDiagram {
   private canvasDragHistory: Array<{ x: number; y: number }> = [];
   private worldDragHistory: Array<{ x: number; y: number }> = [];
 
+  // Render scheduling
+  private renderPending = false;
+
   // Previous click tracking
   private previousClickCanvasX = 0;
   private previousClickCanvasY = 0;
@@ -178,7 +181,7 @@ export class Diagram implements IDiagram {
     );
     this.data.offsetX = offsetX;
     this.data.offsetY = offsetY;
-    this.render();
+    this.requestRender();
   };
 
   /**
@@ -210,7 +213,7 @@ export class Diagram implements IDiagram {
     this.canvas.width = cssWidth * dpr;
     this.canvas.height = cssHeight * dpr;
 
-    this.render();
+    this.requestRender();
   }
 
   // ==================== Mode Management ====================
@@ -238,6 +241,7 @@ export class Diagram implements IDiagram {
   public pushMode(mode: IDiagramMode): void {
     this.data.modeStack.push(mode);
     mode.onEnter();
+    this.requestRender();
   }
 
   /**
@@ -250,6 +254,7 @@ export class Diagram implements IDiagram {
     }
     const mode = this.data.modeStack.pop();
     mode?.onExit();
+    this.requestRender();
   }
 
   // ==================== Input Handling ====================
@@ -512,9 +517,22 @@ export class Diagram implements IDiagram {
   }
 
   /**
+   * Request a render on the next animation frame.
+   * Multiple requests within the same frame are coalesced.
+   */
+  private requestRender(): void {
+    if (this.renderPending) return;
+    this.renderPending = true;
+    requestAnimationFrame(() => {
+      this.renderPending = false;
+      this.performRender();
+    });
+  }
+
+  /**
    * Main render method with coordinate transformation pipeline.
    */
-  private render(): void {
+  private performRender(): void {
     const ctx = this.context;
     if (!ctx) {
       throw new Error("Context not found");
@@ -577,7 +595,7 @@ export class Diagram implements IDiagram {
     }
     this.data.zoom = zoom;
     this.updateExtentDivSize();
-    this.render();
+    this.requestRender();
   }
 
   /**
@@ -627,7 +645,7 @@ export class Diagram implements IDiagram {
     this.scrollArea.scrollLeft = this.data.offsetX * newZoom;
     this.scrollArea.scrollTop = this.data.offsetY * newZoom;
 
-    this.render();
+    this.requestRender();
   }
 
   /**
@@ -688,6 +706,6 @@ export class Diagram implements IDiagram {
    * Start the diagram (trigger initial render).
    */
   public start(): void {
-    this.render();
+    this.requestRender();
   }
 }
