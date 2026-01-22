@@ -271,6 +271,9 @@ export class Diagram implements IDiagram {
     // Prevent space key from scrolling the scroll area (capture phase to intercept before default behavior)
     this.scrollArea.addEventListener("keydown", this.handleScrollAreaKeyDown, { capture: true });
 
+    // Wheel events for zoom
+    this.scrollArea.addEventListener("wheel", this.handleWheel, { passive: false });
+
     window.addEventListener("keydown", this.handleKeyDown);
     window.addEventListener("keyup", this.handleKeyUp);
   }
@@ -425,6 +428,13 @@ export class Diagram implements IDiagram {
     if (event.code === "Space") {
       event.preventDefault();
     }
+  };
+
+  /**
+   * Handle wheel events and dispatch to current mode.
+   */
+  private handleWheel = (event: WheelEvent): void => {
+    this.currentMode.onWheel?.(event);
   };
 
   // ==================== Rendering ====================

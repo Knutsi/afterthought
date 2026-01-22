@@ -46,6 +46,8 @@ export interface IDiagram {
   getOffset(): { x: number; y: number };
   panByWorldOffset(deltaX: number, deltaY: number): void;
   panByCanvas(canvasDeltaX: number, canvasDeltaY: number): void;
+  getZoom(): number;
+  setZoomAtPoint(newZoom: number, anchorClientX?: number, anchorClientY?: number): void;
 }
 
 export class DiagramElement {

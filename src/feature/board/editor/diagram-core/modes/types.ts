@@ -18,4 +18,7 @@ export interface IDiagramMode {
   // Keyboard events
   onKeyDown(event: KeyboardEvent): void;
   onKeyUp(event: KeyboardEvent): void;
+
+  // Wheel events (optional)
+  onWheel?(event: WheelEvent): void;
 }
