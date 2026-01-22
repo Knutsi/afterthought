@@ -1,13 +1,7 @@
-/**
- * Context interface providing diagram access to modes.
- * Modes use this to push/pop modes and modify diagram state.
- */
-export interface IDiagramModeContext {
-  pushMode(mode: IDiagramMode): void;
-  popMode(): void;
-  setOffset(x: number, y: number): void;
-  getOffset(): { x: number; y: number };
-}
+// Re-export from parent types for backwards compatibility
+export type { IDiagram, DiagramPointerInfo } from "../types";
+
+import type { DiagramPointerInfo } from "../types";
 
 export interface IDiagramMode {
   name: string;
@@ -16,10 +10,10 @@ export interface IDiagramMode {
   onEnter(): void;
   onExit(): void;
 
-  // Pointer events (all coordinates in world space)
-  onPointerDown(worldX: number, worldY: number, event: PointerEvent): void;
-  onPointerMove(worldX: number, worldY: number, deltaX: number, deltaY: number, event: PointerEvent): void;
-  onPointerUp(worldX: number, worldY: number, event: PointerEvent): void;
+  // Pointer events (info contains both canvas and world coordinates)
+  onPointerDown(info: DiagramPointerInfo, event: PointerEvent): void;
+  onPointerMove(info: DiagramPointerInfo, event: PointerEvent): void;
+  onPointerUp(info: DiagramPointerInfo, event: PointerEvent): void;
 
   // Keyboard events
   onKeyDown(event: KeyboardEvent): void;

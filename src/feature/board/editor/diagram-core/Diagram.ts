@@ -1,8 +1,14 @@
-import { DiagramModel } from "./types";
-import { IDiagramMode, IDiagramModeContext } from "./modes/types";
+import { DiagramModel, DiagramPointerInfo, IDiagram } from "./types";
+import { IDiagramMode } from "./modes/types";
 import { IdleMode } from "./modes/IdleMode";
+import {
+  browserToWorld,
+  screenDeltaToWorldDelta,
+  worldOffsetToScrollPosition,
+  scrollPositionToWorldOffset,
+} from "./calculations";
 
-export class Diagram implements IDiagramModeContext {
+export class Diagram implements IDiagram {
   private static instanceCounter = 0;
   private readonly instanceId: number;
   private data: DiagramModel;
@@ -14,9 +20,24 @@ export class Diagram implements IDiagramModeContext {
   private resizeObserver?: ResizeObserver;
   private statusDiv!: HTMLDivElement;
 
-  // Input tracking for delta calculation
-  private lastPointerWorldX = 0;
-  private lastPointerWorldY = 0;
+  // Input tracking for delta calculation (screen coordinates to avoid offset-dependency)
+  private lastPointerScreenX = 0;
+  private lastPointerScreenY = 0;
+
+  // Drag tracking
+  private isDragging = false;
+  private dragStartCanvasX = 0;
+  private dragStartCanvasY = 0;
+  private dragStartWorldX = 0;
+  private dragStartWorldY = 0;
+  private canvasDragHistory: Array<{ x: number; y: number }> = [];
+  private worldDragHistory: Array<{ x: number; y: number }> = [];
+
+  // Previous click tracking
+  private previousClickCanvasX = 0;
+  private previousClickCanvasY = 0;
+  private previousClickWorldX = 0;
+  private previousClickWorldY = 0;
 
   constructor(container: HTMLElement) {
     this.instanceId = Diagram.instanceCounter++;
@@ -43,7 +64,10 @@ export class Diagram implements IDiagramModeContext {
       width: 100%;
       height: 100%;
       overflow: hidden;
+      user-select: none;
+      -webkit-user-drag: none;
     `;
+    root.draggable = false;
 
     // Create canvas (below scroll area)
     this.canvas = document.createElement("canvas");
@@ -54,7 +78,10 @@ export class Diagram implements IDiagramModeContext {
       inset: 0;
       z-index: 0;
       pointer-events: none;
+      user-select: none;
+      -webkit-user-drag: none;
     `;
+    this.canvas.draggable = false;
 
     // Create scroll area (on top of canvas, transparent)
     this.scrollArea = document.createElement("div");
@@ -69,7 +96,10 @@ export class Diagram implements IDiagramModeContext {
       z-index: 1;
       background: transparent;
       pointer-events: auto;
+      user-select: none;
+      -webkit-user-drag: none;
     `;
+    this.scrollArea.draggable = false;
 
     // Create extent div (creates scrollbars)
     this.extentDiv = document.createElement("div");
@@ -79,7 +109,10 @@ export class Diagram implements IDiagramModeContext {
       width: ${this.data.extentWidth}px;
       height: ${this.data.extentHeight}px;
       pointer-events: none;
+      user-select: none;
+      -webkit-user-drag: none;
     `;
+    this.extentDiv.draggable = false;
 
     // Get canvas context
     this.context = this.canvas.getContext("2d");
@@ -138,8 +171,13 @@ export class Diagram implements IDiagramModeContext {
    * Convert from CSS pixels (zoomed space) to world units.
    */
   private handleScroll = (): void => {
-    this.data.offsetX = this.scrollArea.scrollLeft / this.data.zoom;
-    this.data.offsetY = this.scrollArea.scrollTop / this.data.zoom;
+    const { offsetX, offsetY } = scrollPositionToWorldOffset(
+      this.scrollArea.scrollLeft,
+      this.scrollArea.scrollTop,
+      this.data.zoom
+    );
+    this.data.offsetX = offsetX;
+    this.data.offsetY = offsetY;
     this.render();
   };
 
@@ -173,29 +211,6 @@ export class Diagram implements IDiagramModeContext {
     this.canvas.height = cssHeight * dpr;
 
     this.render();
-  }
-
-  /**
-   * Convert browser event coordinates to diagram space coordinates.
-   * @param browserX - event.clientX (CSS pixels relative to viewport)
-   * @param browserY - event.clientY (CSS pixels relative to viewport)
-   * @returns {x, y} in diagram space
-   */
-  private browserToDiagram(browserX: number, browserY: number): { x: number; y: number } {
-    const rect = this.canvas.getBoundingClientRect();
-
-    // Step 1: Get canvas-relative position in CSS pixels
-    // (clientX and getBoundingClientRect are both in CSS pixels)
-    const canvasX = browserX - rect.left;
-    const canvasY = browserY - rect.top;
-
-    // Step 2: Convert to world coordinates
-    // Divide by zoom to get world units, add world offset
-    // Note: DPR is NOT used here - it's only relevant for canvas rendering transforms
-    const diagramX = canvasX / this.data.zoom + this.data.offsetX;
-    const diagramY = canvasY / this.data.zoom + this.data.offsetY;
-
-    return { x: diagramX, y: diagramY };
   }
 
   // ==================== Mode Management ====================
@@ -256,34 +271,132 @@ export class Diagram implements IDiagramModeContext {
   }
 
   /**
+   * Build comprehensive pointer info with both canvas and world coordinates.
+   */
+  private buildPointerInfo(
+    event: PointerEvent,
+    canvasDeltaX: number,
+    canvasDeltaY: number
+  ): DiagramPointerInfo {
+    const rect = this.canvas.getBoundingClientRect();
+    const canvasX = event.clientX - rect.left;
+    const canvasY = event.clientY - rect.top;
+    const world = browserToWorld(
+      event.clientX,
+      event.clientY,
+      rect,
+      this.data.zoom,
+      this.data.offsetX,
+      this.data.offsetY
+    );
+    const { deltaX: worldDeltaX, deltaY: worldDeltaY } = screenDeltaToWorldDelta(
+      canvasDeltaX,
+      canvasDeltaY,
+      this.data.zoom
+    );
+
+    return {
+      canvasX,
+      canvasY,
+      worldX: world.x,
+      worldY: world.y,
+      canvasDeltaX,
+      canvasDeltaY,
+      worldDeltaX,
+      worldDeltaY,
+      canvasTotalDeltaX: canvasX - this.dragStartCanvasX,
+      canvasTotalDeltaY: canvasY - this.dragStartCanvasY,
+      worldTotalDeltaX: world.x - this.dragStartWorldX,
+      worldTotalDeltaY: world.y - this.dragStartWorldY,
+      canvasDragHistory: [...this.canvasDragHistory],
+      worldDragHistory: [...this.worldDragHistory],
+      canvasPreviousX: this.previousClickCanvasX,
+      canvasPreviousY: this.previousClickCanvasY,
+      worldPreviousX: this.previousClickWorldX,
+      worldPreviousY: this.previousClickWorldY,
+    };
+  }
+
+  /**
    * Handle pointer down events.
    */
   private handlePointerDown = (event: PointerEvent): void => {
     this.scrollArea.focus(); // Ensure we capture keyboard events
-    const world = this.browserToDiagram(event.clientX, event.clientY);
-    this.lastPointerWorldX = world.x;
-    this.lastPointerWorldY = world.y;
-    this.currentMode.onPointerDown(world.x, world.y, event);
+
+    const rect = this.canvas.getBoundingClientRect();
+    const canvasX = event.clientX - rect.left;
+    const canvasY = event.clientY - rect.top;
+    const world = browserToWorld(
+      event.clientX,
+      event.clientY,
+      rect,
+      this.data.zoom,
+      this.data.offsetX,
+      this.data.offsetY
+    );
+
+    // Save previous click before updating
+    this.previousClickCanvasX = this.dragStartCanvasX;
+    this.previousClickCanvasY = this.dragStartCanvasY;
+    this.previousClickWorldX = this.dragStartWorldX;
+    this.previousClickWorldY = this.dragStartWorldY;
+
+    // Start new drag
+    this.isDragging = true;
+    this.dragStartCanvasX = canvasX;
+    this.dragStartCanvasY = canvasY;
+    this.dragStartWorldX = world.x;
+    this.dragStartWorldY = world.y;
+    this.canvasDragHistory = [{ x: canvasX, y: canvasY }];
+    this.worldDragHistory = [{ x: world.x, y: world.y }];
+
+    this.lastPointerScreenX = event.clientX;
+    this.lastPointerScreenY = event.clientY;
+
+    const info = this.buildPointerInfo(event, 0, 0);
+    this.currentMode.onPointerDown(info, event);
   };
 
   /**
    * Handle pointer move events.
    */
   private handlePointerMove = (event: PointerEvent): void => {
-    const world = this.browserToDiagram(event.clientX, event.clientY);
-    const deltaX = world.x - this.lastPointerWorldX;
-    const deltaY = world.y - this.lastPointerWorldY;
-    this.lastPointerWorldX = world.x;
-    this.lastPointerWorldY = world.y;
-    this.currentMode.onPointerMove(world.x, world.y, deltaX, deltaY, event);
+    const canvasDeltaX = event.clientX - this.lastPointerScreenX;
+    const canvasDeltaY = event.clientY - this.lastPointerScreenY;
+    this.lastPointerScreenX = event.clientX;
+    this.lastPointerScreenY = event.clientY;
+
+    // Track drag history if dragging
+    if (this.isDragging) {
+      const rect = this.canvas.getBoundingClientRect();
+      const canvasX = event.clientX - rect.left;
+      const canvasY = event.clientY - rect.top;
+      const world = browserToWorld(
+        event.clientX,
+        event.clientY,
+        rect,
+        this.data.zoom,
+        this.data.offsetX,
+        this.data.offsetY
+      );
+      this.canvasDragHistory.push({ x: canvasX, y: canvasY });
+      this.worldDragHistory.push({ x: world.x, y: world.y });
+    }
+
+    const info = this.buildPointerInfo(event, canvasDeltaX, canvasDeltaY);
+    this.currentMode.onPointerMove(info, event);
   };
 
   /**
    * Handle pointer up events.
    */
   private handlePointerUp = (event: PointerEvent): void => {
-    const world = this.browserToDiagram(event.clientX, event.clientY);
-    this.currentMode.onPointerUp(world.x, world.y, event);
+    const canvasDeltaX = event.clientX - this.lastPointerScreenX;
+    const canvasDeltaY = event.clientY - this.lastPointerScreenY;
+
+    const info = this.buildPointerInfo(event, canvasDeltaX, canvasDeltaY);
+    this.isDragging = false;
+    this.currentMode.onPointerUp(info, event);
   };
 
   /**
@@ -542,9 +655,32 @@ export class Diagram implements IDiagramModeContext {
    * @param y - Vertical offset in world units
    */
   public setOffset(x: number, y: number): void {
-    // Convert from world units to CSS pixels (zoomed space)
-    this.scrollArea.scrollLeft = x * this.data.zoom;
-    this.scrollArea.scrollTop = y * this.data.zoom;
+    const { scrollLeft, scrollTop } = worldOffsetToScrollPosition(x, y, this.data.zoom);
+    this.scrollArea.scrollLeft = scrollLeft;
+    this.scrollArea.scrollTop = scrollTop;
+    // Scroll event will trigger and update data.offsetX/offsetY
+  }
+
+  /**
+   * Pan the viewport by a world-space delta.
+   * Moves the view in the opposite direction of the delta
+   * (drag left = view moves right, revealing content to the left).
+   * @param deltaX - World-space X delta
+   * @param deltaY - World-space Y delta
+   */
+  public panByWorldOffset(deltaX: number, deltaY: number): void {
+    this.setOffset(this.data.offsetX - deltaX, this.data.offsetY - deltaY);
+  }
+
+  /**
+   * Pan the viewport by canvas-space delta (CSS pixels).
+   * Directly adjusts scroll position without coordinate conversion.
+   * @param canvasDeltaX - Canvas-space X delta (CSS pixels)
+   * @param canvasDeltaY - Canvas-space Y delta (CSS pixels)
+   */
+  public panByCanvas(canvasDeltaX: number, canvasDeltaY: number): void {
+    this.scrollArea.scrollLeft -= canvasDeltaX;
+    this.scrollArea.scrollTop -= canvasDeltaY;
     // Scroll event will trigger and update data.offsetX/offsetY
   }
 

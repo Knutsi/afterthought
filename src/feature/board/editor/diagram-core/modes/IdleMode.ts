@@ -1,4 +1,4 @@
-import { IDiagramMode, IDiagramModeContext } from "./types";
+import { IDiagramMode, IDiagram, DiagramPointerInfo } from "./types";
 import { PanMode } from "./PanMode";
 
 /**
@@ -7,10 +7,10 @@ import { PanMode } from "./PanMode";
  */
 export class IdleMode implements IDiagramMode {
   readonly name = "idle";
-  private context: IDiagramModeContext;
+  private diagram: IDiagram;
 
-  constructor(context: IDiagramModeContext) {
-    this.context = context;
+  constructor(diagram: IDiagram) {
+    this.diagram = diagram;
   }
 
   onEnter(): void {
@@ -21,22 +21,22 @@ export class IdleMode implements IDiagramMode {
     // Nothing to clean up
   }
 
-  onPointerDown(_worldX: number, _worldY: number, _event: PointerEvent): void {
+  onPointerDown(_info: DiagramPointerInfo, _event: PointerEvent): void {
     // No action in idle mode for now
   }
 
-  onPointerMove(_worldX: number, _worldY: number, _deltaX: number, _deltaY: number, _event: PointerEvent): void {
+  onPointerMove(_info: DiagramPointerInfo, _event: PointerEvent): void {
     // No action in idle mode for now
   }
 
-  onPointerUp(_worldX: number, _worldY: number, _event: PointerEvent): void {
+  onPointerUp(_info: DiagramPointerInfo, _event: PointerEvent): void {
     // No action in idle mode for now
   }
 
   onKeyDown(event: KeyboardEvent): void {
     if (event.code === "Space") {
       event.preventDefault();
-      this.context.pushMode(new PanMode(this.context));
+      this.diagram.pushMode(new PanMode(this.diagram));
     }
   }
 

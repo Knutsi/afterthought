@@ -1,5 +1,53 @@
 import { IDiagramMode } from "./modes/types";
 
+/**
+ * Comprehensive pointer event info with both canvas and world coordinates.
+ * Canvas = CSS pixels relative to canvas element
+ * World = diagram space (accounting for scroll offset and zoom)
+ */
+export interface DiagramPointerInfo {
+  // Current position
+  canvasX: number;
+  canvasY: number;
+  worldX: number;
+  worldY: number;
+
+  // Delta since last pointer event
+  canvasDeltaX: number;
+  canvasDeltaY: number;
+  worldDeltaX: number;
+  worldDeltaY: number;
+
+  // Total delta since drag start (pointerdown)
+  canvasTotalDeltaX: number;
+  canvasTotalDeltaY: number;
+  worldTotalDeltaX: number;
+  worldTotalDeltaY: number;
+
+  // Drag history (all positions during current drag)
+  canvasDragHistory: Array<{ x: number; y: number }>;
+  worldDragHistory: Array<{ x: number; y: number }>;
+
+  // Previous click position (last pointerdown before current)
+  canvasPreviousX: number;
+  canvasPreviousY: number;
+  worldPreviousX: number;
+  worldPreviousY: number;
+}
+
+/**
+ * Context interface providing diagram access to modes.
+ * Modes use this to push/pop modes and modify diagram state.
+ */
+export interface IDiagram {
+  pushMode(mode: IDiagramMode): void;
+  popMode(): void;
+  setOffset(x: number, y: number): void;
+  getOffset(): { x: number; y: number };
+  panByWorldOffset(deltaX: number, deltaY: number): void;
+  panByCanvas(canvasDeltaX: number, canvasDeltaY: number): void;
+}
+
 export class DiagramElement {
   id: string;
   type: string;

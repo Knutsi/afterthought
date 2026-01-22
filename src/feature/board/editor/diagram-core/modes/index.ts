@@ -1,3 +1,3 @@
-export type { IDiagramMode, IDiagramModeContext } from "./types";
+export type { IDiagramMode, IDiagram } from "./types";
 export { IdleMode } from "./IdleMode";
 export { PanMode } from "./PanMode";

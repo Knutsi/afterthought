@@ -1,4 +1,4 @@
-import { IDiagramMode, IDiagramModeContext } from "./types";
+import { IDiagramMode, IDiagram, DiagramPointerInfo } from "./types";
 
 /**
  * Panning mode activated by holding space.
@@ -6,11 +6,11 @@ import { IDiagramMode, IDiagramModeContext } from "./types";
  */
 export class PanMode implements IDiagramMode {
   readonly name = "pan";
-  private context: IDiagramModeContext;
+  private diagram: IDiagram;
   private isPanning = false;
 
-  constructor(context: IDiagramModeContext) {
-    this.context = context;
+  constructor(diagram: IDiagram) {
+    this.diagram = diagram;
   }
 
   onEnter(): void {
@@ -21,21 +21,19 @@ export class PanMode implements IDiagramMode {
     this.isPanning = false;
   }
 
-  onPointerDown(_worldX: number, _worldY: number, _event: PointerEvent): void {
+  onPointerDown(_info: DiagramPointerInfo, _event: PointerEvent): void {
     this.isPanning = true;
   }
 
-  onPointerMove(_worldX: number, _worldY: number, deltaX: number, deltaY: number, _event: PointerEvent): void {
+  onPointerMove(info: DiagramPointerInfo, _event: PointerEvent): void {
     if (!this.isPanning) {
       return;
     }
-
-    // Move offset in opposite direction of drag (drag left = view moves right)
-    const offset = this.context.getOffset();
-    this.context.setOffset(offset.x - deltaX, offset.y - deltaY);
+    // Use canvas delta directly - no coordinate conversion needed
+    this.diagram.panByCanvas(info.canvasDeltaX, info.canvasDeltaY);
   }
 
-  onPointerUp(_worldX: number, _worldY: number, _event: PointerEvent): void {
+  onPointerUp(_info: DiagramPointerInfo, _event: PointerEvent): void {
     this.isPanning = false;
   }
 
@@ -46,7 +44,7 @@ export class PanMode implements IDiagramMode {
   onKeyUp(event: KeyboardEvent): void {
     if (event.code === "Space") {
       event.preventDefault();
-      this.context.popMode();
+      this.diagram.popMode();
     }
   }
 }
