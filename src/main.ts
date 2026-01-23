@@ -32,8 +32,8 @@ async function initializeApp(): Promise<void> {
   serviceLayer.activityService.registerActivityContainer(activityContainer);
 
   // theme:
+  await serviceLayer.getThemeService().initialize(serviceLayer.objectService);
   serviceLayer.getThemeService().registerActions(serviceLayer.actionService);
-  getDefaultServiceLayer().getThemeService().applyDefaultTheme();
 
   // register all features:
   setupHomeFeature(serviceLayer);

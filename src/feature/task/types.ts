@@ -1,5 +1,7 @@
 export type TaskID = string;
 
+export const TASK_STORE_ID = 'task-store';
+
 export class TaskModel {
   tasks: Task[] = []
   relations: TaskRelation[] = []
