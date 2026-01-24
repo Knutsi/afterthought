@@ -1,5 +1,5 @@
-import { DiagramPointerInfo, IDiagram } from "./types";
-import { browserToWorld, screenDeltaToWorldDelta } from "./calculations";
+import { DiagramPointerInfo, IDiagram } from "../types";
+import { browserToWorld, screenDeltaToWorldDelta } from "../calculations";
 
 /**
  * InputManager handles all input events for the diagram.

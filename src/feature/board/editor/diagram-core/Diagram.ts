@@ -1,7 +1,8 @@
 import { DiagramModel, IDiagram } from "./types";
 import { IDiagramMode } from "./modes/types";
 import { IdleMode } from "./modes/IdleMode";
-import { InputManager } from "./InputManager";
+import { InputManager } from "./managers/InputManager";
+import { StageManager } from "./managers/StageManager";
 import {
   worldOffsetToScrollPosition,
   scrollPositionToWorldOffset,
@@ -19,6 +20,7 @@ export class Diagram implements IDiagram {
   private resizeObserver?: ResizeObserver;
   private statusDiv!: HTMLDivElement;
   private inputManager!: InputManager;
+  private stageManager!: StageManager;
 
   // Render scheduling
   private renderPending = false;
@@ -34,6 +36,7 @@ export class Diagram implements IDiagram {
     this.initializeModeStack();
     this.inputManager = new InputManager(this, this.scrollArea, this.canvas);
     this.inputManager.attach();
+    this.stageManager = new StageManager(this, this.data.layers);
   }
 
   /**
@@ -292,18 +295,20 @@ export class Diagram implements IDiagram {
   }
 
   /**
-   * Render all diagram elements.
+   * Render all diagram elements across all layers.
    */
   private renderElements(ctx: CanvasRenderingContext2D): void {
-    // Elements are already in diagram space coordinates
-    for (const element of this.data.elements) {
-      ctx.fillStyle = "#4CAF50";
-      ctx.fillRect(element.posX, element.posY, element.width, element.height);
+    // Iterate through layers and render elements in order
+    for (const layer of this.data.layers) {
+      for (const element of layer.elements) {
+        ctx.fillStyle = "#4CAF50";
+        ctx.fillRect(element.posX, element.posY, element.width, element.height);
 
-      // Element border
-      ctx.strokeStyle = "#333";
-      ctx.lineWidth = 2 / this.data.zoom; // Maintain 2px border at any zoom
-      ctx.strokeRect(element.posX, element.posY, element.width, element.height);
+        // Element border
+        ctx.strokeStyle = "#333";
+        ctx.lineWidth = 2 / this.data.zoom; // Maintain 2px border at any zoom
+        ctx.strokeRect(element.posX, element.posY, element.width, element.height);
+      }
     }
   }
 
@@ -332,7 +337,7 @@ export class Diagram implements IDiagram {
    * Request a render on the next animation frame.
    * Multiple requests within the same frame are coalesced.
    */
-  private requestRender(): void {
+  public requestRender(): void {
     if (this.renderPending) return;
     this.renderPending = true;
     requestAnimationFrame(() => {
@@ -527,5 +532,12 @@ export class Diagram implements IDiagram {
    */
   public start(): void {
     this.requestRender();
+  }
+
+  /**
+   * Get the stage manager for layer and element operations.
+   */
+  public getStageManager(): StageManager {
+    return this.stageManager;
   }
 }
