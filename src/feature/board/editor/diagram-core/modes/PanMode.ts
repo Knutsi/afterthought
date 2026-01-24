@@ -61,4 +61,9 @@ export class PanMode implements IDiagramMode {
 
     this.diagram.setZoomAtPoint(newZoom, event.clientX, event.clientY);
   }
+
+  onBlur(): void {
+    // Window lost focus - exit pan mode as if Space was released
+    this.diagram.popMode();
+  }
 }

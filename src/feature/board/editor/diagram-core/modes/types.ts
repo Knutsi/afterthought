@@ -24,4 +24,7 @@ export interface IDiagramMode {
 
   // Double-click events (optional)
   onDoubleClick?(info: DiagramPointerInfo, event: MouseEvent): void;
+
+  // Window blur event (optional)
+  onBlur?(): void;
 }

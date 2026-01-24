@@ -51,6 +51,7 @@ export class InputManager {
 
     window.addEventListener("keydown", this.handleKeyDown);
     window.addEventListener("keyup", this.handleKeyUp);
+    window.addEventListener("blur", this.handleWindowBlur);
   }
 
   /**
@@ -67,6 +68,7 @@ export class InputManager {
 
     window.removeEventListener("keydown", this.handleKeyDown);
     window.removeEventListener("keyup", this.handleKeyUp);
+    window.removeEventListener("blur", this.handleWindowBlur);
   }
 
   /**
@@ -123,6 +125,7 @@ export class InputManager {
    * Handle pointer down events.
    */
   private handlePointerDown = (event: PointerEvent): void => {
+    this.scrollArea.setPointerCapture(event.pointerId);
     this.scrollArea.focus(); // Ensure we capture keyboard events
 
     const rect = this.canvas.getBoundingClientRect();
@@ -199,6 +202,10 @@ export class InputManager {
    * Handle pointer up events.
    */
   private handlePointerUp = (event: PointerEvent): void => {
+    if (this.scrollArea.hasPointerCapture(event.pointerId)) {
+      this.scrollArea.releasePointerCapture(event.pointerId);
+    }
+
     const canvasDeltaX = event.clientX - this.lastPointerScreenX;
     const canvasDeltaY = event.clientY - this.lastPointerScreenY;
 
@@ -284,5 +291,12 @@ export class InputManager {
   private handleDoubleClick = (event: MouseEvent): void => {
     const info = this.buildPointerInfoFromMouse(event);
     this.diagram.getCurrentMode().onDoubleClick?.(info, event);
+  };
+
+  /**
+   * Handle window blur events and dispatch to current mode.
+   */
+  private handleWindowBlur = (): void => {
+    this.diagram.getCurrentMode().onBlur?.();
   };
 }
