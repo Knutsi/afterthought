@@ -72,6 +72,17 @@ export class DiagramElement {
     this.width = 300;
     this.height = 100;
   }
+
+  /**
+   * Render this element. Override in subclasses for custom rendering.
+   * All coordinates are in world space (transform already applied).
+   * @param ctx - Canvas 2D rendering context
+   */
+  render(ctx: CanvasRenderingContext2D): void {
+    // Default: simple filled rectangle (fallback)
+    ctx.fillStyle = "#888";
+    ctx.fillRect(this.posX, this.posY, this.width, this.height);
+  }
 }
 
 export class DiagramLayer {
