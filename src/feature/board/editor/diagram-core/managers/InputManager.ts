@@ -52,6 +52,9 @@ export class InputManager {
     // Double-click events
     this.scrollArea.addEventListener("dblclick", this.handleDoubleClick);
 
+    // Prevent default context menu to ensure clean pointer event flow
+    this.scrollArea.addEventListener("contextmenu", this.handleContextMenu);
+
     window.addEventListener("keydown", this.handleKeyDown);
     window.addEventListener("keyup", this.handleKeyUp);
     window.addEventListener("blur", this.handleWindowBlur);
@@ -68,6 +71,7 @@ export class InputManager {
     this.scrollArea.removeEventListener("keydown", this.handleScrollAreaKeyDown, { capture: true });
     this.scrollArea.removeEventListener("wheel", this.handleWheel);
     this.scrollArea.removeEventListener("dblclick", this.handleDoubleClick);
+    this.scrollArea.removeEventListener("contextmenu", this.handleContextMenu);
 
     window.removeEventListener("keydown", this.handleKeyDown);
     window.removeEventListener("keyup", this.handleKeyUp);
@@ -216,6 +220,9 @@ export class InputManager {
       this.scrollArea.releasePointerCapture(event.pointerId);
     }
 
+    // Only process pointer up for primary button (matches our pointerdown handling)
+    if (event.button !== MOUSE_BUTTON_PRIMARY) return;
+
     const canvasDeltaX = event.clientX - this.lastPointerScreenX;
     const canvasDeltaY = event.clientY - this.lastPointerScreenY;
 
@@ -308,5 +315,12 @@ export class InputManager {
    */
   private handleWindowBlur = (): void => {
     this.diagram.getCurrentMode().onBlur?.();
+  };
+
+  /**
+   * Prevent default context menu to ensure clean pointer event flow.
+   */
+  private handleContextMenu = (event: MouseEvent): void => {
+    event.preventDefault();
   };
 }
