@@ -1,4 +1,5 @@
 import { IDiagramMode } from "./modes/types";
+import type { StageManager } from "./managers/StageManager";
 
 /**
  * Comprehensive pointer event info with both canvas and world coordinates.
@@ -52,6 +53,7 @@ export interface IDiagram {
   setCursor(cursorStyle: string): void;
   requestRender(): void;
   getViewportSize(): { width: number; height: number };
+  getStageManager(): StageManager;
 }
 
 export class DiagramElement {

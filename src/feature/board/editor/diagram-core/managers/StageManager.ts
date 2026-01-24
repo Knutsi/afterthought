@@ -25,6 +25,20 @@ export class StageManager {
   }
 
   /**
+   * Insert a new layer at a specific index.
+   * Index 0 = bottom (renders first), higher = on top.
+   * @param index - Position to insert at
+   * @param name - Name for the new layer
+   * @returns The created layer
+   */
+  insertLayerAt(index: number, name: string): DiagramLayer {
+    const layer = new DiagramLayer(name);
+    this.layers.splice(index, 0, layer);
+    this.diagram.requestRender();
+    return layer;
+  }
+
+  /**
    * Remove a layer by ID.
    * @param layerId - ID of the layer to remove
    * @returns true if layer was found and removed, false otherwise
