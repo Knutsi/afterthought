@@ -1,6 +1,9 @@
 import { DiagramPointerInfo, IDiagram } from "../types";
 import { browserToWorld, screenDeltaToWorldDelta } from "../calculations";
 
+/** Primary mouse button (left-click) */
+export const MOUSE_BUTTON_PRIMARY = 0;
+
 /**
  * InputManager handles all input events for the diagram.
  * It tracks pointer state, builds rich pointer info, and dispatches to the current mode.
@@ -125,8 +128,12 @@ export class InputManager {
    * Handle pointer down events.
    */
   private handlePointerDown = (event: PointerEvent): void => {
-    this.scrollArea.setPointerCapture(event.pointerId);
-    this.scrollArea.focus(); // Ensure we capture keyboard events
+    // Only capture pointer and track drag for primary button (left-click)
+    // Right-click and middle-click should not initiate drag tracking
+    if (event.button === MOUSE_BUTTON_PRIMARY) {
+      this.scrollArea.setPointerCapture(event.pointerId);
+    }
+    this.scrollArea.focus(); // Always focus to capture keyboard events
 
     const rect = this.canvas.getBoundingClientRect();
     const canvasX = event.clientX - rect.left;
@@ -143,20 +150,23 @@ export class InputManager {
       offset.y
     );
 
-    // Save previous click before updating
-    this.previousClickCanvasX = this.dragStartCanvasX;
-    this.previousClickCanvasY = this.dragStartCanvasY;
-    this.previousClickWorldX = this.dragStartWorldX;
-    this.previousClickWorldY = this.dragStartWorldY;
+    // Only track drag state for primary button
+    if (event.button === MOUSE_BUTTON_PRIMARY) {
+      // Save previous click before updating
+      this.previousClickCanvasX = this.dragStartCanvasX;
+      this.previousClickCanvasY = this.dragStartCanvasY;
+      this.previousClickWorldX = this.dragStartWorldX;
+      this.previousClickWorldY = this.dragStartWorldY;
 
-    // Start new drag
-    this.isDragging = true;
-    this.dragStartCanvasX = canvasX;
-    this.dragStartCanvasY = canvasY;
-    this.dragStartWorldX = world.x;
-    this.dragStartWorldY = world.y;
-    this.canvasDragHistory = [{ x: canvasX, y: canvasY }];
-    this.worldDragHistory = [{ x: world.x, y: world.y }];
+      // Start new drag
+      this.isDragging = true;
+      this.dragStartCanvasX = canvasX;
+      this.dragStartCanvasY = canvasY;
+      this.dragStartWorldX = world.x;
+      this.dragStartWorldY = world.y;
+      this.canvasDragHistory = [{ x: canvasX, y: canvasY }];
+      this.worldDragHistory = [{ x: world.x, y: world.y }];
+    }
 
     this.lastPointerScreenX = event.clientX;
     this.lastPointerScreenY = event.clientY;

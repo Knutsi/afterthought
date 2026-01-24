@@ -1,6 +1,7 @@
 import { IDiagramMode, IDiagram, DiagramPointerInfo } from "./types";
 import { PanMode } from "./PanMode";
 import { DragSelectMode } from "./DragSelectMode";
+import { MOUSE_BUTTON_PRIMARY } from "../managers/InputManager";
 
 /**
  * Default mode at the bottom of the mode stack.
@@ -22,7 +23,10 @@ export class IdleMode implements IDiagramMode {
     // Nothing to clean up
   }
 
-  onPointerDown(info: DiagramPointerInfo, _event: PointerEvent): void {
+  onPointerDown(info: DiagramPointerInfo, event: PointerEvent): void {
+    // Only respond to left-click
+    if (event.button !== MOUSE_BUTTON_PRIMARY) return;
+
     // TODO: Check if an element is under cursor - if so, initiate DragMode instead
     // For now, always start drag-select
     this.diagram.pushMode(new DragSelectMode(this.diagram, info));
