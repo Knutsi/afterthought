@@ -15,14 +15,17 @@ export class PanMode implements IDiagramMode {
 
   onEnter(): void {
     this.isPanning = false;
+    this.diagram.setCursor("grab");
   }
 
   onExit(): void {
     this.isPanning = false;
+    this.diagram.setCursor("default");
   }
 
   onPointerDown(_info: DiagramPointerInfo, _event: PointerEvent): void {
     this.isPanning = true;
+    this.diagram.setCursor("grabbing");
   }
 
   onPointerMove(info: DiagramPointerInfo, _event: PointerEvent): void {
@@ -35,6 +38,7 @@ export class PanMode implements IDiagramMode {
 
   onPointerUp(_info: DiagramPointerInfo, _event: PointerEvent): void {
     this.isPanning = false;
+    this.diagram.setCursor("grab");
   }
 
   onKeyDown(_event: KeyboardEvent): void {

@@ -42,12 +42,14 @@ export interface DiagramPointerInfo {
 export interface IDiagram {
   pushMode(mode: IDiagramMode): void;
   popMode(): void;
+  getCurrentMode(): IDiagramMode;
   setOffset(x: number, y: number): void;
   getOffset(): { x: number; y: number };
   panByWorldOffset(deltaX: number, deltaY: number): void;
   panByCanvas(canvasDeltaX: number, canvasDeltaY: number): void;
   getZoom(): number;
   setZoomAtPoint(newZoom: number, anchorClientX?: number, anchorClientY?: number): void;
+  setCursor(cursorStyle: string): void;
 }
 
 export class DiagramElement {
