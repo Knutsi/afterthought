@@ -1,6 +1,7 @@
 export type TaskID = string;
 
 export const TASK_STORE_ID = 'task-store';
+export const TASK_SERVICE_NAME = 'task-service';
 
 export class TaskModel {
   tasks: Task[] = []

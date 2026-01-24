@@ -16,6 +16,7 @@ import "./feature/board/BoardActivity.ts";
 import { setupDefaultActions } from "./default-actions.ts";
 import { setupBoardFeature } from "./feature/board/setupBoardFeature.ts";
 import { setupHomeFeature } from "./feature/home/setupHomeFeature.ts";
+import { setupTaskFeature } from "./feature/task/setupTaskFeature.ts";
 import { CREATE_BOARD_ACTION_ID } from "./feature/board/types.ts";
 
 async function initializeApp(): Promise<void> {
@@ -38,6 +39,7 @@ async function initializeApp(): Promise<void> {
   // register all features:
   setupHomeFeature(serviceLayer);
   await setupBoardFeature(serviceLayer);
+  await setupTaskFeature(serviceLayer);
 
   // Trigger initial action availability check after all initialization is complete
   serviceLayer.actionService.updateActionAvailability();

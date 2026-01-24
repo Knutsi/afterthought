@@ -87,18 +87,14 @@ export class DiagramModel {
   elements: DiagramElement[];
   connections: DiagramConnection[];
 
-  // Viewport properties
   offsetX: number;      // Scroll offset X (diagram space pixels)
   offsetY: number;      // Scroll offset Y (diagram space pixels)
 
-  // Extent properties
   extentWidth: number;  // Scrollable width (diagram space)
   extentHeight: number; // Scrollable height (diagram space)
 
-  // Zoom properties
   zoom: number;         // Zoom factor (1.0 = 100%, 0.5 = 50%, 2.0 = 200%)
 
-  // Mode stack (initialized by Diagram)
   modeStack: IDiagramMode[];
 
   constructor() {

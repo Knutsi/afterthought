@@ -1,5 +1,4 @@
-import { ActivityService } from "../../service/ActivityService";
-import { ObjectService, IObject } from "../../service/ObjectService";
+import { IObject } from "../../service/ObjectService";
 import { ServiceLayer } from "../../service/ServiceLayer";
 import type { IBoardActivityData } from "./BoardActivity";
 import {
