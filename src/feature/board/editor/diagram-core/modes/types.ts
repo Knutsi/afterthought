@@ -21,4 +21,7 @@ export interface IDiagramMode {
 
   // Wheel events (optional)
   onWheel?(event: WheelEvent): void;
+
+  // Double-click events (optional)
+  onDoubleClick?(info: DiagramPointerInfo, event: MouseEvent): void;
 }

@@ -46,6 +46,9 @@ export class InputManager {
     // Wheel events for zoom
     this.scrollArea.addEventListener("wheel", this.handleWheel, { passive: false });
 
+    // Double-click events
+    this.scrollArea.addEventListener("dblclick", this.handleDoubleClick);
+
     window.addEventListener("keydown", this.handleKeyDown);
     window.addEventListener("keyup", this.handleKeyUp);
   }
@@ -60,6 +63,7 @@ export class InputManager {
     this.scrollArea.removeEventListener("pointercancel", this.handlePointerUp);
     this.scrollArea.removeEventListener("keydown", this.handleScrollAreaKeyDown, { capture: true });
     this.scrollArea.removeEventListener("wheel", this.handleWheel);
+    this.scrollArea.removeEventListener("dblclick", this.handleDoubleClick);
 
     window.removeEventListener("keydown", this.handleKeyDown);
     window.removeEventListener("keyup", this.handleKeyUp);
@@ -231,5 +235,54 @@ export class InputManager {
    */
   private handleWheel = (event: WheelEvent): void => {
     this.diagram.getCurrentMode().onWheel?.(event);
+  };
+
+  /**
+   * Build pointer info from a MouseEvent (for events like dblclick that aren't PointerEvents).
+   */
+  private buildPointerInfoFromMouse(event: MouseEvent): DiagramPointerInfo {
+    const rect = this.canvas.getBoundingClientRect();
+    const canvasX = event.clientX - rect.left;
+    const canvasY = event.clientY - rect.top;
+    const offset = this.diagram.getOffset();
+    const zoom = this.diagram.getZoom();
+
+    const world = browserToWorld(
+      event.clientX,
+      event.clientY,
+      rect,
+      zoom,
+      offset.x,
+      offset.y
+    );
+
+    return {
+      canvasX,
+      canvasY,
+      worldX: world.x,
+      worldY: world.y,
+      canvasDeltaX: 0,
+      canvasDeltaY: 0,
+      worldDeltaX: 0,
+      worldDeltaY: 0,
+      canvasTotalDeltaX: 0,
+      canvasTotalDeltaY: 0,
+      worldTotalDeltaX: 0,
+      worldTotalDeltaY: 0,
+      canvasDragHistory: [],
+      worldDragHistory: [],
+      canvasPreviousX: this.previousClickCanvasX,
+      canvasPreviousY: this.previousClickCanvasY,
+      worldPreviousX: this.previousClickWorldX,
+      worldPreviousY: this.previousClickWorldY,
+    };
+  }
+
+  /**
+   * Handle double-click events and dispatch to current mode.
+   */
+  private handleDoubleClick = (event: MouseEvent): void => {
+    const info = this.buildPointerInfoFromMouse(event);
+    this.diagram.getCurrentMode().onDoubleClick?.(info, event);
   };
 }
