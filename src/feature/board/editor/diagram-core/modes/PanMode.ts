@@ -41,8 +41,32 @@ export class PanMode implements IDiagramMode {
     this.diagram.setCursor("grab");
   }
 
-  onKeyDown(_event: KeyboardEvent): void {
-    // No action - space is already being held
+  onKeyDown(event: KeyboardEvent): void {
+    const arrowKeys = ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"];
+    if (!arrowKeys.includes(event.code)) {
+      return;
+    }
+
+    event.preventDefault();
+
+    const { width, height } = this.diagram.getViewportSize();
+    const stepX = width * 0.4;
+    const stepY = height * 0.4;
+
+    switch (event.code) {
+      case "ArrowUp":
+        this.diagram.panByCanvas(0, stepY);
+        break;
+      case "ArrowDown":
+        this.diagram.panByCanvas(0, -stepY);
+        break;
+      case "ArrowLeft":
+        this.diagram.panByCanvas(stepX, 0);
+        break;
+      case "ArrowRight":
+        this.diagram.panByCanvas(-stepX, 0);
+        break;
+    }
   }
 
   onKeyUp(event: KeyboardEvent): void {

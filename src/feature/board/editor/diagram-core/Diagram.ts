@@ -324,14 +324,6 @@ export class Diagram implements IDiagram {
   }
 
   /**
-   * Render all connections.
-   */
-  private renderConnections(_ctx: CanvasRenderingContext2D): void {
-    // Connection rendering logic (placeholder)
-    // Source/target element positions are in diagram space
-  }
-
-  /**
    * Update status text overlay with current diagram state.
    */
   private updateStatusText(): void {
@@ -379,7 +371,6 @@ export class Diagram implements IDiagram {
     // Step 4: Render content (all coordinates in diagram space)
     this.renderBackground(ctx);
     this.renderElements(ctx);
-    this.renderConnections(ctx);
 
     // Step 5: Restore state
     ctx.restore();
@@ -536,6 +527,18 @@ export class Diagram implements IDiagram {
    */
   public setCursor(cursorStyle: string): void {
     this.scrollArea.style.cursor = cursorStyle;
+  }
+
+  /**
+   * Get viewport size in CSS pixels (not world space).
+   * This is the visible area of the canvas in browser coordinates.
+   * Use with panByCanvas() which also operates in CSS pixels.
+   */
+  public getViewportSize(): { width: number; height: number } {
+    return {
+      width: this.container.clientWidth,
+      height: this.container.clientHeight,
+    };
   }
 
   /**

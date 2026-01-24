@@ -51,6 +51,7 @@ export interface IDiagram {
   setZoomAtPoint(newZoom: number, anchorClientX?: number, anchorClientY?: number): void;
   setCursor(cursorStyle: string): void;
   requestRender(): void;
+  getViewportSize(): { width: number; height: number };
 }
 
 export class DiagramElement {
@@ -97,21 +98,8 @@ export class DiagramLayer {
   }
 }
 
-export class DiagramConnection {
-  id: string;
-  source: string;
-  target: string;
-
-  constructor() {
-    this.id = crypto.randomUUID();
-    this.source = "";
-    this.target = "";
-  }
-}
-
 export class DiagramModel {
   layers: DiagramLayer[];
-  connections: DiagramConnection[];
 
   offsetX: number;      // Scroll offset X (diagram space pixels)
   offsetY: number;      // Scroll offset Y (diagram space pixels)
@@ -125,7 +113,6 @@ export class DiagramModel {
 
   constructor() {
     this.layers = [];
-    this.connections = [];
     this.offsetX = 0;
     this.offsetY = 0;
     this.extentWidth = 5000;  // Default extent: 5000x5000
