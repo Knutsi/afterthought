@@ -80,3 +80,8 @@ You can run the following commands to verify code:
 - Prefer css grid to flex
 - themes use css variables
 - never commit to git yourself
+
+
+Code style:
+- Add CONSTANTS_IN_CAPS to avoid magic strings in the modules. Place constants on top of modules and only export the needed ones. 
+- For constants used in more than one file, put them into the relevant types.ts file. 
