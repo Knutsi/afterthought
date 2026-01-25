@@ -50,8 +50,8 @@ export class PanMode implements IDiagramMode {
     event.preventDefault();
 
     const { width, height } = this.diagram.getViewportSize();
-    const stepX = width * 0.4;
-    const stepY = height * 0.4;
+    const stepX = width * 0.2;
+    const stepY = height * 0.2;
 
     switch (event.code) {
       case "ArrowUp":
