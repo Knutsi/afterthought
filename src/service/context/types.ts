@@ -8,7 +8,7 @@
   *     -> [Task x 5] (selection, on board)
   *
   * How does canDo(context) check this? 
-  *   
+  *   TYPE is derived from URI task://GUID 
   * */
 
 
