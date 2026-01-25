@@ -142,3 +142,14 @@ vite.config.ts.timestamp-*
 .DS_Store
 .AppleDouble
 .LSOverride
+
+# Claude Code
+.claude/
+.claude
+.claude/settings.local.json
+
+
+# personal notes:
+PERSONAL-NOTES
+
+

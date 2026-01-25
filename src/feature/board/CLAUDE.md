@@ -3,10 +3,10 @@
 This activity (see the root CLAUDE.md) implements a "board" where the user is free to place tasks and misc. visual tools to categorize and manage the tasks. The actual task data editing is managed by the task feature (might not be implemented yet).
 
 Some initial plans that may or may not be implemented when you read this:
+
 - Task nodes with dependencies
 - Areas that categorize task nodes dropped into them
 - In-diagram state machine drawing that can be applied to the elements, tracking their state
-- 
 
 **Organization and architecture**
 
@@ -14,8 +14,11 @@ Some initial plans that may or may not be implemented when you read this:
 - diagram-board: extends diagram-core to work with the specific diagram elements of the board concept
 
 The diagram will rely on "managers" that handle various aspects of the diagram:
+
+- Diagram.ts itself : manages the canvas, and mode, passing events to the active mode.
+
 - Stage (the elements)
-- Input manager 
+- Input manager
 - Mode manager
 - Geometry manager (lookup mechanism to find areas on and off screen where elements aree)
 

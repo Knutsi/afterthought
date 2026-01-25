@@ -18,4 +18,13 @@ export interface IDiagramMode {
   // Keyboard events
   onKeyDown(event: KeyboardEvent): void;
   onKeyUp(event: KeyboardEvent): void;
+
+  // Wheel events (optional)
+  onWheel?(event: WheelEvent): void;
+
+  // Double-click events (optional)
+  onDoubleClick?(info: DiagramPointerInfo, event: MouseEvent): void;
+
+  // Window blur event (optional)
+  onBlur?(): void;
 }

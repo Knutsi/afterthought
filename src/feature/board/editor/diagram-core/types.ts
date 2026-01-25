@@ -1,4 +1,5 @@
 import { IDiagramMode } from "./modes/types";
+import type { StageManager } from "./managers/StageManager";
 
 /**
  * Comprehensive pointer event info with both canvas and world coordinates.
@@ -42,10 +43,17 @@ export interface DiagramPointerInfo {
 export interface IDiagram {
   pushMode(mode: IDiagramMode): void;
   popMode(): void;
+  getCurrentMode(): IDiagramMode;
   setOffset(x: number, y: number): void;
   getOffset(): { x: number; y: number };
   panByWorldOffset(deltaX: number, deltaY: number): void;
   panByCanvas(canvasDeltaX: number, canvasDeltaY: number): void;
+  getZoom(): number;
+  setZoomAtPoint(newZoom: number, anchorClientX?: number, anchorClientY?: number): void;
+  setCursor(cursorStyle: string): void;
+  requestRender(): void;
+  getViewportSize(): { width: number; height: number };
+  getStageManager(): StageManager;
 }
 
 export class DiagramElement {
@@ -67,41 +75,46 @@ export class DiagramElement {
     this.width = 300;
     this.height = 100;
   }
+
+  /**
+   * Render this element. Override in subclasses for custom rendering.
+   * All coordinates are in world space (transform already applied).
+   * @param ctx - Canvas 2D rendering context
+   */
+  render(ctx: CanvasRenderingContext2D): void {
+    // Default: simple filled rectangle (fallback)
+    ctx.fillStyle = "#888";
+    ctx.fillRect(this.posX, this.posY, this.width, this.height);
+  }
 }
 
-export class DiagramConnection {
+export class DiagramLayer {
   id: string;
-  source: string;
-  target: string;
+  name: string;
+  elements: DiagramElement[];
 
-  constructor() {
+  constructor(name: string) {
     this.id = crypto.randomUUID();
-    this.source = "";
-    this.target = "";
+    this.name = name;
+    this.elements = [];
   }
 }
 
 export class DiagramModel {
-  elements: DiagramElement[];
-  connections: DiagramConnection[];
+  layers: DiagramLayer[];
 
-  // Viewport properties
   offsetX: number;      // Scroll offset X (diagram space pixels)
   offsetY: number;      // Scroll offset Y (diagram space pixels)
 
-  // Extent properties
   extentWidth: number;  // Scrollable width (diagram space)
   extentHeight: number; // Scrollable height (diagram space)
 
-  // Zoom properties
   zoom: number;         // Zoom factor (1.0 = 100%, 0.5 = 50%, 2.0 = 200%)
 
-  // Mode stack (initialized by Diagram)
   modeStack: IDiagramMode[];
 
   constructor() {
-    this.elements = [];
-    this.connections = [];
+    this.layers = [];
     this.offsetX = 0;
     this.offsetY = 0;
     this.extentWidth = 5000;  // Default extent: 5000x5000

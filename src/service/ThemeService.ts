@@ -1,4 +1,7 @@
 import type { ActionService } from "./ActionService";
+import type { ObjectService } from "./ObjectService";
+
+const THEME_STORE_ID = 'theme-settings';
 
 export interface ITheme {
   name: string;
@@ -92,6 +95,7 @@ export class ThemeService extends EventTarget {
   private currentTheme: ITheme;
   private darkModeMediaQuery: MediaQueryList;
   private themeRegistry: Map<string, ITheme> = new Map();
+  private objectService: ObjectService | null = null;
 
   constructor() {
     super();
@@ -102,6 +106,24 @@ export class ThemeService extends EventTarget {
     // Register default themes
     this.registerTheme(defaultTheme);
     this.registerTheme(defaultDarkTheme);
+  }
+
+  async initialize(objectService: ObjectService): Promise<void> {
+    this.objectService = objectService;
+    await objectService.getOrCreateStore(THEME_STORE_ID, 'theme-settings');
+
+    // Load persisted theme preference
+    const preferences = await objectService.getObjectsByStore(THEME_STORE_ID);
+    if (preferences.length > 0 && preferences[0].data.themeName) {
+      const theme = this.themeRegistry.get(preferences[0].data.themeName);
+      if (theme) {
+        this.applyTheme(theme);
+        return;
+      }
+    }
+
+    // Fall back to system preference
+    this.applyDefaultTheme();
   }
 
   getTheme(): ITheme {
@@ -176,7 +198,19 @@ export class ThemeService extends EventTarget {
       return false;
     }
     this.applyTheme(theme);
+    this.persistThemePreference(name);
     return true;
+  }
+
+  private async persistThemePreference(themeName: string): Promise<void> {
+    if (!this.objectService) return;
+
+    const preferences = await this.objectService.getObjectsByStore(THEME_STORE_ID);
+    if (preferences.length > 0) {
+      await this.objectService.updateObject(THEME_STORE_ID, preferences[0].id, { themeName });
+    } else {
+      await this.objectService.createObject(THEME_STORE_ID, 'preference', { themeName });
+    }
   }
 
   applyDefaultTheme(): void {

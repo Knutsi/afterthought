@@ -1,9 +1,10 @@
-import { DiagramModel, DiagramPointerInfo, IDiagram } from "./types";
+import { DiagramModel, IDiagram } from "./types";
 import { IDiagramMode } from "./modes/types";
 import { IdleMode } from "./modes/IdleMode";
+import { InputManager } from "./managers/InputManager";
+import { StageManager } from "./managers/StageManager";
+import { BaseElement } from "./elements/BaseElement";
 import {
-  browserToWorld,
-  screenDeltaToWorldDelta,
   worldOffsetToScrollPosition,
   scrollPositionToWorldOffset,
 } from "./calculations";
@@ -19,28 +20,11 @@ export class Diagram implements IDiagram {
   private context: CanvasRenderingContext2D | null = null;
   private resizeObserver?: ResizeObserver;
   private statusDiv!: HTMLDivElement;
-
-  // Input tracking for delta calculation (screen coordinates to avoid offset-dependency)
-  private lastPointerScreenX = 0;
-  private lastPointerScreenY = 0;
-
-  // Drag tracking
-  private isDragging = false;
-  private dragStartCanvasX = 0;
-  private dragStartCanvasY = 0;
-  private dragStartWorldX = 0;
-  private dragStartWorldY = 0;
-  private canvasDragHistory: Array<{ x: number; y: number }> = [];
-  private worldDragHistory: Array<{ x: number; y: number }> = [];
+  private inputManager!: InputManager;
+  private stageManager!: StageManager;
 
   // Render scheduling
   private renderPending = false;
-
-  // Previous click tracking
-  private previousClickCanvasX = 0;
-  private previousClickCanvasY = 0;
-  private previousClickWorldX = 0;
-  private previousClickWorldY = 0;
 
   constructor(container: HTMLElement) {
     this.instanceId = Diagram.instanceCounter++;
@@ -50,8 +34,27 @@ export class Diagram implements IDiagram {
     this.updateExtentDivSize();
     this.setupScrollListener();
     this.setupResizeObserver();
-    this.setupInputListeners();
     this.initializeModeStack();
+    this.inputManager = new InputManager(this, this.scrollArea, this.canvas);
+    this.inputManager.attach();
+    this.stageManager = new StageManager(this, this.data.layers);
+    this.setupDebugElements();
+  }
+
+  /**
+   * Setup debug elements to verify rendering.
+   */
+  private setupDebugElements(): void {
+    const layer = this.stageManager.addLayer("elements");
+
+    for (let i = 0; i < 10; i++) {
+      const element = new BaseElement();
+      element.posX = Math.random() * 2000 + 100;
+      element.posY = Math.random() * 2000 + 100;
+      element.width = 200 + Math.random() * 150;
+      element.height = 80 + Math.random() * 80;
+      this.stageManager.addElement(layer.id, element);
+    }
   }
 
   /**
@@ -230,7 +233,7 @@ export class Diagram implements IDiagram {
   /**
    * Get the current active mode (top of stack).
    */
-  private get currentMode(): IDiagramMode {
+  public getCurrentMode(): IDiagramMode {
     return this.data.modeStack[this.data.modeStack.length - 1];
   }
 
@@ -256,176 +259,6 @@ export class Diagram implements IDiagram {
     mode?.onExit();
     this.requestRender();
   }
-
-  // ==================== Input Handling ====================
-
-  /**
-   * Setup input event listeners for pointer and keyboard events.
-   */
-  private setupInputListeners(): void {
-    this.scrollArea.addEventListener("pointerdown", this.handlePointerDown);
-    this.scrollArea.addEventListener("pointermove", this.handlePointerMove);
-    this.scrollArea.addEventListener("pointerup", this.handlePointerUp);
-    this.scrollArea.addEventListener("pointercancel", this.handlePointerUp);
-
-    // Prevent space key from scrolling the scroll area (capture phase to intercept before default behavior)
-    this.scrollArea.addEventListener("keydown", this.handleScrollAreaKeyDown, { capture: true });
-
-    window.addEventListener("keydown", this.handleKeyDown);
-    window.addEventListener("keyup", this.handleKeyUp);
-  }
-
-  /**
-   * Build comprehensive pointer info with both canvas and world coordinates.
-   */
-  private buildPointerInfo(
-    event: PointerEvent,
-    canvasDeltaX: number,
-    canvasDeltaY: number
-  ): DiagramPointerInfo {
-    const rect = this.canvas.getBoundingClientRect();
-    const canvasX = event.clientX - rect.left;
-    const canvasY = event.clientY - rect.top;
-    const world = browserToWorld(
-      event.clientX,
-      event.clientY,
-      rect,
-      this.data.zoom,
-      this.data.offsetX,
-      this.data.offsetY
-    );
-    const { deltaX: worldDeltaX, deltaY: worldDeltaY } = screenDeltaToWorldDelta(
-      canvasDeltaX,
-      canvasDeltaY,
-      this.data.zoom
-    );
-
-    return {
-      canvasX,
-      canvasY,
-      worldX: world.x,
-      worldY: world.y,
-      canvasDeltaX,
-      canvasDeltaY,
-      worldDeltaX,
-      worldDeltaY,
-      canvasTotalDeltaX: canvasX - this.dragStartCanvasX,
-      canvasTotalDeltaY: canvasY - this.dragStartCanvasY,
-      worldTotalDeltaX: world.x - this.dragStartWorldX,
-      worldTotalDeltaY: world.y - this.dragStartWorldY,
-      canvasDragHistory: [...this.canvasDragHistory],
-      worldDragHistory: [...this.worldDragHistory],
-      canvasPreviousX: this.previousClickCanvasX,
-      canvasPreviousY: this.previousClickCanvasY,
-      worldPreviousX: this.previousClickWorldX,
-      worldPreviousY: this.previousClickWorldY,
-    };
-  }
-
-  /**
-   * Handle pointer down events.
-   */
-  private handlePointerDown = (event: PointerEvent): void => {
-    this.scrollArea.focus(); // Ensure we capture keyboard events
-
-    const rect = this.canvas.getBoundingClientRect();
-    const canvasX = event.clientX - rect.left;
-    const canvasY = event.clientY - rect.top;
-    const world = browserToWorld(
-      event.clientX,
-      event.clientY,
-      rect,
-      this.data.zoom,
-      this.data.offsetX,
-      this.data.offsetY
-    );
-
-    // Save previous click before updating
-    this.previousClickCanvasX = this.dragStartCanvasX;
-    this.previousClickCanvasY = this.dragStartCanvasY;
-    this.previousClickWorldX = this.dragStartWorldX;
-    this.previousClickWorldY = this.dragStartWorldY;
-
-    // Start new drag
-    this.isDragging = true;
-    this.dragStartCanvasX = canvasX;
-    this.dragStartCanvasY = canvasY;
-    this.dragStartWorldX = world.x;
-    this.dragStartWorldY = world.y;
-    this.canvasDragHistory = [{ x: canvasX, y: canvasY }];
-    this.worldDragHistory = [{ x: world.x, y: world.y }];
-
-    this.lastPointerScreenX = event.clientX;
-    this.lastPointerScreenY = event.clientY;
-
-    const info = this.buildPointerInfo(event, 0, 0);
-    this.currentMode.onPointerDown(info, event);
-  };
-
-  /**
-   * Handle pointer move events.
-   */
-  private handlePointerMove = (event: PointerEvent): void => {
-    const canvasDeltaX = event.clientX - this.lastPointerScreenX;
-    const canvasDeltaY = event.clientY - this.lastPointerScreenY;
-    this.lastPointerScreenX = event.clientX;
-    this.lastPointerScreenY = event.clientY;
-
-    // Track drag history if dragging
-    if (this.isDragging) {
-      const rect = this.canvas.getBoundingClientRect();
-      const canvasX = event.clientX - rect.left;
-      const canvasY = event.clientY - rect.top;
-      const world = browserToWorld(
-        event.clientX,
-        event.clientY,
-        rect,
-        this.data.zoom,
-        this.data.offsetX,
-        this.data.offsetY
-      );
-      this.canvasDragHistory.push({ x: canvasX, y: canvasY });
-      this.worldDragHistory.push({ x: world.x, y: world.y });
-    }
-
-    const info = this.buildPointerInfo(event, canvasDeltaX, canvasDeltaY);
-    this.currentMode.onPointerMove(info, event);
-  };
-
-  /**
-   * Handle pointer up events.
-   */
-  private handlePointerUp = (event: PointerEvent): void => {
-    const canvasDeltaX = event.clientX - this.lastPointerScreenX;
-    const canvasDeltaY = event.clientY - this.lastPointerScreenY;
-
-    const info = this.buildPointerInfo(event, canvasDeltaX, canvasDeltaY);
-    this.isDragging = false;
-    this.currentMode.onPointerUp(info, event);
-  };
-
-  /**
-   * Handle key down events.
-   */
-  private handleKeyDown = (event: KeyboardEvent): void => {
-    this.currentMode.onKeyDown(event);
-  };
-
-  /**
-   * Handle key up events.
-   */
-  private handleKeyUp = (event: KeyboardEvent): void => {
-    this.currentMode.onKeyUp(event);
-  };
-
-  /**
-   * Handle keydown on scroll area to prevent space from scrolling.
-   */
-  private handleScrollAreaKeyDown = (event: KeyboardEvent): void => {
-    if (event.code === "Space") {
-      event.preventDefault();
-    }
-  };
 
   // ==================== Rendering ====================
 
@@ -480,27 +313,14 @@ export class Diagram implements IDiagram {
   }
 
   /**
-   * Render all diagram elements.
+   * Render all diagram elements across all layers.
    */
   private renderElements(ctx: CanvasRenderingContext2D): void {
-    // Elements are already in diagram space coordinates
-    for (const element of this.data.elements) {
-      ctx.fillStyle = "#4CAF50";
-      ctx.fillRect(element.posX, element.posY, element.width, element.height);
-
-      // Element border
-      ctx.strokeStyle = "#333";
-      ctx.lineWidth = 2 / this.data.zoom; // Maintain 2px border at any zoom
-      ctx.strokeRect(element.posX, element.posY, element.width, element.height);
+    for (const layer of this.data.layers) {
+      for (const element of layer.elements) {
+        element.render(ctx);
+      }
     }
-  }
-
-  /**
-   * Render all connections.
-   */
-  private renderConnections(_ctx: CanvasRenderingContext2D): void {
-    // Connection rendering logic (placeholder)
-    // Source/target element positions are in diagram space
   }
 
   /**
@@ -509,7 +329,7 @@ export class Diagram implements IDiagram {
   private updateStatusText(): void {
     const dpr = window.devicePixelRatio || 1;
     this.statusDiv.textContent =
-      `Mode: ${this.currentMode.name}\n` +
+      `Mode: ${this.getCurrentMode().name}\n` +
       `Offset: (${this.data.offsetX.toFixed(1)}, ${this.data.offsetY.toFixed(1)})\n` +
       `Extent: ${this.data.extentWidth} × ${this.data.extentHeight}\n` +
       `Zoom: ${(this.data.zoom * 100).toFixed(0)}%\n` +
@@ -520,7 +340,7 @@ export class Diagram implements IDiagram {
    * Request a render on the next animation frame.
    * Multiple requests within the same frame are coalesced.
    */
-  private requestRender(): void {
+  public requestRender(): void {
     if (this.renderPending) return;
     this.renderPending = true;
     requestAnimationFrame(() => {
@@ -551,7 +371,6 @@ export class Diagram implements IDiagram {
     // Step 4: Render content (all coordinates in diagram space)
     this.renderBackground(ctx);
     this.renderElements(ctx);
-    this.renderConnections(ctx);
 
     // Step 5: Restore state
     ctx.restore();
@@ -703,9 +522,36 @@ export class Diagram implements IDiagram {
   }
 
   /**
+   * Set the cursor style for the diagram.
+   * @param cursorStyle - CSS cursor value (e.g., "grab", "grabbing", "default")
+   */
+  public setCursor(cursorStyle: string): void {
+    this.scrollArea.style.cursor = cursorStyle;
+  }
+
+  /**
+   * Get viewport size in CSS pixels (not world space).
+   * This is the visible area of the canvas in browser coordinates.
+   * Use with panByCanvas() which also operates in CSS pixels.
+   */
+  public getViewportSize(): { width: number; height: number } {
+    return {
+      width: this.container.clientWidth,
+      height: this.container.clientHeight,
+    };
+  }
+
+  /**
    * Start the diagram (trigger initial render).
    */
   public start(): void {
     this.requestRender();
+  }
+
+  /**
+   * Get the stage manager for layer and element operations.
+   */
+  public getStageManager(): StageManager {
+    return this.stageManager;
   }
 }
