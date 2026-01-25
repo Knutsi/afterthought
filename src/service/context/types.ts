@@ -5,9 +5,10 @@
   * 3. board -> (baord service)
   *     -> Task (selected, on board)
   *     OR
-  *     -> [Task x 5] (selection)
+  *     -> [Task x 5] (selection, on board)
   *
-  * How does can do check this?  
+  * How does canDo(context) check this? 
+  *   
   * */
 
 
