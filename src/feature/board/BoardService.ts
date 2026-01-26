@@ -1,9 +1,11 @@
 import { IObject } from "../../service/ObjectService";
 import { ServiceLayer } from "../../service/ServiceLayer";
+import { URI_SCHEMES, type IContext } from "../../service/context/types";
 import type { IBoardActivityData } from "./BoardActivity";
 import {
   BOARD_ACTIVITY_TAG,
   CREATE_BOARD_ACTION_ID,
+  CREATE_TASK_ON_BOARD_ACTION_ID,
   IBoardActivityParams,
   OPEN_BOARD_ACTION_ID
 } from "./types";
@@ -86,6 +88,24 @@ export class BoardService {
         activityService.switchToActivity(activity.id);
       },
       canDo: async (_context) => true,
+    });
+
+    const contextService = this.serviceLayer.getContextService();
+    actionService.addAction({
+      id: CREATE_TASK_ON_BOARD_ACTION_ID,
+      name: "New Task",
+      shortcut: "Ctrl+N T",
+      menuGroup: "Board",
+      menuSubGroup: "create",
+      do: async () => {
+        const boardEntries = contextService.getEntriesByScheme(URI_SCHEMES.BOARD);
+        if (boardEntries.length === 0) return;
+        // TODO: Create task via TaskService when implemented
+        console.log("Create task on board:", boardEntries[0].uri);
+      },
+      canDo: async (context: IContext) => {
+        return context.hasScheme(URI_SCHEMES.BOARD);
+      },
     });
   }
 

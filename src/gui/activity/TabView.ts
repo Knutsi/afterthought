@@ -21,6 +21,7 @@ export class TabView extends BaseComponent {
     const serviceLayer = getDefaultServiceLayer();
     this.activityService = serviceLayer.getActivityService();
     this.activityService.addEventListener(ActivityEvents.ACTIVITY_SWITCHED, this.handleActivitySwitch);
+    this.activityService.addEventListener(ActivityEvents.ACTIVITY_CLOSED, this.handleActivityClosed);
   }
 
   protected onDestroy(): void {
@@ -31,8 +32,20 @@ export class TabView extends BaseComponent {
     }
     if (this.activityService) {
       this.activityService.removeEventListener(ActivityEvents.ACTIVITY_SWITCHED, this.handleActivitySwitch);
+      this.activityService.removeEventListener(ActivityEvents.ACTIVITY_CLOSED, this.handleActivityClosed);
     }
   }
+
+  private handleActivityClosed = (e: Event): void => {
+    const { id } = (e as CustomEvent).detail;
+    const child = this._visibleChildren.find((c) => c.id === id);
+    if (child) {
+      child.setAttribute("data-tab-hidden", "true");
+      child.style.display = "none";
+      this.discoverChildren();
+      this.render();
+    }
+  };
 
   private handleActivitySwitch = (): void => {
     if (!this.activityService) return;
@@ -289,8 +302,11 @@ export class TabView extends BaseComponent {
     if (index < 0 || index >= this._visibleChildren.length) return;
     if (index === this._activeTabIndex) return;
 
-    this._activeTabIndex = index;
-    this.render();
+    const child = this._visibleChildren[index];
+    // Delegate to ActivityService - it will dispatch ACTIVITY_SWITCHED which triggers handleActivitySwitch
+    if (this.activityService) {
+      this.activityService.switchToActivity(child.id);
+    }
   }
 
   private closeTab(index: number): void {
@@ -298,28 +314,10 @@ export class TabView extends BaseComponent {
 
     const child = this._visibleChildren[index];
 
-    // Hide the child
-    child.setAttribute("data-tab-hidden", "true");
-    child.style.display = "none";
-
-    // Re-discover children to update visible list
-    this.discoverChildren();
-
-    // If closed tab was active, switch to another tab
-    if (index === this._activeTabIndex) {
-      if (this._visibleChildren.length > 0) {
-        // Switch to first visible tab
-        this._activeTabIndex = 0;
-      } else {
-        // No tabs left
-        this._activeTabIndex = -1;
-      }
-    } else if (index < this._activeTabIndex) {
-      // Adjust active index if we removed a tab before it
-      this._activeTabIndex--;
+    // Delegate to ActivityService - it will dispatch ACTIVITY_CLOSED which triggers handleActivityClosed
+    if (this.activityService) {
+      this.activityService.closeActivity(child.id);
     }
-
-    this.render();
   }
 
   private setupMutationObserver(): void {
@@ -327,6 +325,7 @@ export class TabView extends BaseComponent {
       this,
       () => {
         this.discoverChildren();
+        this.syncActiveTabWithService();
         this.render();
       },
       {
@@ -336,6 +335,15 @@ export class TabView extends BaseComponent {
         attributeFilter: ["tab-label", "closeable", "tab-icon", "tab-right"],
       },
     );
+  }
+
+  private syncActiveTabWithService(): void {
+    if (!this.activityService) return;
+    const activeId = this.activityService.getActiveActivityId();
+    const targetIndex = this._visibleChildren.findIndex((child) => child.id === activeId);
+    if (targetIndex !== -1) {
+      this._activeTabIndex = targetIndex;
+    }
   }
 }
 

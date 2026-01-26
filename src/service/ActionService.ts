@@ -1,4 +1,4 @@
-import type { IContext } from "./ContextService";
+import type { IContext } from "./context/types";
 import type { ServiceLayer } from "./ServiceLayer";
 
 export interface IAction {

@@ -2,7 +2,9 @@ import { BaseComponent, defineComponent } from "../core/BaseComponent";
 import { EventListeners } from "../core/utilities";
 import { getDefaultServiceLayer } from "../../service/ServiceLayer";
 import { ActionEvents } from "../../service/ActionService";
-import { buildMenuBarModel, type IDynamicMenuBarModel } from "./menuModelAdapter";
+import { buildMenuBarModel, type IDynamicMenuBarModel, type IMenu } from "./menuModelAdapter";
+
+const ALWAYS_VISIBLE_MENUS = ["File", "Edit", "View", "Help"];
 
 interface IDynamicMenuBarViewState {
   openMenuId: string | null;
@@ -198,6 +200,19 @@ export class DynamicMenuBar extends BaseComponent {
     this.renderFromModel(model);
   }
 
+  private hasActiveItems(menu: IMenu): boolean {
+    return menu.orderedGroups.some(group =>
+      group.orderedItems.some(item => !item.disabled)
+    );
+  }
+
+  private shouldShowMenu(menu: IMenu): boolean {
+    if (ALWAYS_VISIBLE_MENUS.includes(menu.label)) {
+      return true;
+    }
+    return this.hasActiveItems(menu);
+  }
+
   private renderFromModel(model: IDynamicMenuBarModel): void {
     // Store model for state management
     this.model = model;
@@ -214,6 +229,9 @@ export class DynamicMenuBar extends BaseComponent {
 
     // Create menus from model
     for (const menu of model.orderedMenus) {
+      if (!this.shouldShowMenu(menu)) {
+        continue;
+      }
       const menuElement = document.createElement("menu-menu");
       menuElement.setAttribute("label", menu.label);
       menuElement.setAttribute("data-menu-id", menu.id);  // Add menu ID

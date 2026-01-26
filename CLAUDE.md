@@ -60,6 +60,14 @@ You can run the following commands to verify code:
 
 **Organization**
 
+Afterthought has a core set of services, and a collection of features. 
+
+"Features"" provide 
+(a) Actions and 
+(b) **Activities**. Activities all have a custom HTML element, and are added to the DOM. Examples of activities are: settings dialog, home tab, boards, task list. 
+
+**Context** binds activities (what the user is seeing and interacting with at any given moment) to actions, and actions materialize and commands in lists, toolbar buttons, menus and keyboard shortcuts. Their availability changes by what is in the context, or what HAS been in it.   
+
 - Core application features as a base:
   - theme
   - dynamic menus
@@ -68,10 +76,10 @@ You can run the following commands to verify code:
   - service layer (extended further by features)
   - more ..
 - Features go in separate directories, e.g. :
-
   - Task feature (write, store and process tasks)
   - Home-view (pinned tab as a starting point)
   - Settings
+  - (more to come)
 
   Features can use core application mehanisms directly, but need to go through an interface to talk to other non-core features.
 
