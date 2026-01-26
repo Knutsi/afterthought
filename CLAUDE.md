@@ -66,7 +66,7 @@ Afterthought has a core set of services, and a collection of features.
 (a) Actions and 
 (b) **Activities**. Activities all have a custom HTML element, and are added to the DOM. Examples of activities are: settings dialog, home tab, boards, task list. 
 
-**Context** binds activities (what the user is seeing and interacting with at any given moment) to actions.   
+**Context** binds activities (what the user is seeing and interacting with at any given moment) to actions, and actions materialize and commands in lists, toolbar buttons, menus and keyboard shortcuts. Their availability changes by what is in the context, or what HAS been in it.   
 
 - Core application features as a base:
   - theme
