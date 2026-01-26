@@ -325,6 +325,7 @@ export class TabView extends BaseComponent {
       this,
       () => {
         this.discoverChildren();
+        this.syncActiveTabWithService();
         this.render();
       },
       {
@@ -334,6 +335,15 @@ export class TabView extends BaseComponent {
         attributeFilter: ["tab-label", "closeable", "tab-icon", "tab-right"],
       },
     );
+  }
+
+  private syncActiveTabWithService(): void {
+    if (!this.activityService) return;
+    const activeId = this.activityService.getActiveActivityId();
+    const targetIndex = this._visibleChildren.findIndex((child) => child.id === activeId);
+    if (targetIndex !== -1) {
+      this._activeTabIndex = targetIndex;
+    }
   }
 }
 
