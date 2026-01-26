@@ -1,31 +1,57 @@
-/*
- * Example context:
-  * 1. user -> (user feature, )
-  * 2. settings -> (settings feature, uri of settings)
-  * 3. board -> (baord service)
-  *     -> Task (selected, on board)
-  *     OR
-  *     -> [Task x 5] (selection, on board)
-  *
-  * How does canDo(context) check this? 
-  *   TYPE is derived from URI task://GUID 
-  * */
+// URI System
+export type Uri = string; // Format: "scheme://id" (e.g., "board://abc123")
 
+export const URI_SCHEMES = {
+  BOARD: "board",
+  TASK: "task",
+  SETTINGS: "settings",
+} as const;
 
-export type Uri = string;
+export type UriScheme = (typeof URI_SCHEMES)[keyof typeof URI_SCHEMES];
 
-export class ContextEntry {
-  uri: string
-  ownerId: string
+// URI Utility Functions
+export function createUri(scheme: string, id: string): Uri {
+  return `${scheme}://${id}`;
+}
 
-  constructor(uri: Uri, ownerId: string) {
-    this.uri = uri
-    this.ownerId = ownerId
+export function parseUri(uri: Uri): { scheme: string; id: string } | null {
+  const match = uri.match(/^([^:]+):\/\/(.+)$/);
+  if (!match) return null;
+  return { scheme: match[1], id: match[2] };
+}
+
+export function getUriScheme(uri: Uri): string | null {
+  const parsed = parseUri(uri);
+  return parsed?.scheme ?? null;
+}
+
+// Context Entry
+export interface IContextEntry {
+  readonly uri: Uri;
+  readonly parentUri: Uri | null;
+  readonly feature: string; // Who added it (e.g., "board-service")
+}
+
+export class ContextEntry implements IContextEntry {
+  readonly uri: Uri;
+  readonly parentUri: Uri | null;
+  readonly feature: string;
+
+  constructor(uri: Uri, feature: string, parentUri: Uri | null = null) {
+    this.uri = uri;
+    this.feature = feature;
+    this.parentUri = parentUri;
   }
 }
 
-export class Context {
+// Context Interface
+export interface IContext {
+  readonly entries: ReadonlyMap<Uri, IContextEntry>;
 
+  // Query methods
+  hasScheme(scheme: string): boolean;
+  getEntriesByScheme(scheme: string): IContextEntry[];
+  hasEntry(uri: Uri): boolean;
+  getEntry(uri: Uri): IContextEntry | undefined;
+  getChildren(parentUri: Uri): IContextEntry[];
 }
-
-

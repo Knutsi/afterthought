@@ -1,5 +1,8 @@
 import { BaseComponent, defineComponent } from "../../gui/core/BaseComponent";
-import { BOARD_ACTIVITY_TAG, IBoardActivityParams } from "./types";
+import { getDefaultServiceLayer } from "../../service/ServiceLayer";
+import { ActivityEvents } from "../../service/ActivityService";
+import { createUri, type Uri, URI_SCHEMES } from "../../service/context/types";
+import { BOARD_ACTIVITY_TAG, BOARD_SERVICE_NAME, IBoardActivityParams } from "./types";
 import { createBoardDiagram } from "./editor/diagram-board/BoardDiagram";
 import { Diagram } from "./editor/diagram-core/Diagram";
 
@@ -10,6 +13,9 @@ export interface IBoardActivityData {
 export class BoardActivity extends BaseComponent {
   private data!: IBoardActivityData;
   private diagram: Diagram | null = null;
+  private boardUri: Uri | null = null;
+  private activitySwitchHandler = () => this.handleActivitySwitch();
+
   static get observedAttributes(): string[] {
     return [];
   }
@@ -22,6 +28,17 @@ export class BoardActivity extends BaseComponent {
 
     this.data = { name: args.name };
     this.setAttribute("tab-label", args.name);
+
+    // Build the board URI but don't add to context yet - handleActivitySwitch will do that
+    this.boardUri = createUri(URI_SCHEMES.BOARD, args.openBoardId ?? crypto.randomUUID());
+
+    // Listen for activity switches to manage context
+    const activityService = getDefaultServiceLayer().getActivityService();
+    activityService.addEventListener(ActivityEvents.ACTIVITY_SWITCHED, this.activitySwitchHandler);
+
+    // Check if we're the active activity and add to context if so
+    this.handleActivitySwitch();
+
     this.render();
 
     const container = this.shadowRoot!.querySelector(".board-container") as HTMLElement;
@@ -61,6 +78,33 @@ export class BoardActivity extends BaseComponent {
       </style>
       <div class="board-container"></div>
     `;
+  }
+
+  protected onDestroy(): void {
+    // Remove activity switch listener
+    const activityService = getDefaultServiceLayer().getActivityService();
+    activityService.removeEventListener(ActivityEvents.ACTIVITY_SWITCHED, this.activitySwitchHandler);
+
+    // Remove from context if present
+    if (this.boardUri) {
+      getDefaultServiceLayer().getContextService().removeEntry(this.boardUri);
+    }
+  }
+
+  private handleActivitySwitch(): void {
+    const activityService = getDefaultServiceLayer().getActivityService();
+    const contextService = getDefaultServiceLayer().getContextService();
+    const isActive = activityService.getActiveActivityId() === this.id;
+
+    if (isActive && this.boardUri) {
+      // Becoming active - add to context
+      if (!contextService.hasEntry(this.boardUri)) {
+        contextService.addEntry(this.boardUri, BOARD_SERVICE_NAME);
+      }
+    } else if (!isActive && this.boardUri) {
+      // Becoming inactive - remove from context
+      contextService.removeEntry(this.boardUri);
+    }
   }
 
   private ensureTabAttributes(): void {

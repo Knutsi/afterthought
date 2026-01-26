@@ -1,5 +1,5 @@
 import { ActionService } from "./ActionService";
-import { ContextService } from "./ContextService";
+import { ContextService } from "./context/ContextService";
 import { ObjectService } from "./ObjectService";
 import { ThemeService } from "./ThemeService";
 import { ActivityService } from "./ActivityService";
