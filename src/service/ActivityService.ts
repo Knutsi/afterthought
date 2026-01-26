@@ -54,6 +54,14 @@ export class ActivityService extends EventTarget {
       ? activityElement.activityType
       : ActivityType.TAB;
 
+    // Drop context from previous top activity
+    const previousTop = this.activityStack.length > 0
+      ? this.activityStack[this.activityStack.length - 1]
+      : null;
+    if (previousTop && this.isActivity(previousTop.element)) {
+      previousTop.element.onDropContext();
+    }
+
     // Push to stack
     this.activityStack.push({
       id: activityElement.id,
@@ -61,6 +69,11 @@ export class ActivityService extends EventTarget {
       activityType,
       isHomeActivity,
     });
+
+    // New activity gets context
+    if (this.isActivity(activityElement)) {
+      activityElement.onGetContext();
+    }
 
     return { id: activityElement.id };
   }
