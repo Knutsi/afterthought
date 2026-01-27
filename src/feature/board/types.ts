@@ -9,4 +9,9 @@ export const CREATE_TASK_ON_BOARD_ACTION_ID = "create-task-on-board";
 export interface IBoardActivityParams {
   name: string,
   openBoardId: string | null /* new if null */
-} 
+}
+
+export class BoardTaskInstance {
+
+
+}
