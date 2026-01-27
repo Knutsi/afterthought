@@ -2,7 +2,7 @@ import type { IAction } from "../../service/ActionService";
 import type { IContext } from "../../service/context/types";
 import { getDefaultServiceLayer } from "../../service/ServiceLayer";
 
-const preferredMenuOrder = ["File", "Edit", "View", "Project", "Task", "Tools", "Window", "Help", "Settings", "About"];
+const preferredMenuOrder = ["File", "Edit", "View", "Project", "Task", "Board", "Tools", "Window", "Help", "Settings", "About"];
 const preferredMenuGroupOrder = [
   "create",
   "open",
