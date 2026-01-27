@@ -1,6 +1,7 @@
 import { IObject } from "../../service/ObjectService";
 import { ServiceLayer } from "../../service/ServiceLayer";
-import { URI_SCHEMES, type IContext } from "../../service/context/types";
+import { URI_SCHEMES } from "../../core-model/uri";
+import type { IContext } from "../../service/context/types";
 import type { IBoardActivityData } from "./BoardActivity";
 import {
   BOARD_ACTIVITY_TAG,

@@ -1,7 +1,7 @@
 import { BaseComponent, defineComponent } from "../../gui/core/BaseComponent";
 import { getDefaultServiceLayer } from "../../service/ServiceLayer";
 import { ActivityType, type IActivity } from "../../service/ActivityService";
-import { createUri, type Uri, URI_SCHEMES } from "../../service/context/types";
+import { createUri, type Uri, URI_SCHEMES } from "../../core-model/uri";
 import { BOARD_ACTIVITY_TAG, BOARD_SERVICE_NAME, IBoardActivityParams } from "./types";
 import { createBoardDiagram } from "./editor/diagram-board/BoardDiagram";
 import { Diagram } from "./editor/diagram-core/Diagram";

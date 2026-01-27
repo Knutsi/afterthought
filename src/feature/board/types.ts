@@ -1,3 +1,5 @@
+import { Uri } from "../../core-model/uri.ts"
+
 export const BOARD_ACTIVITY_TAG = "board-activity";
 export const BOARD_SERVICE_NAME = "board-service";
 
@@ -12,6 +14,13 @@ export interface IBoardActivityParams {
 }
 
 export class BoardTaskInstance {
+  taskUri: Uri
+  x: number
+  y: number
 
-
+  constructor(uri: Uri, x: number, y: number) {
+    this.taskUri = uri;
+    this.x = x;
+    this.y = y;
+  }
 }
