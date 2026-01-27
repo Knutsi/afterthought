@@ -8,8 +8,8 @@ import { MOUSE_BUTTON_PRIMARY } from "../managers/InputManager";
  * Handles space key to enter pan mode.
  */
 export class IdleMode implements IDiagramMode {
-  readonly name = "idle";
-  private diagram: IDiagram;
+  readonly name: string = "idle";
+  protected diagram: IDiagram;
 
   constructor(diagram: IDiagram) {
     this.diagram = diagram;

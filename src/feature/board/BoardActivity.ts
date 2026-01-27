@@ -62,7 +62,9 @@ export class BoardActivity extends BaseComponent implements IActivity {
       throw new Error("Board container not found");
     }
     // sets up the main event loop of the board:
-    this.diagram = createBoardDiagram(container);
+    this.diagram = createBoardDiagram(container, {
+      onTaskCreate: this.handleTaskCreate.bind(this),
+    });
     // TODO: load board data
     console.log("Board arguments: ", this.getAttribute("data-parameters"))
   }
@@ -101,6 +103,11 @@ export class BoardActivity extends BaseComponent implements IActivity {
     if (this.boardUri) {
       getDefaultServiceLayer().getContextService().removeEntry(this.boardUri);
     }
+  }
+
+  private handleTaskCreate(worldX: number, worldY: number): void {
+    console.log(`Create task at (${worldX}, ${worldY})`);
+    // TODO: Integrate with task service
   }
 
   private ensureTabAttributes(): void {

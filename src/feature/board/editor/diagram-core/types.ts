@@ -56,6 +56,14 @@ export interface IDiagram {
   getStageManager(): StageManager;
 }
 
+/** Factory function for creating the idle mode. */
+export type IdleModeFactoryFn = (diagram: IDiagram) => IDiagramMode;
+
+/** Options for Diagram construction. */
+export interface DiagramOptions {
+  createIdleModeFn?: IdleModeFactoryFn;
+}
+
 export class DiagramElement {
   id: string;
   type: string;
