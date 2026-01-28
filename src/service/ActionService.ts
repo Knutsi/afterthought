@@ -1,41 +1,83 @@
 import type { IContext } from "./context/types";
 import type { ServiceLayer } from "./ServiceLayer";
 
+export type UndoFunction = () => Promise<void>;
+
 export interface IAction {
   id: string;
   name: string;
   shortcut: string;
   menuGroup: string;
   menuSubGroup?: string;
-  do: () => Promise<void>;
-  undo?: () => Promise<void>;
-  canUndo?: () => Promise<boolean>;
+  do: () => Promise<UndoFunction | void>;
   canDo: (context: IContext) => Promise<boolean>;
 }
+
+export const UNDO_ACTION_ID = "core.undo";
+export const REDO_ACTION_ID = "core.redo";
 
 export const ActionEvents = {
   ACTION_ADDED: "actionAdded",
   ACTION_AVAILABILITY_UPDATED: "actionAvailabilityUpdated",
   ACTION_DONE: "actionDone",
+  HISTORY_CHANGED: "historyChanged",
 };
 
 export class ActionService extends EventTarget {
   private actions: IAction[] = [];
+  private undoStack: UndoFunction[] = [];
+  private redoStack: UndoFunction[] = [];
 
   constructor(_serviceLayer: ServiceLayer) {
     super();
     this.actions = [];
   }
 
-  public doAction(actionId: string): void {
+  public async doAction(actionId: string): Promise<void> {
     const action = this.actions.find((a) => a.id === actionId);
     if (!action) {
       throw new Error(`Action ${actionId} not found`);
     }
 
     console.log(`Doing action ${action.id}: ${action.name}`);
-    action.do();
+    const undoFn = await action.do();
+
+    if (undoFn) {
+      this.undoStack.push(undoFn);
+      this.redoStack = [];
+      this.dispatchEvent(new Event(ActionEvents.HISTORY_CHANGED));
+      this.updateActionAvailability();
+    }
+
     this.dispatchEvent(new CustomEvent(ActionEvents.ACTION_DONE, { detail: { actionId } }));
+  }
+
+  public async undo(): Promise<void> {
+    const undoFn = this.undoStack.pop();
+    if (!undoFn) return;
+
+    await undoFn();
+    this.redoStack.push(undoFn);
+    this.dispatchEvent(new Event(ActionEvents.HISTORY_CHANGED));
+    this.updateActionAvailability();
+  }
+
+  public async redo(): Promise<void> {
+    const redoFn = this.redoStack.pop();
+    if (!redoFn) return;
+
+    await redoFn();
+    this.undoStack.push(redoFn);
+    this.dispatchEvent(new Event(ActionEvents.HISTORY_CHANGED));
+    this.updateActionAvailability();
+  }
+
+  public canUndo(): boolean {
+    return this.undoStack.length > 0;
+  }
+
+  public canRedo(): boolean {
+    return this.redoStack.length > 0;
   }
 
   public addAction(action: IAction) {

@@ -1,6 +1,8 @@
 import { IAction } from "./service/ActionService";
-import { ServiceLayer } from "./service/ServiceLayer";
+import { getDefaultServiceLayer, ServiceLayer } from "./service/ServiceLayer";
 import { invoke } from '@tauri-apps/api/core';
+
+const UNDO_REDO_SUBGROUP = "undo-redo";
 
 var newProjectAction: IAction = {
   id: "core.newProject",
@@ -43,11 +45,11 @@ var undoAction: IAction = {
   name: "Undo",
   shortcut: "Ctrl+Z",
   menuGroup: "Edit",
-  menuSubGroup: "Basic",
+  menuSubGroup: UNDO_REDO_SUBGROUP,
   do: async () => {
-    console.log("Undo");
+    await getDefaultServiceLayer().actionService.undo();
   },
-  canDo: async () => true,
+  canDo: async () => getDefaultServiceLayer().actionService.canUndo(),
 };
 
 var redoAction: IAction = {
@@ -55,11 +57,11 @@ var redoAction: IAction = {
   name: "Redo",
   shortcut: "Ctrl+Y",
   menuGroup: "Edit",
-  menuSubGroup: "Basic",
+  menuSubGroup: UNDO_REDO_SUBGROUP,
   do: async () => {
-    console.log("Redo");
+    await getDefaultServiceLayer().actionService.redo();
   },
-  canDo: async () => true,
+  canDo: async () => getDefaultServiceLayer().actionService.canRedo(),
 };
 
 var cutAction: IAction = {

@@ -1,0 +1,50 @@
+import type { IAction, UndoFunction } from "../../../service/ActionService";
+import type { ServiceLayer } from "../../../service/ServiceLayer";
+import {
+  BOARD_ACTIVITY_TAG,
+  CREATE_BOARD_ACTION_ID,
+  OPEN_BOARD_ACTION_ID,
+  IBoardActivityParams,
+  BOARD_SERVICE_NAME,
+} from "../types";
+import type { BoardService } from "../BoardService";
+
+export function createNewBoardAction(serviceLayer: ServiceLayer): IAction {
+  return {
+    id: CREATE_BOARD_ACTION_ID,
+    name: "New Board",
+    shortcut: "Ctrl+N B",
+    menuGroup: "File",
+    menuSubGroup: "create",
+    do: async (): Promise<UndoFunction | void> => {
+      const boardService = serviceLayer.getFeatureService<BoardService>(BOARD_SERVICE_NAME);
+      const activityService = serviceLayer.getActivityService();
+
+      const board = await boardService.newBoard();
+      const args: IBoardActivityParams = { openBoardId: board.id, name: board.data.name };
+      const activity = activityService.startActivity<IBoardActivityParams>(BOARD_ACTIVITY_TAG, args);
+      activityService.switchToActivity(activity.id);
+    },
+    canDo: async () => true,
+  };
+}
+
+export function createOpenBoardAction(serviceLayer: ServiceLayer): IAction {
+  return {
+    id: OPEN_BOARD_ACTION_ID,
+    name: "Open Board",
+    shortcut: "Ctrl+O B",
+    menuGroup: "File",
+    menuSubGroup: "open",
+    do: async (): Promise<UndoFunction | void> => {
+      const boardService = serviceLayer.getFeatureService<BoardService>(BOARD_SERVICE_NAME);
+      const activityService = serviceLayer.getActivityService();
+
+      const board = await boardService.newBoard();
+      const args: IBoardActivityParams = { openBoardId: board.id, name: board.data.name };
+      const activity = activityService.startActivity<IBoardActivityParams>(BOARD_ACTIVITY_TAG, args);
+      activityService.switchToActivity(activity.id);
+    },
+    canDo: async () => true,
+  };
+}
