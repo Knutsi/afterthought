@@ -41,7 +41,7 @@ export class Diagram implements IDiagram {
     this.initializeModeStack();
     this.inputManager = new InputManager(this, this.scrollArea, this.canvas);
     this.inputManager.attach();
-    this.stageManager = new StageManager(this, this.data.layers);
+    this.stageManager = new StageManager(this, this.data.layers, options?.onElementChange);
     this.setupDebugElements();
   }
 

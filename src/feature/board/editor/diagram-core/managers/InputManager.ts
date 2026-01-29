@@ -106,6 +106,10 @@ export class InputManager {
       zoom
     );
 
+    const elementUnderPointer = this.diagram
+      .getStageManager()
+      .getElementAtPoint(world.x, world.y);
+
     return {
       canvasX,
       canvasY,
@@ -125,6 +129,7 @@ export class InputManager {
       canvasPreviousY: this.previousClickCanvasY,
       worldPreviousX: this.previousClickWorldX,
       worldPreviousY: this.previousClickWorldY,
+      elementUnderPointer,
     };
   }
 
@@ -280,6 +285,10 @@ export class InputManager {
       offset.y
     );
 
+    const elementUnderPointer = this.diagram
+      .getStageManager()
+      .getElementAtPoint(world.x, world.y);
+
     return {
       canvasX,
       canvasY,
@@ -299,6 +308,7 @@ export class InputManager {
       canvasPreviousY: this.previousClickCanvasY,
       worldPreviousX: this.previousClickWorldX,
       worldPreviousY: this.previousClickWorldY,
+      elementUnderPointer,
     };
   }
 

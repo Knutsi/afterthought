@@ -34,6 +34,9 @@ export interface DiagramPointerInfo {
   canvasPreviousY: number;
   worldPreviousX: number;
   worldPreviousY: number;
+
+  // Element under the pointer (hit-tested)
+  elementUnderPointer: DiagramElement | null;
 }
 
 /**
@@ -59,9 +62,22 @@ export interface IDiagram {
 /** Factory function for creating the idle mode. */
 export type IdleModeFactoryFn = (diagram: IDiagram) => IDiagramMode;
 
+// ==================== Change Detection ====================
+
+export type ElementChangeType = 'added' | 'removed' | 'moved' | 'resized';
+
+export interface ElementChangeEvent {
+  type: ElementChangeType;
+  element: DiagramElement;
+  layerId: string;
+}
+
+export type ElementChangeCallback = (event: ElementChangeEvent) => void;
+
 /** Options for Diagram construction. */
 export interface DiagramOptions {
   createIdleModeFn?: IdleModeFactoryFn;
+  onElementChange?: ElementChangeCallback;
 }
 
 export class DiagramElement {

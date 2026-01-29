@@ -1,4 +1,5 @@
 import { Diagram } from "../diagram-core/Diagram";
+import { ElementChangeCallback } from "../diagram-core/types";
 import { BoardIdleMode, OnTaskCreateCallback } from "./modes";
 import { TaskElement } from "./elements/TaskElement";
 
@@ -8,6 +9,7 @@ const TEST_AREA_HEIGHT = 2000;
 
 export interface BoardDiagramOptions {
   onTaskCreate?: OnTaskCreateCallback;
+  onElementChange?: ElementChangeCallback;
 }
 
 export function createBoardDiagram(
@@ -16,6 +18,7 @@ export function createBoardDiagram(
 ): Diagram {
   const diagram = new Diagram(container, {
     createIdleModeFn: (d) => new BoardIdleMode(d, options?.onTaskCreate),
+    onElementChange: options?.onElementChange,
   });
   diagram.start();
   addTestTaskElements(diagram);
