@@ -1,5 +1,6 @@
 import type { ActionService } from "./ActionService";
 import type { ObjectService } from "./ObjectService";
+import type { IContext } from "./context/types";
 
 const THEME_STORE_ID = 'theme-settings';
 
@@ -228,7 +229,7 @@ export class ThemeService extends EventTarget {
         shortcut: "",
         menuGroup: "View",
         menuSubGroup: "Theme",
-        do: async () => {
+        do: async (_context: IContext) => {
           this.applyThemeByName(themeName);
         },
         canDo: async () => true,

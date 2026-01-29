@@ -12,7 +12,7 @@ export function createNewTaskAction(serviceLayer: ServiceLayer): IAction {
     shortcut: "Ctrl+N T",
     menuGroup: "Board",
     menuSubGroup: "create",
-    do: async (): Promise<UndoFunction | void> => {
+    do: async (_context: IContext): Promise<UndoFunction | void> => {
       const boardService = serviceLayer.getFeatureService<BoardService>(BOARD_SERVICE_NAME);
       const taskUri = await boardService.addTask();
 

@@ -9,7 +9,7 @@ export interface IAction {
   shortcut: string;
   menuGroup: string;
   menuSubGroup?: string;
-  do: () => Promise<UndoFunction | void>;
+  do: (context: IContext) => Promise<UndoFunction | void>;
   canDo: (context: IContext) => Promise<boolean>;
 }
 
@@ -27,10 +27,12 @@ export class ActionService extends EventTarget {
   private actions: IAction[] = [];
   private undoStack: UndoFunction[] = [];
   private redoStack: UndoFunction[] = [];
+  private serviceLayer: ServiceLayer;
 
-  constructor(_serviceLayer: ServiceLayer) {
+  constructor(serviceLayer: ServiceLayer) {
     super();
     this.actions = [];
+    this.serviceLayer = serviceLayer;
   }
 
   public async doAction(actionId: string): Promise<void> {
@@ -40,7 +42,8 @@ export class ActionService extends EventTarget {
     }
 
     console.log(`Doing action ${action.id}: ${action.name}`);
-    const undoFn = await action.do();
+    const context = this.serviceLayer.getContextService();
+    const undoFn = await action.do(context);
 
     if (undoFn) {
       this.undoStack.push(undoFn);

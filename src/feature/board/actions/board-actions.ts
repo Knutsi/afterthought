@@ -1,5 +1,6 @@
 import type { IAction, UndoFunction } from "../../../service/ActionService";
 import type { ServiceLayer } from "../../../service/ServiceLayer";
+import type { IContext } from "../../../service/context/types";
 import {
   BOARD_ACTIVITY_TAG,
   CREATE_BOARD_ACTION_ID,
@@ -16,7 +17,7 @@ export function createNewBoardAction(serviceLayer: ServiceLayer): IAction {
     shortcut: "Ctrl+N B",
     menuGroup: "File",
     menuSubGroup: "create",
-    do: async (): Promise<UndoFunction | void> => {
+    do: async (_context: IContext): Promise<UndoFunction | void> => {
       const boardService = serviceLayer.getFeatureService<BoardService>(BOARD_SERVICE_NAME);
       const activityService = serviceLayer.getActivityService();
 
@@ -36,7 +37,7 @@ export function createOpenBoardAction(serviceLayer: ServiceLayer): IAction {
     shortcut: "Ctrl+O B",
     menuGroup: "File",
     menuSubGroup: "open",
-    do: async (): Promise<UndoFunction | void> => {
+    do: async (_context: IContext): Promise<UndoFunction | void> => {
       const boardService = serviceLayer.getFeatureService<BoardService>(BOARD_SERVICE_NAME);
       const activityService = serviceLayer.getActivityService();
 

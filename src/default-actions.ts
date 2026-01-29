@@ -1,5 +1,6 @@
 import { IAction } from "./service/ActionService";
 import { getDefaultServiceLayer, ServiceLayer } from "./service/ServiceLayer";
+import type { IContext } from "./service/context/types";
 import { invoke } from '@tauri-apps/api/core';
 
 const UNDO_REDO_SUBGROUP = "undo-redo";
@@ -10,7 +11,7 @@ var newProjectAction: IAction = {
   shortcut: "Ctrl+N",
   menuGroup: "File",
   menuSubGroup: "create",
-  do: async () => {
+  do: async (_context: IContext) => {
     console.log("New Project");
   },
   canDo: async () => true,
@@ -22,7 +23,7 @@ var quitAction: IAction = {
   shortcut: "Ctrl+Q",
   menuGroup: "File",
   menuSubGroup: "exit",
-  do: async () => {
+  do: async (_context: IContext) => {
     await invoke('quit_app');
   },
   canDo: async () => true,
@@ -34,7 +35,7 @@ var helpAction: IAction = {
   shortcut: "F1",
   menuGroup: "Help",
   menuSubGroup: "Docs",
-  do: async () => {
+  do: async (_context: IContext) => {
     console.log("Help");
   },
   canDo: async () => true,
@@ -46,7 +47,7 @@ var undoAction: IAction = {
   shortcut: "Ctrl+Z",
   menuGroup: "Edit",
   menuSubGroup: UNDO_REDO_SUBGROUP,
-  do: async () => {
+  do: async (_context: IContext) => {
     await getDefaultServiceLayer().actionService.undo();
   },
   canDo: async () => getDefaultServiceLayer().actionService.canUndo(),
@@ -58,7 +59,7 @@ var redoAction: IAction = {
   shortcut: "Ctrl+Y",
   menuGroup: "Edit",
   menuSubGroup: UNDO_REDO_SUBGROUP,
-  do: async () => {
+  do: async (_context: IContext) => {
     await getDefaultServiceLayer().actionService.redo();
   },
   canDo: async () => getDefaultServiceLayer().actionService.canRedo(),
@@ -70,7 +71,7 @@ var cutAction: IAction = {
   shortcut: "Ctrl+X",
   menuGroup: "Edit",
   menuSubGroup: "Clipboard",
-  do: async () => {
+  do: async (_context: IContext) => {
     console.log("Cut");
   },
   canDo: async () => true,
@@ -82,7 +83,7 @@ var copyAction: IAction = {
   shortcut: "Ctrl+C",
   menuGroup: "Edit",
   menuSubGroup: "Clipboard",
-  do: async () => {
+  do: async (_context: IContext) => {
     console.log("Copy");
   },
   canDo: async () => true,
@@ -94,7 +95,7 @@ var pasteAction: IAction = {
   shortcut: "Ctrl+V",
   menuGroup: "Edit",
   menuSubGroup: "Clipboard",
-  do: async () => {
+  do: async (_context: IContext) => {
     console.log("Paste");
   },
   canDo: async () => true,
@@ -106,7 +107,7 @@ var aboutAction: IAction = {
   shortcut: "",
   menuGroup: "Help",
   menuSubGroup: "About",
-  do: async () => {
+  do: async (_context: IContext) => {
     console.log("About");
   },
   canDo: async () => true,
