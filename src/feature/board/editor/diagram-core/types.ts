@@ -74,10 +74,14 @@ export interface ElementChangeEvent {
 
 export type ElementChangeCallback = (event: ElementChangeEvent) => void;
 
-/** Options for Diagram construction. */
-export interface DiagramOptions {
-  createIdleModeFn?: IdleModeFactoryFn;
+/** Callbacks for diagram events. */
+export interface IDiagramCallbacks {
   onElementChange?: ElementChangeCallback;
+}
+
+/** Options for Diagram construction. */
+export interface IDiagramOptions {
+  createIdleModeFn?: IdleModeFactoryFn;
 }
 
 export class DiagramElement {

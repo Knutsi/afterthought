@@ -1,4 +1,4 @@
-import { DiagramModel, DiagramOptions, IDiagram, IdleModeFactoryFn } from "./types";
+import { DiagramModel, IDiagramCallbacks, IDiagramOptions, IDiagram, IdleModeFactoryFn } from "./types";
 import { IDiagramMode } from "./modes/types";
 import { IdleMode } from "./modes/IdleMode";
 import { InputManager } from "./managers/InputManager";
@@ -28,7 +28,7 @@ export class Diagram implements IDiagram {
   // Mode factory
   private createIdleMode: IdleModeFactoryFn;
 
-  constructor(container: HTMLElement, options?: DiagramOptions) {
+  constructor(container: HTMLElement, callbacks?: IDiagramCallbacks, options?: IDiagramOptions) {
     this.instanceId = Diagram.instanceCounter++;
     this.data = new DiagramModel();
     this.container = container;
@@ -40,7 +40,7 @@ export class Diagram implements IDiagram {
     this.initializeModeStack();
     this.inputManager = new InputManager(this, this.scrollArea, this.canvas);
     this.inputManager.attach();
-    this.stageManager = new StageManager(this, this.data.layers, options?.onElementChange);
+    this.stageManager = new StageManager(this, this.data.layers, callbacks?.onElementChange);
   }
 
   /**

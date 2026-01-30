@@ -11,10 +11,11 @@ export function createBoardDiagram(
   container: HTMLElement,
   options?: BoardDiagramOptions
 ): Diagram {
-  const diagram = new Diagram(container, {
-    createIdleModeFn: (d) => new BoardIdleMode(d, options?.onTaskCreate),
-    onElementChange: options?.onElementChange,
-  });
+  const diagram = new Diagram(
+    container,
+    { onElementChange: options?.onElementChange },
+    { createIdleModeFn: (d) => new BoardIdleMode(d, options?.onTaskCreate) }
+  );
   diagram.start();
   return diagram;
 }
