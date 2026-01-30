@@ -1,7 +1,7 @@
 import { DiagramElement } from "../../diagram-core/types";
 
-const DEFAULT_WIDTH = 200;
-const DEFAULT_HEIGHT = 80;
+const DEFAULT_WIDTH = 150;
+const DEFAULT_HEIGHT = 50;
 const CORNER_RADIUS = 8;
 const FONT_SIZE = 14;
 

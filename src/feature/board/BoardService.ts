@@ -1,8 +1,19 @@
 import { IObject } from "../../service/ObjectService";
 import { ServiceLayer } from "../../service/ServiceLayer";
-import { createUri, Uri, URI_SCHEMES } from "../../core-model/uri";
+import { createUri, parseUri, URI_SCHEMES } from "../../core-model/uri";
 import type { IBoardActivityData } from "./BoardActivity";
 import { createNewBoardAction, createOpenBoardAction, createNewTaskAction } from "./actions";
+import { TaskService } from "../task/TaskService";
+import { TASK_SERVICE_NAME } from "../task/types";
+import {
+  BoardTaskPlacement,
+  BoardData,
+  AddTaskResult,
+  DEFAULT_TASK_PLACEMENT_WIDTH,
+  DEFAULT_TASK_PLACEMENT_HEIGHT,
+  DEFAULT_TASK_PLACEMENT_X,
+  DEFAULT_TASK_PLACEMENT_Y,
+} from "./types";
 
 const BOARD_STORE_ID = 'board-store';
 
@@ -24,7 +35,7 @@ export class BoardService {
   public async newBoard(): Promise<IObject> {
     const objectService = this.serviceLayer.getObjectService();
     const name = this.getNextBoardName();
-    return objectService.createObject(BOARD_STORE_ID, 'board', { name });
+    return objectService.createObject(BOARD_STORE_ID, 'board', { name, tasks: [] });
   }
 
   public openBoard(_id: string): IBoardActivityData {
@@ -38,9 +49,80 @@ export class BoardService {
 
   }
 
-  public async addTask(): Promise<Uri> {
-    const fakeTaskId = `task-${Date.now()}`;
-    return createUri(URI_SCHEMES.TASK, fakeTaskId);
+  public async getBoardData(boardId: string): Promise<BoardData | null> {
+    const objectService = this.serviceLayer.getObjectService();
+    const boardObject = await objectService.getObject(BOARD_STORE_ID, boardId);
+    if (!boardObject) return null;
+
+    return {
+      id: boardObject.id,
+      name: boardObject.data.name,
+      tasks: boardObject.data.tasks ?? [],
+    };
+  }
+
+  public async updateBoardData(boardId: string, updates: Partial<Omit<BoardData, 'id'>>): Promise<IObject | null> {
+    const objectService = this.serviceLayer.getObjectService();
+    const existing = await objectService.getObject(BOARD_STORE_ID, boardId);
+    if (!existing) return null;
+
+    return objectService.updateObject(BOARD_STORE_ID, boardId, {
+      ...existing.data,
+      ...updates,
+    });
+  }
+
+  public async addTask(boardUri: string): Promise<AddTaskResult> {
+    const parsed = parseUri(boardUri);
+    if (!parsed || parsed.scheme !== URI_SCHEMES.BOARD) {
+      throw new Error(`Invalid board URI: ${boardUri}`);
+    }
+    const boardId = parsed.id;
+
+    const boardData = await this.getBoardData(boardId);
+    if (!boardData) {
+      throw new Error(`Board not found: ${boardId}`);
+    }
+
+    const taskService = this.serviceLayer.getFeatureService<TaskService>(TASK_SERVICE_NAME);
+    const taskObject = await taskService.newTask("New task");
+    const taskUri = createUri(URI_SCHEMES.TASK, taskObject.id);
+
+    const existingTasks = boardData.tasks;
+    const staggerOffset = existingTasks.length * 20;
+
+    const placement: BoardTaskPlacement = {
+      taskUri,
+      x: DEFAULT_TASK_PLACEMENT_X + staggerOffset,
+      y: DEFAULT_TASK_PLACEMENT_Y + staggerOffset,
+      width: DEFAULT_TASK_PLACEMENT_WIDTH,
+      height: DEFAULT_TASK_PLACEMENT_HEIGHT,
+    };
+
+    await this.updateBoardData(boardId, {
+      tasks: [...existingTasks, placement],
+    });
+
+    return { taskUri, placement };
+  }
+
+  public async removeTaskFromBoard(boardUri: string, taskUri: string): Promise<boolean> {
+    const parsed = parseUri(boardUri);
+    if (!parsed || parsed.scheme !== URI_SCHEMES.BOARD) {
+      return false;
+    }
+    const boardId = parsed.id;
+
+    const boardData = await this.getBoardData(boardId);
+    if (!boardData) return false;
+
+    const filteredTasks = boardData.tasks.filter(t => t.taskUri !== taskUri);
+    if (filteredTasks.length === boardData.tasks.length) {
+      return false;
+    }
+
+    await this.updateBoardData(boardId, { tasks: filteredTasks });
+    return true;
   }
 
   public getNextBoardName(): string {

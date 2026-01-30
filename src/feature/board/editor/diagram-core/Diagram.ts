@@ -3,7 +3,6 @@ import { IDiagramMode } from "./modes/types";
 import { IdleMode } from "./modes/IdleMode";
 import { InputManager } from "./managers/InputManager";
 import { StageManager } from "./managers/StageManager";
-import { BaseElement } from "./elements/BaseElement";
 import {
   worldOffsetToScrollPosition,
   scrollPositionToWorldOffset,
@@ -42,23 +41,6 @@ export class Diagram implements IDiagram {
     this.inputManager = new InputManager(this, this.scrollArea, this.canvas);
     this.inputManager.attach();
     this.stageManager = new StageManager(this, this.data.layers, options?.onElementChange);
-    this.setupDebugElements();
-  }
-
-  /**
-   * Setup debug elements to verify rendering.
-   */
-  private setupDebugElements(): void {
-    const layer = this.stageManager.addLayer("elements");
-
-    for (let i = 0; i < 10; i++) {
-      const element = new BaseElement();
-      element.posX = Math.random() * 2000 + 100;
-      element.posY = Math.random() * 2000 + 100;
-      element.width = 200 + Math.random() * 150;
-      element.height = 80 + Math.random() * 80;
-      this.stageManager.addElement(layer.id, element);
-    }
   }
 
   /**

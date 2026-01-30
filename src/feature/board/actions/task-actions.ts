@@ -8,19 +8,26 @@ import type { BoardService } from "../BoardService";
 export function createNewTaskAction(serviceLayer: ServiceLayer): IAction {
   return {
     id: CREATE_TASK_ON_BOARD_ACTION_ID,
-    name: "New Task",
+    name: "New task on board",
     shortcut: "Ctrl+N T",
     menuGroup: "Board",
     menuSubGroup: "create",
-    do: async (_context: IContext): Promise<UndoFunction | void> => {
-      const boardService = serviceLayer.getFeatureService<BoardService>(BOARD_SERVICE_NAME);
-      const taskUri = await boardService.addTask();
+    do: async (context: IContext): Promise<UndoFunction | void> => {
+      const boardEntries = context.getEntriesByScheme(URI_SCHEMES.BOARD);
+      if (boardEntries.length === 0) {
+        console.error("No board in context");
+        return;
+      }
+      const boardUri = boardEntries[0].uri;
 
-      console.log("Created task:", taskUri);
+      const boardService = serviceLayer.getFeatureService<BoardService>(BOARD_SERVICE_NAME);
+      const result = await boardService.addTask(boardUri);
+
+      console.log("Created task:", result.taskUri, "at position:", result.placement.x, result.placement.y);
 
       return async (): Promise<void> => {
-        console.log("Undone: removed task", taskUri);
-        // Future: boardService.removeTask(taskUri)
+        await boardService.removeTaskFromBoard(boardUri, result.taskUri);
+        console.log("Undone: removed task", result.taskUri, "from board", boardUri);
       };
     },
     canDo: async (context: IContext): Promise<boolean> => {
