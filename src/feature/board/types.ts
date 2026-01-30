@@ -1,6 +1,13 @@
 export const BOARD_ACTIVITY_TAG = "board-activity";
 export const BOARD_SERVICE_NAME = "board-service";
 
+// Board events emitted by BoardService
+export const BoardEvents = {
+  TASK_ADDED: 'board:taskAdded',
+  TASK_UPDATED: 'board:taskUpdated',
+  TASK_REMOVED: 'board:taskRemoved',
+} as const;
+
 // Default task placement values
 export const DEFAULT_TASK_PLACEMENT_WIDTH = 200;
 export const DEFAULT_TASK_PLACEMENT_HEIGHT = 80;
@@ -37,4 +44,24 @@ export interface BoardData {
 export interface AddTaskResult {
   taskUri: string;
   placement: BoardTaskPlacement;
+}
+
+/** Event detail for BoardEvents.TASK_ADDED */
+export interface TaskAddedEventDetail {
+  boardUri: string;
+  taskUri: string;
+  placement: BoardTaskPlacement;
+}
+
+/** Event detail for BoardEvents.TASK_UPDATED */
+export interface TaskUpdatedEventDetail {
+  boardUri: string;
+  taskUri: string;
+  placement: BoardTaskPlacement;
+}
+
+/** Event detail for BoardEvents.TASK_REMOVED */
+export interface TaskRemovedEventDetail {
+  boardUri: string;
+  taskUri: string;
 }

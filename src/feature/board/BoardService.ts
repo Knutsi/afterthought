@@ -9,6 +9,10 @@ import {
   BoardTaskPlacement,
   BoardData,
   AddTaskResult,
+  BoardEvents,
+  TaskAddedEventDetail,
+  TaskUpdatedEventDetail,
+  TaskRemovedEventDetail,
   DEFAULT_TASK_PLACEMENT_WIDTH,
   DEFAULT_TASK_PLACEMENT_HEIGHT,
   DEFAULT_TASK_PLACEMENT_X,
@@ -17,11 +21,12 @@ import {
 
 const BOARD_STORE_ID = 'board-store';
 
-export class BoardService {
+export class BoardService extends EventTarget {
   private serviceLayer: ServiceLayer;
   private boardCount = 0;
 
   constructor(serviceLayer: ServiceLayer) {
+    super();
     this.serviceLayer = serviceLayer;
   }
 
@@ -103,6 +108,10 @@ export class BoardService {
       tasks: [...existingTasks, placement],
     });
 
+    this.dispatchEvent(new CustomEvent<TaskAddedEventDetail>(BoardEvents.TASK_ADDED, {
+      detail: { boardUri, taskUri, placement },
+    }));
+
     return { taskUri, placement };
   }
 
@@ -122,7 +131,46 @@ export class BoardService {
     }
 
     await this.updateBoardData(boardId, { tasks: filteredTasks });
+
+    this.dispatchEvent(new CustomEvent<TaskRemovedEventDetail>(BoardEvents.TASK_REMOVED, {
+      detail: { boardUri, taskUri },
+    }));
+
     return true;
+  }
+
+  public async updateTaskPlacement(
+    boardUri: string,
+    taskUri: string,
+    placement: Partial<Omit<BoardTaskPlacement, 'taskUri'>>
+  ): Promise<BoardTaskPlacement | null> {
+    const parsed = parseUri(boardUri);
+    if (!parsed || parsed.scheme !== URI_SCHEMES.BOARD) {
+      return null;
+    }
+    const boardId = parsed.id;
+
+    const boardData = await this.getBoardData(boardId);
+    if (!boardData) return null;
+
+    const taskIndex = boardData.tasks.findIndex(t => t.taskUri === taskUri);
+    if (taskIndex === -1) return null;
+
+    const updatedPlacement: BoardTaskPlacement = {
+      ...boardData.tasks[taskIndex],
+      ...placement,
+    };
+
+    const updatedTasks = [...boardData.tasks];
+    updatedTasks[taskIndex] = updatedPlacement;
+
+    await this.updateBoardData(boardId, { tasks: updatedTasks });
+
+    this.dispatchEvent(new CustomEvent<TaskUpdatedEventDetail>(BoardEvents.TASK_UPDATED, {
+      detail: { boardUri, taskUri, placement: updatedPlacement },
+    }));
+
+    return updatedPlacement;
   }
 
   public getNextBoardName(): string {

@@ -7,13 +7,15 @@ const FONT_SIZE = 14;
 
 export class TaskElement extends DiagramElement {
   title: string;
+  taskUri: string | null = null;
 
-  constructor(title?: string) {
+  constructor(title?: string, taskUri?: string) {
     super();
     this.type = "task";
     this.width = DEFAULT_WIDTH;
     this.height = DEFAULT_HEIGHT;
     this.title = title ?? "Task";
+    this.taskUri = taskUri ?? null;
   }
 
   override render(ctx: CanvasRenderingContext2D): void {
