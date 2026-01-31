@@ -155,11 +155,14 @@ export async function buildMenuBarModel(actions: IAction[]): Promise<IDynamicMen
   // Get current context from service
   const context = getDefaultServiceLayer().getContextService();
 
+  // Filter out hidden actions
+  const visibleActions = actions.filter(action => !action.hideFromMenu);
+
   // Step 1: Get unique menus sorted by preferred order
-  const menuLabels = extractUniqueMenus(actions);
+  const menuLabels = extractUniqueMenus(visibleActions);
 
   // Step 2: Group actions by menu
-  const menuMap = groupActionsByMenu(actions);
+  const menuMap = groupActionsByMenu(visibleActions);
 
   // Step 3: Build each menu with its groups and items
   const orderedMenus: IMenu[] = [];

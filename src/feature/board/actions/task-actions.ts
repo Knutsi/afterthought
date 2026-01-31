@@ -21,7 +21,7 @@ export function createNewTaskAction(serviceLayer: ServiceLayer): IAction {
       const boardUri = boardEntries[0].uri;
 
       const boardService = serviceLayer.getFeatureService<BoardService>(BOARD_SERVICE_NAME);
-      const result = await boardService.addTask(boardUri);
+      const result = await boardService.createNewTaskOnBoard(boardUri);
 
       console.log("Created task:", result.taskUri, "at position:", result.placement.x, result.placement.y);
 

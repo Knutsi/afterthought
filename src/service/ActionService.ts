@@ -9,6 +9,7 @@ export interface IAction {
   shortcut: string;
   menuGroup: string;
   menuSubGroup?: string;
+  hideFromMenu?: boolean;
   do: (context: IContext) => Promise<UndoFunction | void>;
   canDo: (context: IContext) => Promise<boolean>;
 }

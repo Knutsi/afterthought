@@ -2,7 +2,16 @@ import { IObject } from "../../service/ObjectService";
 import { ServiceLayer } from "../../service/ServiceLayer";
 import { createUri, parseUri, URI_SCHEMES } from "../../core-model/uri";
 import type { IBoardActivityData } from "./BoardActivity";
-import { createNewBoardAction, createOpenBoardAction, createNewTaskAction, createSelectAllAction, createSelectNoneAction } from "./actions";
+import {
+  createNewBoardAction,
+  createOpenBoardAction,
+  createNewTaskAction,
+  createSelectAllAction,
+  createSelectNoneAction,
+  createSelectionSetAction,
+  createSelectionAddAction,
+  createSelectionRemoveAction,
+} from "./actions";
 import { TaskService } from "../task/TaskService";
 import { TASK_SERVICE_NAME } from "../task/types";
 import {
@@ -77,7 +86,7 @@ export class BoardService extends EventTarget {
     });
   }
 
-  public async addTask(boardUri: string): Promise<AddTaskResult> {
+  public async createNewTaskOnBoard(boardUri: string): Promise<AddTaskResult> {
     const parsed = parseUri(boardUri);
     if (!parsed || parsed.scheme !== URI_SCHEMES.BOARD) {
       throw new Error(`Invalid board URI: ${boardUri}`);
@@ -90,13 +99,16 @@ export class BoardService extends EventTarget {
     }
 
     const taskService = this.serviceLayer.getFeatureService<TaskService>(TASK_SERVICE_NAME);
-    const taskObject = await taskService.newTask("New task");
-    const taskUri = createUri(URI_SCHEMES.TASK, taskObject.id);
+    const { taskUri } = await taskService.newTask("New task");
+
+    const taskOnBoardId = crypto.randomUUID();
+    const taskOnBoardUri = createUri(URI_SCHEMES.TASK_ON_BOARD, taskOnBoardId);
 
     const existingTasks = boardData.tasks;
     const staggerOffset = existingTasks.length * 20;
 
     const placement: BoardTaskPlacement = {
+      uri: taskOnBoardUri,
       taskUri,
       x: DEFAULT_TASK_PLACEMENT_X + staggerOffset,
       y: DEFAULT_TASK_PLACEMENT_Y + staggerOffset,
@@ -112,7 +124,7 @@ export class BoardService extends EventTarget {
       detail: { boardUri, taskUri, placement },
     }));
 
-    return { taskUri, placement };
+    return { taskUri, taskOnBoardUri, placement };
   }
 
   public async removeTaskFromBoard(boardUri: string, taskUri: string): Promise<boolean> {
@@ -186,6 +198,9 @@ export class BoardService extends EventTarget {
     actionService.addAction(createNewTaskAction(this.serviceLayer));
     actionService.addAction(createSelectAllAction(this.serviceLayer));
     actionService.addAction(createSelectNoneAction(this.serviceLayer));
+    actionService.addAction(createSelectionSetAction(this.serviceLayer));
+    actionService.addAction(createSelectionAddAction(this.serviceLayer));
+    actionService.addAction(createSelectionRemoveAction(this.serviceLayer));
   }
 
 

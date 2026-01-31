@@ -85,6 +85,12 @@ export class ObjectService {
     return object;
   }
 
+  async createObjectWithId(storeId: string, id: string, type: string, data: any): Promise<IObject> {
+    const object = await this.storeManager.createObjectWithId(storeId, id, type, data);
+    this.notifyObjectSubscribers(storeId, { type: 'created', object, storeId });
+    return object;
+  }
+
   async getObject(storeId: string, objectId: string): Promise<IObject | null> {
     return this.storeManager.getObject(storeId, objectId);
   }

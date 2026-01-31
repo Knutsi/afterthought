@@ -1,0 +1,2 @@
+- ObjectService keeps a sentralized storage mechanims for all parts of the application 
+- All objects stored needs a URL with a schele, such as "task//GUID"

@@ -3,6 +3,7 @@ export type Uri = string; // Format: "scheme://id" (e.g., "board://abc123")
 export const URI_SCHEMES = {
   BOARD: "board",
   TASK: "task",
+  TASK_ON_BOARD: "task-on-board",
   SETTINGS: "settings",
 } as const;
 
