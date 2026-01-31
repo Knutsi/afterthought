@@ -1,9 +1,5 @@
 import { DiagramElement, IDiagramContext } from "../types";
 
-/**
- * Selection rectangle element rendered during drag-select.
- * Semi-transparent fill with dashed border.
- */
 export class DragRectElement extends DiagramElement {
   constructor() {
     super();

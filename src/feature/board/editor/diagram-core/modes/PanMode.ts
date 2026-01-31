@@ -15,10 +15,6 @@ const ZOOM_OUT_FACTOR = 0.9;
 const ZOOM_MIN = 0.1;
 const ZOOM_MAX = 5.0;
 
-/**
- * Panning mode activated by holding space.
- * Click and drag to pan the diagram.
- */
 export class PanMode implements IDiagramMode {
   readonly name = MODE_NAME;
   private diagram: IDiagram;

@@ -24,7 +24,6 @@ export interface IBoardActivityParams {
   openBoardId: string | null /* new if null */
 }
 
-/** A task's placement on a board */
 export interface BoardTaskPlacement {
   taskUri: string;      // Reference to task (URI string form)
   x: number;
@@ -33,34 +32,29 @@ export interface BoardTaskPlacement {
   height: number;
 }
 
-/** Complete board data for persistence */
 export interface BoardData {
   id: string;
   name: string;
   tasks: BoardTaskPlacement[];
 }
 
-/** Result from adding a task to a board */
 export interface AddTaskResult {
   taskUri: string;
   placement: BoardTaskPlacement;
 }
 
-/** Event detail for BoardEvents.TASK_ADDED */
 export interface TaskAddedEventDetail {
   boardUri: string;
   taskUri: string;
   placement: BoardTaskPlacement;
 }
 
-/** Event detail for BoardEvents.TASK_UPDATED */
 export interface TaskUpdatedEventDetail {
   boardUri: string;
   taskUri: string;
   placement: BoardTaskPlacement;
 }
 
-/** Event detail for BoardEvents.TASK_REMOVED */
 export interface TaskRemovedEventDetail {
   boardUri: string;
   taskUri: string;

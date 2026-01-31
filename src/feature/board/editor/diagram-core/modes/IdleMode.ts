@@ -3,10 +3,6 @@ import { PanMode } from "./PanMode";
 import { DragSelectMode } from "./DragSelectMode";
 import { MOUSE_BUTTON_PRIMARY } from "../managers/InputManager";
 
-/**
- * Default mode at the bottom of the mode stack.
- * Handles space key to enter pan mode.
- */
 export class IdleMode implements IDiagramMode {
   readonly name: string = "idle";
   protected diagram: IDiagram;

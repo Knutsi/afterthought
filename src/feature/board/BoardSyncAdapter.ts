@@ -6,13 +6,6 @@ import { TaskElement } from "./editor/diagram-board/elements/TaskElement";
 
 const TASK_LAYER_NAME = "tasks";
 
-/**
- * BoardSyncAdapter mediates between BoardService and StageManager.
- * It listens to BoardService events and updates the diagram accordingly.
- *
- * Data flow is unidirectional:
- * User interaction -> Mode -> Action -> BoardService -> Event -> Adapter -> Diagram
- */
 export class BoardSyncAdapter {
   private boardService: BoardService;
   private stageManager: StageManager;
@@ -49,9 +42,6 @@ export class BoardSyncAdapter {
     this.boardService.addEventListener(BoardEvents.TASK_REMOVED, this.handleTaskRemovedBound);
   }
 
-  /**
-   * Unsubscribe from all BoardService events. Call this on cleanup.
-   */
   public destroy(): void {
     this.boardService.removeEventListener(BoardEvents.TASK_ADDED, this.handleTaskAddedBound);
     this.boardService.removeEventListener(BoardEvents.TASK_UPDATED, this.handleTaskUpdatedBound);
@@ -59,10 +49,6 @@ export class BoardSyncAdapter {
     this.taskUriToElementId.clear();
   }
 
-  /**
-   * Load initial board data into the diagram.
-   * Creates the task layer and populates it with TaskElements.
-   */
   public loadFromBoardData(boardData: BoardData): void {
     // Create or get the tasks layer
     let layer = this.stageManager.getLayers().find(l => l.name === TASK_LAYER_NAME);
@@ -84,16 +70,10 @@ export class BoardSyncAdapter {
     }
   }
 
-  /**
-   * Get the element ID for a given task URI.
-   */
   public getElementId(taskUri: string): string | undefined {
     return this.taskUriToElementId.get(taskUri);
   }
 
-  /**
-   * Get the task URI for a given element ID.
-   */
   public getTaskUri(elementId: string): string | undefined {
     for (const [uri, id] of this.taskUriToElementId) {
       if (id === elementId) return uri;

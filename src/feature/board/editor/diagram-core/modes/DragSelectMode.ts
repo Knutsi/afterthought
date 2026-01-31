@@ -1,10 +1,7 @@
 import { IDiagramMode, IDiagram, DiagramPointerInfo } from "./types";
 import { DragRectElement } from "../elements/DragRectElement";
 
-/**
- * Drag selection mode. Creates a selection rectangle from drag start to current position.
- * TODO: Implement actual element selection based on intersection.
- */
+// TODO: implement actual element selection based on intersection
 export class DragSelectMode implements IDiagramMode {
   readonly name = "drag-select";
   private diagram: IDiagram;

@@ -1,8 +1,5 @@
 import { DiagramElement, DiagramLayer } from "../types";
 
-/**
- * Cached bounds for an element, used for hit-testing.
- */
 interface ElementBounds {
   element: DiagramElement;
   layerId: string;
@@ -12,29 +9,16 @@ interface ElementBounds {
   height: number;
 }
 
-/**
- * GeometryManager handles spatial indexing and queries.
- * Provides hit-testing and area queries for diagram elements.
- */
 export class GeometryManager {
   private geometryCache: ElementBounds[] = [];
   private dirty = true;
 
   constructor(private layers: DiagramLayer[]) {}
 
-  /**
-   * Mark cache as stale. Call after element mutations.
-   */
   invalidate(): void {
     this.dirty = true;
   }
 
-  /**
-   * Get the element at a given world coordinate point.
-   * Returns the topmost element at that point, or null if none.
-   * @param worldX - X coordinate in world space
-   * @param worldY - Y coordinate in world space
-   */
   getElementAtPoint(worldX: number, worldY: number): DiagramElement | null {
     this.rebuildCacheIfNeeded();
     for (const bounds of this.geometryCache) {
@@ -50,14 +34,6 @@ export class GeometryManager {
     return null;
   }
 
-  /**
-   * Get all elements whose bounds intersect a given rectangle.
-   * Useful for drag-select operations.
-   * @param x - Left edge of rectangle in world space
-   * @param y - Top edge of rectangle in world space
-   * @param width - Width of rectangle
-   * @param height - Height of rectangle
-   */
   getElementsInRect(
     x: number,
     y: number,
@@ -86,10 +62,6 @@ export class GeometryManager {
     return result;
   }
 
-  /**
-   * Rebuild the geometry cache if dirty.
-   * Elements are ordered from top layer to bottom for hit-testing priority.
-   */
   private rebuildCacheIfNeeded(): void {
     if (!this.dirty) return;
 

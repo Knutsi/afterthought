@@ -3,11 +3,6 @@ import type { StageManager } from "./managers/StageManager";
 import type { GeometryManager } from "./managers/GeometryManager";
 import type { SelectionManager } from "./managers/SelectionManager";
 
-/**
- * Comprehensive pointer event info with both canvas and world coordinates.
- * Canvas = CSS pixels relative to canvas element
- * World = diagram space (accounting for scroll offset and zoom)
- */
 export interface DiagramPointerInfo {
   // Current position
   canvasX: number;
@@ -41,10 +36,6 @@ export interface DiagramPointerInfo {
   elementUnderPointer: DiagramElement | null;
 }
 
-/**
- * Context interface providing diagram access to modes.
- * Modes use this to push/pop modes and modify diagram state.
- */
 export interface IDiagram {
   pushMode(mode: IDiagramMode): void;
   popMode(): void;
@@ -63,7 +54,6 @@ export interface IDiagram {
   getSelectionManager(): SelectionManager;
 }
 
-/** Factory function for creating the idle mode. */
 export type IdleModeFactoryFn = (diagram: IDiagram) => IDiagramMode;
 
 // ==================== Change Detection ====================
@@ -80,18 +70,15 @@ export type ElementChangeCallback = (event: ElementChangeEvent) => void;
 
 export type SelectionChangeCallback = (selectedIds: string[]) => void;
 
-/** Callbacks for diagram events. */
 export interface IDiagramCallbacks {
   onElementChange?: ElementChangeCallback;
   onSelectionChange?: SelectionChangeCallback;
 }
 
-/** Options for Diagram construction. */
 export interface IDiagramOptions {
   createIdleModeFn?: IdleModeFactoryFn;
 }
 
-/** Render context passed to elements during rendering. */
 export interface IDiagramContext {
   isSelected: boolean;
 }
@@ -116,12 +103,6 @@ export class DiagramElement {
     this.height = 100;
   }
 
-  /**
-   * Render this element. Override in subclasses for custom rendering.
-   * All coordinates are in world space (transform already applied).
-   * @param ctx - Canvas 2D rendering context
-   * @param diagramCtx - Diagram context with element state (e.g., selection)
-   */
   render(ctx: CanvasRenderingContext2D, _diagramCtx: IDiagramContext): void {
     // Default: simple filled rectangle (fallback)
     ctx.fillStyle = "#888";
