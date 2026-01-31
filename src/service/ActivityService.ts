@@ -146,6 +146,15 @@ export class ActivityService extends EventTarget {
     return this.activityStack[this.activityStack.length - 1].id;
   }
 
+  public getActiveActivity(): (HTMLElement & IActivity) | null {
+    if (this.activityStack.length === 0) return null;
+    const top = this.activityStack[this.activityStack.length - 1];
+    if (this.isActivity(top.element)) {
+      return top.element;
+    }
+    return null;
+  }
+
   public isActivity(element: HTMLElement): element is HTMLElement & IActivity {
     return (
       "activityId" in element &&

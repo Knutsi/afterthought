@@ -1,23 +1,7 @@
 import type { IAction } from "../../service/ActionService";
 import type { IContext } from "../../service/context/types";
 import { getDefaultServiceLayer } from "../../service/ServiceLayer";
-
-const preferredMenuOrder = ["File", "Edit", "View", "Project", "Task", "Board", "Tools", "Window", "Help", "Settings", "About"];
-const preferredMenuGroupOrder = [
-  "undo-redo",
-  "create",
-  "open",
-  "exit",
-  "edit",
-  "view",
-  "project",
-  "task",
-  "tools",
-  "window",
-  "help",
-  "settings",
-  "about",
-];
+import { preferredMenuOrder, preferredMenuGroupOrder } from "./menu-order";
 
 export interface IDynamicMenuBarModel {
   orderedMenus: IMenu[];

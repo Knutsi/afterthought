@@ -18,6 +18,8 @@ export const DEFAULT_TASK_PLACEMENT_Y = 100;
 export const CREATE_BOARD_ACTION_ID = "create-board";
 export const OPEN_BOARD_ACTION_ID = "open-board";
 export const CREATE_TASK_ON_BOARD_ACTION_ID = "create-task-on-board";
+export const SELECT_ALL_ACTION_ID = "select-all";
+export const SELECT_NONE_ACTION_ID = "select-none";
 
 export interface IBoardActivityParams {
   name: string,

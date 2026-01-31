@@ -2,6 +2,7 @@ import { IDiagramMode } from "./modes/types";
 import type { StageManager } from "./managers/StageManager";
 import type { GeometryManager } from "./managers/GeometryManager";
 import type { SelectionManager } from "./managers/SelectionManager";
+import type { ITheme } from "../../../../service/ThemeService";
 
 export interface DiagramPointerInfo {
   // Current position
@@ -77,10 +78,12 @@ export interface IDiagramCallbacks {
 
 export interface IDiagramOptions {
   createIdleModeFn?: IdleModeFactoryFn;
+  getThemeFn: () => ITheme;
 }
 
 export interface IDiagramContext {
   isSelected: boolean;
+  theme: ITheme;
 }
 
 export class DiagramElement {
@@ -93,6 +96,8 @@ export class DiagramElement {
   width: number;
   height: number;
 
+  isSelectable: boolean;
+
   constructor() {
     this.id = crypto.randomUUID();
     this.type = "";
@@ -101,6 +106,7 @@ export class DiagramElement {
     this.posY = 100;
     this.width = 300;
     this.height = 100;
+    this.isSelectable = true;
   }
 
   render(ctx: CanvasRenderingContext2D, _diagramCtx: IDiagramContext): void {

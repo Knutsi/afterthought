@@ -96,3 +96,6 @@ Code style:
 - Dont comment above code functions, methods etc. with code docs. 
 - inline comments should be lowercase, and very short
 - only use comments to explain aspects that are not obvious from the code 
+
+Naming:
+- When passing functions as parameters, use the Fn suffix, so e.g. getThemeFn

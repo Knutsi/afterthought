@@ -11,6 +11,7 @@ export interface ITheme {
     secondary: string;
     background: string;
     text: string;
+    selectedOutline: string;
   };
   fonts: {
     fontFamily: string;
@@ -41,6 +42,7 @@ const defaultTheme: ITheme = {
     secondary: "#64748b", // Slate gray
     background: "#ffffff", // White background
     text: "#1e293b", // Dark slate text
+    selectedOutline: "#2563eb", // Blue selection outline
   },
   fonts: {
     fontFamily: "system-ui, -apple-system, sans-serif",
@@ -70,6 +72,7 @@ const defaultDarkTheme: ITheme = {
     secondary: "#8e8e93", // Neutral gray for borders/secondary
     background: "#1c1c1e", // macOS dark background (near-black, neutral)
     text: "#ffffff", // Pure white text (macOS standard)
+    selectedOutline: "#0a84ff", // Blue selection outline
   },
   fonts: {
     fontFamily: "system-ui, -apple-system, sans-serif",
@@ -157,6 +160,7 @@ export class ThemeService extends EventTarget {
     root.style.setProperty("--theme-color-secondary", theme.colors.secondary);
     root.style.setProperty("--theme-color-background", theme.colors.background);
     root.style.setProperty("--theme-color-text", theme.colors.text);
+    root.style.setProperty("--theme-color-selected-outline", theme.colors.selectedOutline);
 
     root.style.setProperty("--theme-font-family", theme.fonts.fontFamily);
     root.style.setProperty("--theme-font-size", theme.fonts.fontSize);

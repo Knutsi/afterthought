@@ -111,4 +111,8 @@ export class StageManager {
     this.onElementChange?.({ type: 'resized', element, layerId });
     return true;
   }
+
+  getAllElements(): DiagramElement[] {
+    return this.layers.flatMap(layer => layer.elements);
+  }
 }

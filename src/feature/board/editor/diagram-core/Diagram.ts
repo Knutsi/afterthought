@@ -1,4 +1,5 @@
 import { DiagramModel, IDiagramCallbacks, IDiagramOptions, IDiagram, IdleModeFactoryFn, IDiagramContext } from "./types";
+import type { ITheme } from "../../../../service/ThemeService";
 import { IDiagramMode } from "./modes/types";
 import { IdleMode } from "./modes/IdleMode";
 import { InputManager } from "./managers/InputManager";
@@ -27,12 +28,14 @@ export class Diagram implements IDiagram {
   private selectionManager!: SelectionManager;
   private renderPending = false;
   private createIdleMode: IdleModeFactoryFn;
+  private getThemeFn: () => ITheme;
 
-  constructor(container: HTMLElement, callbacks?: IDiagramCallbacks, options?: IDiagramOptions) {
+  constructor(container: HTMLElement, callbacks: IDiagramCallbacks | undefined, options: IDiagramOptions) {
     this.instanceId = Diagram.instanceCounter++;
     this.data = new DiagramModel();
     this.container = container;
-    this.createIdleMode = options?.createIdleModeFn ?? ((d) => new IdleMode(d));
+    this.createIdleMode = options.createIdleModeFn ?? ((d) => new IdleMode(d));
+    this.getThemeFn = options.getThemeFn;
     this.createDOMStructure();
     this.updateExtentDivSize();
     this.setupScrollListener();
@@ -233,11 +236,12 @@ export class Diagram implements IDiagram {
     }
   }
 
-  private renderElements(ctx: CanvasRenderingContext2D): void {
+  private renderElements(ctx: CanvasRenderingContext2D, theme: ITheme): void {
     for (const layer of this.data.layers) {
       for (const element of layer.elements) {
         const diagramCtx: IDiagramContext = {
           isSelected: this.selectionManager.isSelected(element.id),
+          theme,
         };
         element.render(ctx, diagramCtx);
       }
@@ -269,12 +273,14 @@ export class Diagram implements IDiagram {
       throw new Error("Context not found");
     }
 
+    const theme = this.getThemeFn();
+
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
     this.setupRenderTransform(ctx);
     ctx.save();
     this.renderBackground(ctx);
-    this.renderElements(ctx);
+    this.renderElements(ctx, theme);
     ctx.restore();
     this.updateStatusText();
   }

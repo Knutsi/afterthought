@@ -4,6 +4,8 @@ const DEFAULT_WIDTH = 150;
 const DEFAULT_HEIGHT = 50;
 const CORNER_RADIUS = 8;
 const FONT_SIZE = 14;
+const SELECTION_OUTLINE_WIDTH = 2;
+const SELECTION_OUTLINE_OFFSET = 3;
 
 export class TaskElement extends DiagramElement {
   title: string;
@@ -18,8 +20,23 @@ export class TaskElement extends DiagramElement {
     this.taskUri = taskUri ?? null;
   }
 
-  override render(ctx: CanvasRenderingContext2D, _diagramCtx: IDiagramContext): void {
+  override render(ctx: CanvasRenderingContext2D, diagramCtx: IDiagramContext): void {
     const { posX, posY, width, height } = this;
+
+    // Selection outline (drawn first, behind the element)
+    if (diagramCtx.isSelected) {
+      ctx.strokeStyle = diagramCtx.theme.colors.selectedOutline;
+      ctx.lineWidth = SELECTION_OUTLINE_WIDTH;
+      ctx.beginPath();
+      ctx.roundRect(
+        posX - SELECTION_OUTLINE_OFFSET,
+        posY - SELECTION_OUTLINE_OFFSET,
+        width + SELECTION_OUTLINE_OFFSET * 2,
+        height + SELECTION_OUTLINE_OFFSET * 2,
+        CORNER_RADIUS + SELECTION_OUTLINE_OFFSET
+      );
+      ctx.stroke();
+    }
 
     // Shadow
     ctx.save();

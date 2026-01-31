@@ -2,7 +2,7 @@ import { IObject } from "../../service/ObjectService";
 import { ServiceLayer } from "../../service/ServiceLayer";
 import { createUri, parseUri, URI_SCHEMES } from "../../core-model/uri";
 import type { IBoardActivityData } from "./BoardActivity";
-import { createNewBoardAction, createOpenBoardAction, createNewTaskAction } from "./actions";
+import { createNewBoardAction, createOpenBoardAction, createNewTaskAction, createSelectAllAction, createSelectNoneAction } from "./actions";
 import { TaskService } from "../task/TaskService";
 import { TASK_SERVICE_NAME } from "../task/types";
 import {
@@ -184,6 +184,8 @@ export class BoardService extends EventTarget {
     actionService.addAction(createNewBoardAction(this.serviceLayer));
     actionService.addAction(createOpenBoardAction(this.serviceLayer));
     actionService.addAction(createNewTaskAction(this.serviceLayer));
+    actionService.addAction(createSelectAllAction(this.serviceLayer));
+    actionService.addAction(createSelectNoneAction(this.serviceLayer));
   }
 
 

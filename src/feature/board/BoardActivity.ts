@@ -31,6 +31,10 @@ export class BoardActivity extends BaseComponent implements IActivity {
     return ActivityType.TAB;
   }
 
+  getDiagram(): Diagram | null {
+    return this.diagram;
+  }
+
   onGetContext(): void {
     if (this.boardUri) {
       const contextService = getDefaultServiceLayer().getContextService();

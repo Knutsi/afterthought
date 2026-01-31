@@ -21,4 +21,17 @@ export class SelectionManager {
     this.diagram.requestRender();
     this.onSelectionChange?.(this.getSelection());
   }
+
+  selectAll(): void {
+    const stageManager = this.diagram.getStageManager();
+    const allElements = stageManager.getAllElements();
+    const selectableIds = allElements
+      .filter(el => el.isSelectable)
+      .map(el => el.id);
+    this.setSelection(selectableIds);
+  }
+
+  selectNone(): void {
+    this.setSelection([]);
+  }
 }
