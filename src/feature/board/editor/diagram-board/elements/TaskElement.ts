@@ -1,4 +1,4 @@
-import { DiagramElement } from "../../diagram-core/types";
+import { DiagramElement, IDiagramContext } from "../../diagram-core/types";
 
 const DEFAULT_WIDTH = 150;
 const DEFAULT_HEIGHT = 50;
@@ -18,7 +18,7 @@ export class TaskElement extends DiagramElement {
     this.taskUri = taskUri ?? null;
   }
 
-  override render(ctx: CanvasRenderingContext2D): void {
+  override render(ctx: CanvasRenderingContext2D, _diagramCtx: IDiagramContext): void {
     const { posX, posY, width, height } = this;
 
     // Shadow

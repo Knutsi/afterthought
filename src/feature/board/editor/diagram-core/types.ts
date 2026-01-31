@@ -1,5 +1,7 @@
 import { IDiagramMode } from "./modes/types";
 import type { StageManager } from "./managers/StageManager";
+import type { GeometryManager } from "./managers/GeometryManager";
+import type { SelectionManager } from "./managers/SelectionManager";
 
 /**
  * Comprehensive pointer event info with both canvas and world coordinates.
@@ -57,6 +59,8 @@ export interface IDiagram {
   requestRender(): void;
   getViewportSize(): { width: number; height: number };
   getStageManager(): StageManager;
+  getGeometryManager(): GeometryManager;
+  getSelectionManager(): SelectionManager;
 }
 
 /** Factory function for creating the idle mode. */
@@ -74,14 +78,22 @@ export interface ElementChangeEvent {
 
 export type ElementChangeCallback = (event: ElementChangeEvent) => void;
 
+export type SelectionChangeCallback = (selectedIds: string[]) => void;
+
 /** Callbacks for diagram events. */
 export interface IDiagramCallbacks {
   onElementChange?: ElementChangeCallback;
+  onSelectionChange?: SelectionChangeCallback;
 }
 
 /** Options for Diagram construction. */
 export interface IDiagramOptions {
   createIdleModeFn?: IdleModeFactoryFn;
+}
+
+/** Render context passed to elements during rendering. */
+export interface IDiagramContext {
+  isSelected: boolean;
 }
 
 export class DiagramElement {
@@ -108,8 +120,9 @@ export class DiagramElement {
    * Render this element. Override in subclasses for custom rendering.
    * All coordinates are in world space (transform already applied).
    * @param ctx - Canvas 2D rendering context
+   * @param diagramCtx - Diagram context with element state (e.g., selection)
    */
-  render(ctx: CanvasRenderingContext2D): void {
+  render(ctx: CanvasRenderingContext2D, _diagramCtx: IDiagramContext): void {
     // Default: simple filled rectangle (fallback)
     ctx.fillStyle = "#888";
     ctx.fillRect(this.posX, this.posY, this.width, this.height);

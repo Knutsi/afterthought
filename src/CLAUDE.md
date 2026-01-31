@@ -93,3 +93,6 @@ Afterthought has a core set of services, and a collection of features.
 Code style:
 - Add CONSTANTS_IN_CAPS to avoid magic strings in the modules. Place constants on top of modules and only export the needed ones. 
 - For constants used in more than one file, put them into the relevant types.ts file. 
+- Dont comment above code functions, methods etc. with code docs. 
+- inline comments should be lowercase, and very short
+- only use comments to explain aspects that are not obvious from the code 

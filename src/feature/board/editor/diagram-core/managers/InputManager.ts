@@ -107,7 +107,7 @@ export class InputManager {
     );
 
     const elementUnderPointer = this.diagram
-      .getStageManager()
+      .getGeometryManager()
       .getElementAtPoint(world.x, world.y);
 
     return {
@@ -286,7 +286,7 @@ export class InputManager {
     );
 
     const elementUnderPointer = this.diagram
-      .getStageManager()
+      .getGeometryManager()
       .getElementAtPoint(world.x, world.y);
 
     return {

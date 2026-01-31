@@ -1,110 +1,20 @@
 import { DiagramElement, DiagramLayer, ElementChangeCallback, IDiagram } from "../types";
-
-/**
- * Cached bounds for an element, used for hit-testing.
- */
-interface ElementBounds {
-  element: DiagramElement;
-  layerId: string;
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-}
+import { GeometryManager } from "./GeometryManager";
 
 /**
  * StageManager handles layer and element CRUD operations.
  * Each mutating method calls requestRender() after making changes.
  */
 export class StageManager {
-  private geometryCache: ElementBounds[] = [];
   private onElementChange?: ElementChangeCallback;
 
   constructor(
     private diagram: IDiagram,
     private layers: DiagramLayer[],
+    private geometryManager: GeometryManager,
     onElementChange?: ElementChangeCallback
   ) {
     this.onElementChange = onElementChange;
-  }
-
-  /**
-   * Rebuild the geometry cache from all layers and elements.
-   * Elements are ordered from top layer to bottom for hit-testing priority.
-   */
-  private rebuildGeometryCache(): void {
-    this.geometryCache = [];
-    // Iterate layers in reverse (top layer = last in array = first in cache)
-    for (let i = this.layers.length - 1; i >= 0; i--) {
-      const layer = this.layers[i];
-      // Elements within a layer: last element is on top
-      for (let j = layer.elements.length - 1; j >= 0; j--) {
-        const element = layer.elements[j];
-        this.geometryCache.push({
-          element,
-          layerId: layer.id,
-          x: element.posX,
-          y: element.posY,
-          width: element.width,
-          height: element.height,
-        });
-      }
-    }
-  }
-
-  /**
-   * Get the element at a given world coordinate point.
-   * Returns the topmost element at that point, or null if none.
-   * @param worldX - X coordinate in world space
-   * @param worldY - Y coordinate in world space
-   */
-  getElementAtPoint(worldX: number, worldY: number): DiagramElement | null {
-    for (const bounds of this.geometryCache) {
-      if (
-        worldX >= bounds.x &&
-        worldX <= bounds.x + bounds.width &&
-        worldY >= bounds.y &&
-        worldY <= bounds.y + bounds.height
-      ) {
-        return bounds.element;
-      }
-    }
-    return null;
-  }
-
-  /**
-   * Get all elements whose bounds intersect a given rectangle.
-   * Useful for drag-select operations.
-   * @param x - Left edge of rectangle in world space
-   * @param y - Top edge of rectangle in world space
-   * @param width - Width of rectangle
-   * @param height - Height of rectangle
-   */
-  getElementsInRect(
-    x: number,
-    y: number,
-    width: number,
-    height: number
-  ): DiagramElement[] {
-    const result: DiagramElement[] = [];
-    const rectRight = x + width;
-    const rectBottom = y + height;
-
-    for (const bounds of this.geometryCache) {
-      const boundsRight = bounds.x + bounds.width;
-      const boundsBottom = bounds.y + bounds.height;
-
-      // Check for AABB intersection
-      if (
-        bounds.x < rectRight &&
-        boundsRight > x &&
-        bounds.y < rectBottom &&
-        boundsBottom > y
-      ) {
-        result.push(bounds.element);
-      }
-    }
-    return result;
   }
 
   // ==================== Layer Operations ====================
@@ -117,7 +27,7 @@ export class StageManager {
   addLayer(name: string): DiagramLayer {
     const layer = new DiagramLayer(name);
     this.layers.push(layer);
-    this.rebuildGeometryCache();
+    this.geometryManager.invalidate();
     this.diagram.requestRender();
     return layer;
   }
@@ -132,7 +42,7 @@ export class StageManager {
   insertLayerAt(index: number, name: string): DiagramLayer {
     const layer = new DiagramLayer(name);
     this.layers.splice(index, 0, layer);
-    this.rebuildGeometryCache();
+    this.geometryManager.invalidate();
     this.diagram.requestRender();
     return layer;
   }
@@ -146,7 +56,7 @@ export class StageManager {
     const index = this.layers.findIndex((l) => l.id === layerId);
     if (index === -1) return false;
     this.layers.splice(index, 1);
-    this.rebuildGeometryCache();
+    this.geometryManager.invalidate();
     this.diagram.requestRender();
     return true;
   }
@@ -180,7 +90,7 @@ export class StageManager {
     const layer = this.getLayer(layerId);
     if (!layer) return false;
     layer.elements.push(element);
-    this.rebuildGeometryCache();
+    this.geometryManager.invalidate();
     this.diagram.requestRender();
     this.onElementChange?.({ type: 'added', element, layerId });
     return true;
@@ -199,7 +109,7 @@ export class StageManager {
     if (index === -1) return false;
     const element = layer.elements[index];
     layer.elements.splice(index, 1);
-    this.rebuildGeometryCache();
+    this.geometryManager.invalidate();
     this.diagram.requestRender();
     this.onElementChange?.({ type: 'removed', element, layerId });
     return true;
@@ -236,7 +146,7 @@ export class StageManager {
     if (!element) return false;
     element.posX = x;
     element.posY = y;
-    this.rebuildGeometryCache();
+    this.geometryManager.invalidate();
     this.diagram.requestRender();
     this.onElementChange?.({ type: 'moved', element, layerId });
     return true;
@@ -260,7 +170,7 @@ export class StageManager {
     if (!element) return false;
     element.width = width;
     element.height = height;
-    this.rebuildGeometryCache();
+    this.geometryManager.invalidate();
     this.diagram.requestRender();
     this.onElementChange?.({ type: 'resized', element, layerId });
     return true;
