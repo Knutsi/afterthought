@@ -108,7 +108,6 @@ export class TabView extends BaseComponent {
           background: rgba(255, 255, 255, 0.6);
           cursor: pointer;
           border-radius: 4px 4px 4px 4px;
-          transition: all 0.2s ease;
           color: var(--theme-color-text, #666);
           font-size: var(--theme-font-size, 14px);
           font-weight: 400;
