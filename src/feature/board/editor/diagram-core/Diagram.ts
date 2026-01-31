@@ -1,4 +1,4 @@
-import { DiagramModel, IDiagramCallbacks, IDiagramOptions, IDiagram, IdleModeFactoryFn, IDiagramContext } from "./types";
+import { DiagramModel, IDiagramCallbacks, IDiagramOptions, IDiagram, IdleModeFactoryFn, IDiagramContext, DiagramElement, SelectionRequestCallback } from "./types";
 import type { ITheme } from "../../../../service/ThemeService";
 import { IDiagramMode } from "./modes/types";
 import { IdleMode } from "./modes/IdleMode";
@@ -29,6 +29,9 @@ export class Diagram implements IDiagram {
   private renderPending = false;
   private createIdleMode: IdleModeFactoryFn;
   private getThemeFn: () => ITheme;
+  private onSelectionSetRequest?: SelectionRequestCallback;
+  private onSelectionAddRequest?: SelectionRequestCallback;
+  private onSelectionRemoveRequest?: SelectionRequestCallback;
 
   constructor(container: HTMLElement, callbacks: IDiagramCallbacks | undefined, options: IDiagramOptions) {
     this.instanceId = Diagram.instanceCounter++;
@@ -36,6 +39,9 @@ export class Diagram implements IDiagram {
     this.container = container;
     this.createIdleMode = options.createIdleModeFn ?? ((d) => new IdleMode(d));
     this.getThemeFn = options.getThemeFn;
+    this.onSelectionSetRequest = callbacks?.onSelectionSetRequest;
+    this.onSelectionAddRequest = callbacks?.onSelectionAddRequest;
+    this.onSelectionRemoveRequest = callbacks?.onSelectionRemoveRequest;
     this.createDOMStructure();
     this.updateExtentDivSize();
     this.setupScrollListener();
@@ -398,5 +404,17 @@ export class Diagram implements IDiagram {
 
   public getSelectionManager(): SelectionManager {
     return this.selectionManager;
+  }
+
+  public requestSelectionSet(elements: DiagramElement[]): void {
+    this.onSelectionSetRequest?.(elements);
+  }
+
+  public requestSelectionAdd(elements: DiagramElement[]): void {
+    this.onSelectionAddRequest?.(elements);
+  }
+
+  public requestSelectionRemove(elements: DiagramElement[]): void {
+    this.onSelectionRemoveRequest?.(elements);
   }
 }

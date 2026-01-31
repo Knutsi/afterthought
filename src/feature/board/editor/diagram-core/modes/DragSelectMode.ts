@@ -1,7 +1,6 @@
 import { IDiagramMode, IDiagram, DiagramPointerInfo } from "./types";
 import { DragRectElement } from "../elements/DragRectElement";
 
-// TODO: implement actual element selection based on intersection
 export class DragSelectMode implements IDiagramMode {
   readonly name = "drag-select";
   private diagram: IDiagram;
@@ -9,11 +8,13 @@ export class DragSelectMode implements IDiagramMode {
   private layerId: string | null = null;
   private startX: number = 0;
   private startY: number = 0;
+  private ctrlHeld: boolean = false;
 
-  constructor(diagram: IDiagram, startInfo: DiagramPointerInfo) {
+  constructor(diagram: IDiagram, startInfo: DiagramPointerInfo, ctrlHeld: boolean = false) {
     this.diagram = diagram;
     this.startX = startInfo.worldX;
     this.startY = startInfo.worldY;
+    this.ctrlHeld = ctrlHeld;
   }
 
   onEnter(): void {
@@ -67,7 +68,23 @@ export class DragSelectMode implements IDiagramMode {
   }
 
   onPointerUp(_info: DiagramPointerInfo, _event: PointerEvent): void {
-    // TODO: Select elements that intersect with the drag rect
+    if (this.dragRect) {
+      const elements = this.diagram.getGeometryManager()
+        .getElementsInRect(
+          this.dragRect.posX,
+          this.dragRect.posY,
+          this.dragRect.width,
+          this.dragRect.height
+        )
+        .filter(el => el.isSelectable);
+
+      if (this.ctrlHeld) {
+        this.diagram.requestSelectionAdd(elements);
+      } else {
+        this.diagram.requestSelectionSet(elements);
+      }
+    }
+
     this.diagram.popMode();
   }
 

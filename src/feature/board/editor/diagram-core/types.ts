@@ -53,6 +53,9 @@ export interface IDiagram {
   getStageManager(): StageManager;
   getGeometryManager(): GeometryManager;
   getSelectionManager(): SelectionManager;
+  requestSelectionSet(elements: DiagramElement[]): void;
+  requestSelectionAdd(elements: DiagramElement[]): void;
+  requestSelectionRemove(elements: DiagramElement[]): void;
 }
 
 export type IdleModeFactoryFn = (diagram: IDiagram) => IDiagramMode;
@@ -71,9 +74,14 @@ export type ElementChangeCallback = (event: ElementChangeEvent) => void;
 
 export type SelectionChangeCallback = (selectedIds: string[]) => void;
 
+export type SelectionRequestCallback = (elements: DiagramElement[]) => void;
+
 export interface IDiagramCallbacks {
   onElementChange?: ElementChangeCallback;
   onSelectionChange?: SelectionChangeCallback;
+  onSelectionSetRequest?: SelectionRequestCallback;
+  onSelectionAddRequest?: SelectionRequestCallback;
+  onSelectionRemoveRequest?: SelectionRequestCallback;
 }
 
 export interface IDiagramOptions {

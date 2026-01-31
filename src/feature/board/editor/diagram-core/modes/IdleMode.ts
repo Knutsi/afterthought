@@ -20,12 +20,28 @@ export class IdleMode implements IDiagramMode {
   }
 
   onPointerDown(info: DiagramPointerInfo, event: PointerEvent): void {
-    // Only respond to left-click
     if (event.button !== MOUSE_BUTTON_PRIMARY) return;
 
-    // TODO: Check if an element is under cursor - if so, initiate DragMode instead
-    // For now, always start drag-select
-    this.diagram.pushMode(new DragSelectMode(this.diagram, info));
+    const element = info.elementUnderPointer;
+
+    if (element && element.isSelectable) {
+      const selectionManager = this.diagram.getSelectionManager();
+      const isSelected = selectionManager.isSelected(element.id);
+      const hasSelection = selectionManager.getSelection().length > 0;
+
+      if (event.ctrlKey && hasSelection) {
+        if (isSelected) {
+          this.diagram.requestSelectionRemove([element]);
+        } else {
+          this.diagram.requestSelectionAdd([element]);
+        }
+      } else {
+        this.diagram.requestSelectionSet([element]);
+      }
+      return;
+    }
+
+    this.diagram.pushMode(new DragSelectMode(this.diagram, info, event.ctrlKey));
   }
 
   onPointerMove(_info: DiagramPointerInfo, _event: PointerEvent): void {
