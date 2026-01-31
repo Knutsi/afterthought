@@ -15,6 +15,9 @@ export interface IAction {
 
 export const UNDO_ACTION_ID = "core.undo";
 export const REDO_ACTION_ID = "core.redo";
+export const REPEAT_ACTION_ID = "core.repeat";
+
+const NON_REPEATABLE_ACTIONS = [UNDO_ACTION_ID, REDO_ACTION_ID, REPEAT_ACTION_ID];
 
 export const ActionEvents = {
   ACTION_ADDED: "actionAdded",
@@ -28,6 +31,7 @@ export class ActionService extends EventTarget {
   private undoStack: UndoFunction[] = [];
   private redoStack: UndoFunction[] = [];
   private serviceLayer: ServiceLayer;
+  private lastActionId: string | null = null;
 
   constructor(serviceLayer: ServiceLayer) {
     super();
@@ -50,6 +54,10 @@ export class ActionService extends EventTarget {
       this.redoStack = [];
       this.dispatchEvent(new Event(ActionEvents.HISTORY_CHANGED));
       this.updateActionAvailability();
+    }
+
+    if (!NON_REPEATABLE_ACTIONS.includes(actionId)) {
+      this.lastActionId = actionId;
     }
 
     this.dispatchEvent(new CustomEvent(ActionEvents.ACTION_DONE, { detail: { actionId } }));
@@ -81,6 +89,14 @@ export class ActionService extends EventTarget {
 
   public canRedo(): boolean {
     return this.redoStack.length > 0;
+  }
+
+  public getLastActionId(): string | null {
+    return this.lastActionId;
+  }
+
+  public canRepeat(): boolean {
+    return this.lastActionId !== null;
   }
 
   public addAction(action: IAction) {

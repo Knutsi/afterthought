@@ -70,7 +70,7 @@ var cutAction: IAction = {
   name: "Cut",
   shortcut: "Ctrl+X",
   menuGroup: "Edit",
-  menuSubGroup: "Clipboard",
+  menuSubGroup: "clipboard",
   do: async (_context: IContext) => {
     console.log("Cut");
   },
@@ -82,7 +82,7 @@ var copyAction: IAction = {
   name: "Copy",
   shortcut: "Ctrl+C",
   menuGroup: "Edit",
-  menuSubGroup: "Clipboard",
+  menuSubGroup: "clipboard",
   do: async (_context: IContext) => {
     console.log("Copy");
   },
@@ -94,11 +94,27 @@ var pasteAction: IAction = {
   name: "Paste",
   shortcut: "Ctrl+V",
   menuGroup: "Edit",
-  menuSubGroup: "Clipboard",
+  menuSubGroup: "clipboard",
   do: async (_context: IContext) => {
     console.log("Paste");
   },
   canDo: async () => true,
+};
+
+var repeatAction: IAction = {
+  id: "core.repeat",
+  name: "Repeat Last Action",
+  shortcut: ".",
+  menuGroup: "Edit",
+  menuSubGroup: UNDO_REDO_SUBGROUP,
+  do: async (_context: IContext) => {
+    const actionService = getDefaultServiceLayer().actionService;
+    const lastActionId = actionService.getLastActionId();
+    if (lastActionId) {
+      await actionService.doAction(lastActionId);
+    }
+  },
+  canDo: async () => getDefaultServiceLayer().actionService.canRepeat(),
 };
 
 var aboutAction: IAction = {
@@ -120,6 +136,7 @@ export function setupDefaultActions(serviceLayer: ServiceLayer) {
   actionService.addAction(helpAction);
   actionService.addAction(undoAction);
   actionService.addAction(redoAction);
+  actionService.addAction(repeatAction);
   actionService.addAction(cutAction);
   actionService.addAction(copyAction);
   actionService.addAction(pasteAction);

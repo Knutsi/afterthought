@@ -14,11 +14,12 @@ export const preferredMenuOrder = [
 
 export const preferredMenuGroupOrder = [
   "undo-redo",
+  "clipboard",
+  "selection",
   "create",
   "open",
   "exit",
   "edit",
-  "selection",
   "view",
   "project",
   "task",
