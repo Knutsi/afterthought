@@ -214,7 +214,8 @@ export class ThemeService extends EventTarget {
     if (preferences.length > 0) {
       await this.objectService.updateObject(THEME_STORE_ID, preferences[0].id, { themeName });
     } else {
-      await this.objectService.createObject(THEME_STORE_ID, 'preference', { themeName });
+      const id = crypto.randomUUID();
+      await this.objectService.createObjectWithId(THEME_STORE_ID, id, 'preference', { themeName });
     }
   }
 

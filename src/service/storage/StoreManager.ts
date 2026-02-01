@@ -102,11 +102,6 @@ export class StoreManager {
 
   // Object CRUD Operations
 
-  async createObject(storeId: string, type: string, data: any): Promise<IObject> {
-    const id = this.generateId();
-    return this.createObjectWithId(storeId, id, type, data);
-  }
-
   async createObjectWithId(storeId: string, id: string, type: string, data: any): Promise<IObject> {
     const store = await this.getStore(storeId);
     if (!store) {

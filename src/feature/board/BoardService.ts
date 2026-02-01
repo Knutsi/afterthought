@@ -49,7 +49,8 @@ export class BoardService extends EventTarget {
   public async newBoard(): Promise<IObject> {
     const objectService = this.serviceLayer.getObjectService();
     const name = this.getNextBoardName();
-    return objectService.createObject(BOARD_STORE_ID, 'board', { name, tasks: [] });
+    const id = crypto.randomUUID();
+    return objectService.createObjectWithId(BOARD_STORE_ID, id, 'board', { name, tasks: [] });
   }
 
   public openBoard(_id: string): IBoardActivityData {
