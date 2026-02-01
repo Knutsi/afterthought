@@ -12,7 +12,7 @@ export function createNewTaskAction(serviceLayer: ServiceLayer): IAction {
     shortcut: "Ctrl+N T",
     menuGroup: "Board",
     menuSubGroup: "create",
-    do: async (context: IContext): Promise<UndoFunction | void> => {
+    do: async (context: IContext, _args?: Record<string, unknown>): Promise<UndoFunction | void> => {
       const boardEntries = context.getEntriesByScheme(URI_SCHEMES.BOARD);
       if (boardEntries.length === 0) {
         console.error("No board in context");

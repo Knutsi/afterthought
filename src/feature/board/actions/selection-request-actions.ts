@@ -10,10 +10,6 @@ import {
   BOARD_SELECTION_FEATURE,
 } from "../types";
 
-export interface PendingSelectionRequest {
-  elements: DiagramElement[];
-}
-
 function updateSelectionContext(activity: BoardActivity, serviceLayer: ServiceLayer): void {
   const contextService = serviceLayer.getContextService();
   const boardUri = activity.getBoardUri();
@@ -39,20 +35,20 @@ export function createSelectionSetAction(serviceLayer: ServiceLayer): IAction {
     shortcut: "",
     menuGroup: "Edit",
     hideFromMenu: true,
-    do: async (_context: IContext): Promise<UndoFunction | void> => {
+    do: async (_context: IContext, args?: Record<string, unknown>): Promise<UndoFunction | void> => {
+      const elements = args?.elements as DiagramElement[] | undefined;
+      if (!elements) return;
+
       const activityService = serviceLayer.getActivityService();
       const activeActivity = activityService.getActiveActivity();
       if (!(activeActivity instanceof BoardActivity)) return;
-
-      const pending = activeActivity.consumePendingSelectionRequest();
-      if (!pending) return;
 
       const diagram = activeActivity.getDiagram();
       if (!diagram) return;
 
       const selectionManager = diagram.getSelectionManager();
       const previousSelection = selectionManager.getSelection();
-      const newSelection = pending.elements.map(e => e.id);
+      const newSelection = elements.map(e => e.id);
 
       selectionManager.setSelection(newSelection);
       updateSelectionContext(activeActivity, serviceLayer);
@@ -76,13 +72,13 @@ export function createSelectionAddAction(serviceLayer: ServiceLayer): IAction {
     shortcut: "",
     menuGroup: "Edit",
     hideFromMenu: true,
-    do: async (_context: IContext): Promise<UndoFunction | void> => {
+    do: async (_context: IContext, args?: Record<string, unknown>): Promise<UndoFunction | void> => {
+      const elements = args?.elements as DiagramElement[] | undefined;
+      if (!elements) return;
+
       const activityService = serviceLayer.getActivityService();
       const activeActivity = activityService.getActiveActivity();
       if (!(activeActivity instanceof BoardActivity)) return;
-
-      const pending = activeActivity.consumePendingSelectionRequest();
-      if (!pending) return;
 
       const diagram = activeActivity.getDiagram();
       if (!diagram) return;
@@ -90,7 +86,7 @@ export function createSelectionAddAction(serviceLayer: ServiceLayer): IAction {
       const selectionManager = diagram.getSelectionManager();
       const previousSelection = selectionManager.getSelection();
 
-      const newIds = pending.elements.map(e => e.id);
+      const newIds = elements.map(e => e.id);
       const combined = new Set([...previousSelection, ...newIds]);
       selectionManager.setSelection([...combined]);
       updateSelectionContext(activeActivity, serviceLayer);
@@ -114,13 +110,13 @@ export function createSelectionRemoveAction(serviceLayer: ServiceLayer): IAction
     shortcut: "",
     menuGroup: "Edit",
     hideFromMenu: true,
-    do: async (_context: IContext): Promise<UndoFunction | void> => {
+    do: async (_context: IContext, args?: Record<string, unknown>): Promise<UndoFunction | void> => {
+      const elements = args?.elements as DiagramElement[] | undefined;
+      if (!elements) return;
+
       const activityService = serviceLayer.getActivityService();
       const activeActivity = activityService.getActiveActivity();
       if (!(activeActivity instanceof BoardActivity)) return;
-
-      const pending = activeActivity.consumePendingSelectionRequest();
-      if (!pending) return;
 
       const diagram = activeActivity.getDiagram();
       if (!diagram) return;
@@ -128,7 +124,7 @@ export function createSelectionRemoveAction(serviceLayer: ServiceLayer): IAction
       const selectionManager = diagram.getSelectionManager();
       const previousSelection = selectionManager.getSelection();
 
-      const toRemove = new Set(pending.elements.map(e => e.id));
+      const toRemove = new Set(elements.map(e => e.id));
       const remaining = previousSelection.filter(id => !toRemove.has(id));
       selectionManager.setSelection(remaining);
       updateSelectionContext(activeActivity, serviceLayer);

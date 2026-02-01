@@ -11,7 +11,7 @@ var newProjectAction: IAction = {
   shortcut: "Ctrl+N",
   menuGroup: "File",
   menuSubGroup: "create",
-  do: async (_context: IContext) => {
+  do: async (_context: IContext, _args?: Record<string, unknown>) => {
     console.log("New Project");
   },
   canDo: async () => true,
@@ -23,7 +23,7 @@ var quitAction: IAction = {
   shortcut: "Ctrl+Q",
   menuGroup: "File",
   menuSubGroup: "exit",
-  do: async (_context: IContext) => {
+  do: async (_context: IContext, _args?: Record<string, unknown>) => {
     await invoke('quit_app');
   },
   canDo: async () => true,
@@ -35,7 +35,7 @@ var helpAction: IAction = {
   shortcut: "F1",
   menuGroup: "Help",
   menuSubGroup: "Docs",
-  do: async (_context: IContext) => {
+  do: async (_context: IContext, _args?: Record<string, unknown>) => {
     console.log("Help");
   },
   canDo: async () => true,
@@ -47,7 +47,7 @@ var undoAction: IAction = {
   shortcut: "Ctrl+Z",
   menuGroup: "Edit",
   menuSubGroup: UNDO_REDO_SUBGROUP,
-  do: async (_context: IContext) => {
+  do: async (_context: IContext, _args?: Record<string, unknown>) => {
     await getDefaultServiceLayer().actionService.undo();
   },
   canDo: async () => getDefaultServiceLayer().actionService.canUndo(),
@@ -59,7 +59,7 @@ var redoAction: IAction = {
   shortcut: "Ctrl+Y",
   menuGroup: "Edit",
   menuSubGroup: UNDO_REDO_SUBGROUP,
-  do: async (_context: IContext) => {
+  do: async (_context: IContext, _args?: Record<string, unknown>) => {
     await getDefaultServiceLayer().actionService.redo();
   },
   canDo: async () => getDefaultServiceLayer().actionService.canRedo(),
@@ -71,7 +71,7 @@ var cutAction: IAction = {
   shortcut: "Ctrl+X",
   menuGroup: "Edit",
   menuSubGroup: "clipboard",
-  do: async (_context: IContext) => {
+  do: async (_context: IContext, _args?: Record<string, unknown>) => {
     console.log("Cut");
   },
   canDo: async () => true,
@@ -83,7 +83,7 @@ var copyAction: IAction = {
   shortcut: "Ctrl+C",
   menuGroup: "Edit",
   menuSubGroup: "clipboard",
-  do: async (_context: IContext) => {
+  do: async (_context: IContext, _args?: Record<string, unknown>) => {
     console.log("Copy");
   },
   canDo: async () => true,
@@ -95,7 +95,7 @@ var pasteAction: IAction = {
   shortcut: "Ctrl+V",
   menuGroup: "Edit",
   menuSubGroup: "clipboard",
-  do: async (_context: IContext) => {
+  do: async (_context: IContext, _args?: Record<string, unknown>) => {
     console.log("Paste");
   },
   canDo: async () => true,
@@ -107,7 +107,7 @@ var repeatAction: IAction = {
   shortcut: ".",
   menuGroup: "Edit",
   menuSubGroup: UNDO_REDO_SUBGROUP,
-  do: async (_context: IContext) => {
+  do: async (_context: IContext, _args?: Record<string, unknown>) => {
     const actionService = getDefaultServiceLayer().actionService;
     const lastActionId = actionService.getLastActionId();
     if (lastActionId) {
@@ -123,7 +123,7 @@ var aboutAction: IAction = {
   shortcut: "",
   menuGroup: "Help",
   menuSubGroup: "About",
-  do: async (_context: IContext) => {
+  do: async (_context: IContext, _args?: Record<string, unknown>) => {
     console.log("About");
   },
   canDo: async () => true,

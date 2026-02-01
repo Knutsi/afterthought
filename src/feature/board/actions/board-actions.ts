@@ -17,13 +17,13 @@ export function createNewBoardAction(serviceLayer: ServiceLayer): IAction {
     shortcut: "Ctrl+N B",
     menuGroup: "File",
     menuSubGroup: "create",
-    do: async (_context: IContext): Promise<UndoFunction | void> => {
+    do: async (_context: IContext, _args?: Record<string, unknown>): Promise<UndoFunction | void> => {
       const boardService = serviceLayer.getFeatureService<BoardService>(BOARD_SERVICE_NAME);
       const activityService = serviceLayer.getActivityService();
 
       const board = await boardService.newBoard();
-      const args: IBoardActivityParams = { openBoardId: board.id, name: board.data.name };
-      const activity = activityService.startActivity<IBoardActivityParams>(BOARD_ACTIVITY_TAG, args);
+      const activityArgs: IBoardActivityParams = { openBoardId: board.id, name: board.data.name };
+      const activity = activityService.startActivity<IBoardActivityParams>(BOARD_ACTIVITY_TAG, activityArgs);
       activityService.switchToActivity(activity.id);
     },
     canDo: async () => true,
@@ -37,13 +37,13 @@ export function createOpenBoardAction(serviceLayer: ServiceLayer): IAction {
     shortcut: "Ctrl+O B",
     menuGroup: "File",
     menuSubGroup: "open",
-    do: async (_context: IContext): Promise<UndoFunction | void> => {
+    do: async (_context: IContext, _args?: Record<string, unknown>): Promise<UndoFunction | void> => {
       const boardService = serviceLayer.getFeatureService<BoardService>(BOARD_SERVICE_NAME);
       const activityService = serviceLayer.getActivityService();
 
       const board = await boardService.newBoard();
-      const args: IBoardActivityParams = { openBoardId: board.id, name: board.data.name };
-      const activity = activityService.startActivity<IBoardActivityParams>(BOARD_ACTIVITY_TAG, args);
+      const activityArgs: IBoardActivityParams = { openBoardId: board.id, name: board.data.name };
+      const activity = activityService.startActivity<IBoardActivityParams>(BOARD_ACTIVITY_TAG, activityArgs);
       activityService.switchToActivity(activity.id);
     },
     canDo: async () => true,

@@ -2,6 +2,7 @@ import type { IContext } from "./context/types";
 import type { ServiceLayer } from "./ServiceLayer";
 
 export type UndoFunction = () => Promise<void>;
+export type DoFunction = (context: IContext, args?: Record<string, unknown>) => Promise<UndoFunction | void>;
 
 export interface IAction {
   id: string;
@@ -10,7 +11,7 @@ export interface IAction {
   menuGroup: string;
   menuSubGroup?: string;
   hideFromMenu?: boolean;
-  do: (context: IContext) => Promise<UndoFunction | void>;
+  do: DoFunction;
   canDo: (context: IContext) => Promise<boolean>;
 }
 
@@ -40,7 +41,7 @@ export class ActionService extends EventTarget {
     this.serviceLayer = serviceLayer;
   }
 
-  public async doAction(actionId: string): Promise<void> {
+  public async doAction(actionId: string, args?: Record<string, unknown>): Promise<void> {
     const action = this.actions.find((a) => a.id === actionId);
     if (!action) {
       throw new Error(`Action ${actionId} not found`);
@@ -48,7 +49,7 @@ export class ActionService extends EventTarget {
 
     console.log(`Doing action ${action.id}: ${action.name}`);
     const context = this.serviceLayer.getContextService();
-    const undoFn = await action.do(context);
+    const undoFn = await action.do(context, args);
 
     if (undoFn) {
       this.undoStack.push(undoFn);

@@ -16,7 +16,6 @@ import { Diagram } from "./editor/diagram-core/Diagram";
 import { BoardSyncAdapter } from "./BoardSyncAdapter";
 import type { BoardService } from "./BoardService";
 import type { DiagramElement } from "./editor/diagram-core/types";
-import type { PendingSelectionRequest } from "./actions";
 
 export interface IBoardActivityData {
   name: string;
@@ -27,7 +26,6 @@ export class BoardActivity extends BaseComponent implements IActivity {
   private diagram: Diagram | null = null;
   private boardUri: Uri | null = null;
   private syncAdapter: BoardSyncAdapter | null = null;
-  private pendingSelectionRequest: PendingSelectionRequest | null = null;
 
   static get observedAttributes(): string[] {
     return [];
@@ -52,12 +50,6 @@ export class BoardActivity extends BaseComponent implements IActivity {
 
   getSyncAdapter(): BoardSyncAdapter | null {
     return this.syncAdapter;
-  }
-
-  consumePendingSelectionRequest(): PendingSelectionRequest | null {
-    const request = this.pendingSelectionRequest;
-    this.pendingSelectionRequest = null;
-    return request;
   }
 
   onGetContext(): void {
@@ -157,18 +149,15 @@ export class BoardActivity extends BaseComponent implements IActivity {
   }
 
   private handleSelectionSetRequest(elements: DiagramElement[]): void {
-    this.pendingSelectionRequest = { elements };
-    getDefaultServiceLayer().actionService.doAction(SELECTION_SET_ACTION_ID);
+    getDefaultServiceLayer().actionService.doAction(SELECTION_SET_ACTION_ID, { elements });
   }
 
   private handleSelectionAddRequest(elements: DiagramElement[]): void {
-    this.pendingSelectionRequest = { elements };
-    getDefaultServiceLayer().actionService.doAction(SELECTION_ADD_ACTION_ID);
+    getDefaultServiceLayer().actionService.doAction(SELECTION_ADD_ACTION_ID, { elements });
   }
 
   private handleSelectionRemoveRequest(elements: DiagramElement[]): void {
-    this.pendingSelectionRequest = { elements };
-    getDefaultServiceLayer().actionService.doAction(SELECTION_REMOVE_ACTION_ID);
+    getDefaultServiceLayer().actionService.doAction(SELECTION_REMOVE_ACTION_ID, { elements });
   }
 
   private async initializeSyncAdapter(): Promise<void> {

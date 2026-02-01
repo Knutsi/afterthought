@@ -234,7 +234,7 @@ export class ThemeService extends EventTarget {
         shortcut: "",
         menuGroup: "View",
         menuSubGroup: "Theme",
-        do: async (_context: IContext) => {
+        do: async (_context: IContext, _args?: Record<string, unknown>) => {
           this.applyThemeByName(themeName);
         },
         canDo: async () => true,

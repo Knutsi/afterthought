@@ -11,7 +11,7 @@ export function createSelectAllAction(serviceLayer: ServiceLayer): IAction {
     shortcut: "Ctrl+A",
     menuGroup: "Edit",
     menuSubGroup: "selection",
-    do: async (_context: IContext): Promise<UndoFunction | void> => {
+    do: async (_context: IContext, _args?: Record<string, unknown>): Promise<UndoFunction | void> => {
       const activityService = serviceLayer.getActivityService();
       const activeActivity = activityService.getActiveActivity();
 
@@ -46,7 +46,7 @@ export function createSelectNoneAction(serviceLayer: ServiceLayer): IAction {
     shortcut: "Escape",
     menuGroup: "Edit",
     menuSubGroup: "selection",
-    do: async (_context: IContext): Promise<UndoFunction | void> => {
+    do: async (_context: IContext, _args?: Record<string, unknown>): Promise<UndoFunction | void> => {
       const activityService = serviceLayer.getActivityService();
       const activeActivity = activityService.getActiveActivity();
 
