@@ -13,6 +13,16 @@ All UI components are built using native **Web Components** (Custom Elements) fo
 
 main.ts is the entrypoint
 
+## Architecture:
+- Activity (view layer, in the DOM) -> Service (service and features) -> unified object storage with ObjectService
+- Actions: actions the user can take are abstracted into IAction. This includes e.g. "delete task" and "select all"
+  - Actions consume IContext, and determine from that what needs to be done
+  - Context only holds data for the frontmost activity, e.g. a task board with the board itself and the currently selected
+
+So we do command pattern: An example is the diagram component notices events that indicated the user wants to SELECT a task on the 2D board. It is not allowed for perform this itself. It triggers a callback with the data, then that callback (installed by a service) needs to run an IAction with the ActionService. 
+
+We also have a dynamic menubar and more UI elements (right click) that filters all actions registered in the action service based on the context it is given. The theory is that this all allows us to make great superuser UX.
+
 ## Component Registration Pattern
 
 All components extend `BaseComponent` and use `defineComponent()` for registration:
