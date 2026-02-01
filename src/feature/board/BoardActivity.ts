@@ -149,15 +149,42 @@ export class BoardActivity extends BaseComponent implements IActivity {
   }
 
   private handleSelectionSetRequest(elements: DiagramElement[]): void {
-    getDefaultServiceLayer().actionService.doAction(SELECTION_SET_ACTION_ID, { elements });
+    const selectionManager = this.diagram?.getSelectionManager();
+    const stageManager = this.diagram?.getStageManager();
+    if (!selectionManager || !stageManager || !this.boardUri) return;
+
+    getDefaultServiceLayer().actionService.doAction(SELECTION_SET_ACTION_ID, {
+      elements,
+      selectionManager,
+      stageManager,
+      boardUri: this.boardUri,
+    });
   }
 
   private handleSelectionAddRequest(elements: DiagramElement[]): void {
-    getDefaultServiceLayer().actionService.doAction(SELECTION_ADD_ACTION_ID, { elements });
+    const selectionManager = this.diagram?.getSelectionManager();
+    const stageManager = this.diagram?.getStageManager();
+    if (!selectionManager || !stageManager || !this.boardUri) return;
+
+    getDefaultServiceLayer().actionService.doAction(SELECTION_ADD_ACTION_ID, {
+      elements,
+      selectionManager,
+      stageManager,
+      boardUri: this.boardUri,
+    });
   }
 
   private handleSelectionRemoveRequest(elements: DiagramElement[]): void {
-    getDefaultServiceLayer().actionService.doAction(SELECTION_REMOVE_ACTION_ID, { elements });
+    const selectionManager = this.diagram?.getSelectionManager();
+    const stageManager = this.diagram?.getStageManager();
+    if (!selectionManager || !stageManager || !this.boardUri) return;
+
+    getDefaultServiceLayer().actionService.doAction(SELECTION_REMOVE_ACTION_ID, {
+      elements,
+      selectionManager,
+      stageManager,
+      boardUri: this.boardUri,
+    });
   }
 
   private async initializeSyncAdapter(): Promise<void> {

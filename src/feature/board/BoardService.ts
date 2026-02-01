@@ -1,6 +1,6 @@
 import { IObject } from "../../service/ObjectService";
 import { ServiceLayer } from "../../service/ServiceLayer";
-import { createUri, parseUri, URI_SCHEMES } from "../../core-model/uri";
+import { createUri, parseUri, type Uri, URI_SCHEMES } from "../../core-model/uri";
 import type { IBoardActivityData } from "./BoardActivity";
 import {
   createNewBoardAction,
@@ -26,6 +26,7 @@ import {
   DEFAULT_TASK_PLACEMENT_HEIGHT,
   DEFAULT_TASK_PLACEMENT_X,
   DEFAULT_TASK_PLACEMENT_Y,
+  BOARD_SELECTION_FEATURE,
 } from "./types";
 
 const BOARD_STORE_ID = 'board-store';
@@ -190,6 +191,15 @@ export class BoardService extends EventTarget {
     const name = "Board " + this.boardCount;
     this.boardCount++;
     return name;
+  }
+
+  public updateSelectionContext(boardUri: Uri, taskUris: Uri[]): void {
+    const contextService = this.serviceLayer.getContextService();
+    contextService.removeEntriesByFeature(BOARD_SELECTION_FEATURE);
+
+    for (const taskUri of taskUris) {
+      contextService.addEntry(taskUri, BOARD_SELECTION_FEATURE, boardUri);
+    }
   }
 
   public registerActions(): void {
