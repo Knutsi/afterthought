@@ -1,13 +1,8 @@
 import { DiagramPointerInfo, IDiagram } from "../types";
 import { browserToWorld, screenDeltaToWorldDelta } from "../calculations";
 
-/** Primary mouse button (left-click) */
 export const MOUSE_BUTTON_PRIMARY = 0;
 
-/**
- * InputManager handles all input events for the diagram.
- * It tracks pointer state, builds rich pointer info, and dispatches to the current mode.
- */
 export class InputManager {
   // Screen coordinate tracking for delta calculation
   private lastPointerScreenX = 0;
@@ -34,9 +29,6 @@ export class InputManager {
     private canvas: HTMLCanvasElement
   ) {}
 
-  /**
-   * Attach all input event listeners.
-   */
   public attach(): void {
     this.scrollArea.addEventListener("pointerdown", this.handlePointerDown);
     this.scrollArea.addEventListener("pointermove", this.handlePointerMove);
@@ -60,9 +52,6 @@ export class InputManager {
     window.addEventListener("blur", this.handleWindowBlur);
   }
 
-  /**
-   * Detach all input event listeners.
-   */
   public detach(): void {
     this.scrollArea.removeEventListener("pointerdown", this.handlePointerDown);
     this.scrollArea.removeEventListener("pointermove", this.handlePointerMove);
@@ -78,9 +67,6 @@ export class InputManager {
     window.removeEventListener("blur", this.handleWindowBlur);
   }
 
-  /**
-   * Build comprehensive pointer info with both canvas and world coordinates.
-   */
   private buildPointerInfo(
     event: PointerEvent,
     canvasDeltaX: number,
@@ -106,6 +92,10 @@ export class InputManager {
       zoom
     );
 
+    const elementUnderPointer = this.diagram
+      .getGeometryManager()
+      .getElementAtPoint(world.x, world.y);
+
     return {
       canvasX,
       canvasY,
@@ -125,12 +115,10 @@ export class InputManager {
       canvasPreviousY: this.previousClickCanvasY,
       worldPreviousX: this.previousClickWorldX,
       worldPreviousY: this.previousClickWorldY,
+      elementUnderPointer,
     };
   }
 
-  /**
-   * Handle pointer down events.
-   */
   private handlePointerDown = (event: PointerEvent): void => {
     // Only capture pointer and track drag for primary button (left-click)
     // Right-click and middle-click should not initiate drag tracking
@@ -179,9 +167,6 @@ export class InputManager {
     this.diagram.getCurrentMode().onPointerDown(info, event);
   };
 
-  /**
-   * Handle pointer move events.
-   */
   private handlePointerMove = (event: PointerEvent): void => {
     const canvasDeltaX = event.clientX - this.lastPointerScreenX;
     const canvasDeltaY = event.clientY - this.lastPointerScreenY;
@@ -212,9 +197,6 @@ export class InputManager {
     this.diagram.getCurrentMode().onPointerMove(info, event);
   };
 
-  /**
-   * Handle pointer up events.
-   */
   private handlePointerUp = (event: PointerEvent): void => {
     if (this.scrollArea.hasPointerCapture(event.pointerId)) {
       this.scrollArea.releasePointerCapture(event.pointerId);
@@ -231,39 +213,24 @@ export class InputManager {
     this.diagram.getCurrentMode().onPointerUp(info, event);
   };
 
-  /**
-   * Handle key down events.
-   */
   private handleKeyDown = (event: KeyboardEvent): void => {
     this.diagram.getCurrentMode().onKeyDown(event);
   };
 
-  /**
-   * Handle key up events.
-   */
   private handleKeyUp = (event: KeyboardEvent): void => {
     this.diagram.getCurrentMode().onKeyUp(event);
   };
 
-  /**
-   * Handle keydown on scroll area to prevent space from scrolling.
-   */
   private handleScrollAreaKeyDown = (event: KeyboardEvent): void => {
     if (event.code === "Space") {
       event.preventDefault();
     }
   };
 
-  /**
-   * Handle wheel events and dispatch to current mode.
-   */
   private handleWheel = (event: WheelEvent): void => {
     this.diagram.getCurrentMode().onWheel?.(event);
   };
 
-  /**
-   * Build pointer info from a MouseEvent (for events like dblclick that aren't PointerEvents).
-   */
   private buildPointerInfoFromMouse(event: MouseEvent): DiagramPointerInfo {
     const rect = this.canvas.getBoundingClientRect();
     const canvasX = event.clientX - rect.left;
@@ -279,6 +246,10 @@ export class InputManager {
       offset.x,
       offset.y
     );
+
+    const elementUnderPointer = this.diagram
+      .getGeometryManager()
+      .getElementAtPoint(world.x, world.y);
 
     return {
       canvasX,
@@ -299,27 +270,19 @@ export class InputManager {
       canvasPreviousY: this.previousClickCanvasY,
       worldPreviousX: this.previousClickWorldX,
       worldPreviousY: this.previousClickWorldY,
+      elementUnderPointer,
     };
   }
 
-  /**
-   * Handle double-click events and dispatch to current mode.
-   */
   private handleDoubleClick = (event: MouseEvent): void => {
     const info = this.buildPointerInfoFromMouse(event);
     this.diagram.getCurrentMode().onDoubleClick?.(info, event);
   };
 
-  /**
-   * Handle window blur events and dispatch to current mode.
-   */
   private handleWindowBlur = (): void => {
     this.diagram.getCurrentMode().onBlur?.();
   };
 
-  /**
-   * Prevent default context menu to ensure clean pointer event flow.
-   */
   private handleContextMenu = (event: MouseEvent): void => {
     event.preventDefault();
   };

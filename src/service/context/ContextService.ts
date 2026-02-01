@@ -1,10 +1,9 @@
 import type { ServiceLayer } from "../ServiceLayer";
+import { type Uri, getUriScheme } from "../../core-model/uri";
 import {
-  type Uri,
   type IContext,
   type IContextEntry,
   ContextEntry,
-  getUriScheme,
 } from "./types";
 
 export const ContextEvents = {

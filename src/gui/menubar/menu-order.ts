@@ -1,0 +1,31 @@
+export const preferredMenuOrder = [
+  "File",
+  "Edit",
+  "View",
+  "Project",
+  "Task",
+  "Board",
+  "Tools",
+  "Window",
+  "Help",
+  "Settings",
+  "About",
+];
+
+export const preferredMenuGroupOrder = [
+  "undo-redo",
+  "clipboard",
+  "selection",
+  "create",
+  "open",
+  "exit",
+  "edit",
+  "view",
+  "project",
+  "task",
+  "tools",
+  "window",
+  "help",
+  "settings",
+  "about",
+];

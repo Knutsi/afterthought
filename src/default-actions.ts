@@ -1,6 +1,9 @@
 import { IAction } from "./service/ActionService";
-import { ServiceLayer } from "./service/ServiceLayer";
+import { getDefaultServiceLayer, ServiceLayer } from "./service/ServiceLayer";
+import type { IContext } from "./service/context/types";
 import { invoke } from '@tauri-apps/api/core';
+
+const UNDO_REDO_SUBGROUP = "undo-redo";
 
 var newProjectAction: IAction = {
   id: "core.newProject",
@@ -8,7 +11,7 @@ var newProjectAction: IAction = {
   shortcut: "Ctrl+N",
   menuGroup: "File",
   menuSubGroup: "create",
-  do: async () => {
+  do: async (_context: IContext, _args?: Record<string, unknown>) => {
     console.log("New Project");
   },
   canDo: async () => true,
@@ -20,7 +23,7 @@ var quitAction: IAction = {
   shortcut: "Ctrl+Q",
   menuGroup: "File",
   menuSubGroup: "exit",
-  do: async () => {
+  do: async (_context: IContext, _args?: Record<string, unknown>) => {
     await invoke('quit_app');
   },
   canDo: async () => true,
@@ -32,7 +35,7 @@ var helpAction: IAction = {
   shortcut: "F1",
   menuGroup: "Help",
   menuSubGroup: "Docs",
-  do: async () => {
+  do: async (_context: IContext, _args?: Record<string, unknown>) => {
     console.log("Help");
   },
   canDo: async () => true,
@@ -43,11 +46,11 @@ var undoAction: IAction = {
   name: "Undo",
   shortcut: "Ctrl+Z",
   menuGroup: "Edit",
-  menuSubGroup: "Basic",
-  do: async () => {
-    console.log("Undo");
+  menuSubGroup: UNDO_REDO_SUBGROUP,
+  do: async (_context: IContext, _args?: Record<string, unknown>) => {
+    await getDefaultServiceLayer().actionService.undo();
   },
-  canDo: async () => true,
+  canDo: async () => getDefaultServiceLayer().actionService.canUndo(),
 };
 
 var redoAction: IAction = {
@@ -55,11 +58,11 @@ var redoAction: IAction = {
   name: "Redo",
   shortcut: "Ctrl+Y",
   menuGroup: "Edit",
-  menuSubGroup: "Basic",
-  do: async () => {
-    console.log("Redo");
+  menuSubGroup: UNDO_REDO_SUBGROUP,
+  do: async (_context: IContext, _args?: Record<string, unknown>) => {
+    await getDefaultServiceLayer().actionService.redo();
   },
-  canDo: async () => true,
+  canDo: async () => getDefaultServiceLayer().actionService.canRedo(),
 };
 
 var cutAction: IAction = {
@@ -67,8 +70,8 @@ var cutAction: IAction = {
   name: "Cut",
   shortcut: "Ctrl+X",
   menuGroup: "Edit",
-  menuSubGroup: "Clipboard",
-  do: async () => {
+  menuSubGroup: "clipboard",
+  do: async (_context: IContext, _args?: Record<string, unknown>) => {
     console.log("Cut");
   },
   canDo: async () => true,
@@ -79,8 +82,8 @@ var copyAction: IAction = {
   name: "Copy",
   shortcut: "Ctrl+C",
   menuGroup: "Edit",
-  menuSubGroup: "Clipboard",
-  do: async () => {
+  menuSubGroup: "clipboard",
+  do: async (_context: IContext, _args?: Record<string, unknown>) => {
     console.log("Copy");
   },
   canDo: async () => true,
@@ -91,11 +94,27 @@ var pasteAction: IAction = {
   name: "Paste",
   shortcut: "Ctrl+V",
   menuGroup: "Edit",
-  menuSubGroup: "Clipboard",
-  do: async () => {
+  menuSubGroup: "clipboard",
+  do: async (_context: IContext, _args?: Record<string, unknown>) => {
     console.log("Paste");
   },
   canDo: async () => true,
+};
+
+var repeatAction: IAction = {
+  id: "core.repeat",
+  name: "Repeat Last Action",
+  shortcut: ".",
+  menuGroup: "Edit",
+  menuSubGroup: UNDO_REDO_SUBGROUP,
+  do: async (_context: IContext, _args?: Record<string, unknown>) => {
+    const actionService = getDefaultServiceLayer().actionService;
+    const lastActionId = actionService.getLastActionId();
+    if (lastActionId) {
+      await actionService.doAction(lastActionId);
+    }
+  },
+  canDo: async () => getDefaultServiceLayer().actionService.canRepeat(),
 };
 
 var aboutAction: IAction = {
@@ -104,7 +123,7 @@ var aboutAction: IAction = {
   shortcut: "",
   menuGroup: "Help",
   menuSubGroup: "About",
-  do: async () => {
+  do: async (_context: IContext, _args?: Record<string, unknown>) => {
     console.log("About");
   },
   canDo: async () => true,
@@ -117,6 +136,7 @@ export function setupDefaultActions(serviceLayer: ServiceLayer) {
   actionService.addAction(helpAction);
   actionService.addAction(undoAction);
   actionService.addAction(redoAction);
+  actionService.addAction(repeatAction);
   actionService.addAction(cutAction);
   actionService.addAction(copyAction);
   actionService.addAction(pasteAction);

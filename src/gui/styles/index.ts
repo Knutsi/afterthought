@@ -1,8 +1,3 @@
-/**
- * CSS Utilities for Web Components
- * Barrel export for easy imports
- */
-
 export {
   // User Selection
   noSelect,

@@ -1,41 +1,104 @@
 import type { IContext } from "./context/types";
 import type { ServiceLayer } from "./ServiceLayer";
 
+export type UndoFunction = () => Promise<void>;
+export type DoFunction = (context: IContext, args?: Record<string, unknown>) => Promise<UndoFunction | void>;
+
 export interface IAction {
   id: string;
   name: string;
   shortcut: string;
   menuGroup: string;
   menuSubGroup?: string;
-  do: () => Promise<void>;
-  undo?: () => Promise<void>;
-  canUndo?: () => Promise<boolean>;
+  hideFromMenu?: boolean;
+  do: DoFunction;
   canDo: (context: IContext) => Promise<boolean>;
 }
+
+export const UNDO_ACTION_ID = "core.undo";
+export const REDO_ACTION_ID = "core.redo";
+export const REPEAT_ACTION_ID = "core.repeat";
+
+const NON_REPEATABLE_ACTIONS = [UNDO_ACTION_ID, REDO_ACTION_ID, REPEAT_ACTION_ID];
 
 export const ActionEvents = {
   ACTION_ADDED: "actionAdded",
   ACTION_AVAILABILITY_UPDATED: "actionAvailabilityUpdated",
   ACTION_DONE: "actionDone",
+  HISTORY_CHANGED: "historyChanged",
 };
 
 export class ActionService extends EventTarget {
   private actions: IAction[] = [];
+  private undoStack: UndoFunction[] = [];
+  private redoStack: UndoFunction[] = [];
+  private serviceLayer: ServiceLayer;
+  private lastActionId: string | null = null;
 
-  constructor(_serviceLayer: ServiceLayer) {
+  constructor(serviceLayer: ServiceLayer) {
     super();
     this.actions = [];
+    this.serviceLayer = serviceLayer;
   }
 
-  public doAction(actionId: string): void {
+  public async doAction(actionId: string, args?: Record<string, unknown>): Promise<void> {
     const action = this.actions.find((a) => a.id === actionId);
     if (!action) {
       throw new Error(`Action ${actionId} not found`);
     }
 
     console.log(`Doing action ${action.id}: ${action.name}`);
-    action.do();
+    const context = this.serviceLayer.getContextService();
+    const undoFn = await action.do(context, args);
+
+    if (undoFn) {
+      this.undoStack.push(undoFn);
+      this.redoStack = [];
+      this.dispatchEvent(new Event(ActionEvents.HISTORY_CHANGED));
+      this.updateActionAvailability();
+    }
+
+    if (!NON_REPEATABLE_ACTIONS.includes(actionId)) {
+      this.lastActionId = actionId;
+    }
+
     this.dispatchEvent(new CustomEvent(ActionEvents.ACTION_DONE, { detail: { actionId } }));
+  }
+
+  public async undo(): Promise<void> {
+    const undoFn = this.undoStack.pop();
+    if (!undoFn) return;
+
+    await undoFn();
+    this.redoStack.push(undoFn);
+    this.dispatchEvent(new Event(ActionEvents.HISTORY_CHANGED));
+    this.updateActionAvailability();
+  }
+
+  public async redo(): Promise<void> {
+    const redoFn = this.redoStack.pop();
+    if (!redoFn) return;
+
+    await redoFn();
+    this.undoStack.push(redoFn);
+    this.dispatchEvent(new Event(ActionEvents.HISTORY_CHANGED));
+    this.updateActionAvailability();
+  }
+
+  public canUndo(): boolean {
+    return this.undoStack.length > 0;
+  }
+
+  public canRedo(): boolean {
+    return this.redoStack.length > 0;
+  }
+
+  public getLastActionId(): string | null {
+    return this.lastActionId;
+  }
+
+  public canRepeat(): boolean {
+    return this.lastActionId !== null;
   }
 
   public addAction(action: IAction) {

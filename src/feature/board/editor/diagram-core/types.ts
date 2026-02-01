@@ -1,11 +1,9 @@
 import { IDiagramMode } from "./modes/types";
 import type { StageManager } from "./managers/StageManager";
+import type { GeometryManager } from "./managers/GeometryManager";
+import type { SelectionManager } from "./managers/SelectionManager";
+import type { ITheme } from "../../../../service/ThemeService";
 
-/**
- * Comprehensive pointer event info with both canvas and world coordinates.
- * Canvas = CSS pixels relative to canvas element
- * World = diagram space (accounting for scroll offset and zoom)
- */
 export interface DiagramPointerInfo {
   // Current position
   canvasX: number;
@@ -34,12 +32,11 @@ export interface DiagramPointerInfo {
   canvasPreviousY: number;
   worldPreviousX: number;
   worldPreviousY: number;
+
+  // Element under the pointer (hit-tested)
+  elementUnderPointer: DiagramElement | null;
 }
 
-/**
- * Context interface providing diagram access to modes.
- * Modes use this to push/pop modes and modify diagram state.
- */
 export interface IDiagram {
   pushMode(mode: IDiagramMode): void;
   popMode(): void;
@@ -54,6 +51,47 @@ export interface IDiagram {
   requestRender(): void;
   getViewportSize(): { width: number; height: number };
   getStageManager(): StageManager;
+  getGeometryManager(): GeometryManager;
+  getSelectionManager(): SelectionManager;
+  requestSelectionSet(elements: DiagramElement[]): void;
+  requestSelectionAdd(elements: DiagramElement[]): void;
+  requestSelectionRemove(elements: DiagramElement[]): void;
+}
+
+export type IdleModeFactoryFn = (diagram: IDiagram) => IDiagramMode;
+
+// ==================== Change Detection ====================
+
+export type ElementChangeType = 'added' | 'removed' | 'moved' | 'resized';
+
+export interface ElementChangeEvent {
+  type: ElementChangeType;
+  element: DiagramElement;
+  layerId: string;
+}
+
+export type ElementChangeCallback = (event: ElementChangeEvent) => void;
+
+export type SelectionChangeCallback = (selectedIds: string[]) => void;
+
+export type SelectionRequestCallback = (elements: DiagramElement[]) => void;
+
+export interface IDiagramCallbacks {
+  onElementChange?: ElementChangeCallback;
+  onSelectionChange?: SelectionChangeCallback;
+  onSelectionSetRequest?: SelectionRequestCallback;
+  onSelectionAddRequest?: SelectionRequestCallback;
+  onSelectionRemoveRequest?: SelectionRequestCallback;
+}
+
+export interface IDiagramOptions {
+  createIdleModeFn?: IdleModeFactoryFn;
+  getThemeFn: () => ITheme;
+}
+
+export interface IDiagramContext {
+  isSelected: boolean;
+  theme: ITheme;
 }
 
 export class DiagramElement {
@@ -66,6 +104,8 @@ export class DiagramElement {
   width: number;
   height: number;
 
+  isSelectable: boolean;
+
   constructor() {
     this.id = crypto.randomUUID();
     this.type = "";
@@ -74,14 +114,10 @@ export class DiagramElement {
     this.posY = 100;
     this.width = 300;
     this.height = 100;
+    this.isSelectable = true;
   }
 
-  /**
-   * Render this element. Override in subclasses for custom rendering.
-   * All coordinates are in world space (transform already applied).
-   * @param ctx - Canvas 2D rendering context
-   */
-  render(ctx: CanvasRenderingContext2D): void {
+  render(ctx: CanvasRenderingContext2D, _diagramCtx: IDiagramContext): void {
     // Default: simple filled rectangle (fallback)
     ctx.fillStyle = "#888";
     ctx.fillRect(this.posX, this.posY, this.width, this.height);

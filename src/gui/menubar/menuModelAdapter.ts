@@ -1,22 +1,7 @@
 import type { IAction } from "../../service/ActionService";
 import type { IContext } from "../../service/context/types";
 import { getDefaultServiceLayer } from "../../service/ServiceLayer";
-
-const preferredMenuOrder = ["File", "Edit", "View", "Project", "Task", "Tools", "Window", "Help", "Settings", "About"];
-const preferredMenuGroupOrder = [
-  "create",
-  "open",
-  "exit",
-  "edit",
-  "view",
-  "project",
-  "task",
-  "tools",
-  "window",
-  "help",
-  "settings",
-  "about",
-];
+import { preferredMenuOrder, preferredMenuGroupOrder } from "./menu-order";
 
 export interface IDynamicMenuBarModel {
   orderedMenus: IMenu[];
@@ -41,10 +26,6 @@ export interface IMenuItem {
   disabled: boolean;
 }
 
-/**
- * Sorts items by preferred order, then alphabetically.
- * Items in preferredOrder come first, others come after alphabetically.
- */
 function sortByPreferredOrder<T>(
   items: T[],
   preferredOrder: string[],
@@ -73,9 +54,6 @@ function sortByPreferredOrder<T>(
   });
 }
 
-/**
- * Extracts unique menu names from actions and returns them sorted.
- */
 function extractUniqueMenus(actions: IAction[]): string[] {
   const menuSet = new Set<string>();
 
@@ -87,9 +65,6 @@ function extractUniqueMenus(actions: IAction[]): string[] {
   return sortByPreferredOrder(menus, preferredMenuOrder, (menu) => menu);
 }
 
-/**
- * Groups actions by their menu group.
- */
 function groupActionsByMenu(actions: IAction[]): Map<string, IAction[]> {
   const menuMap = new Map<string, IAction[]>();
 
@@ -103,10 +78,6 @@ function groupActionsByMenu(actions: IAction[]): Map<string, IAction[]> {
   return menuMap;
 }
 
-/**
- * Groups actions by their subgroup.
- * Returns a Map with subgroups sorted by preferred order.
- */
 function groupActionsBySubgroup(actions: IAction[]): Map<string | undefined, IAction[]> {
   const subgroupMap = new Map<string | undefined, IAction[]>();
 
@@ -122,9 +93,6 @@ function groupActionsBySubgroup(actions: IAction[]): Map<string | undefined, IAc
   return subgroupMap;
 }
 
-/**
- * Builds menu items from actions, checking canDo() in parallel.
- */
 async function buildMenuItems(actions: IAction[], context: IContext): Promise<IMenuItem[]> {
   const itemPromises = actions.map(async (action) => {
     const canDo = await action.canDo(context).catch(() => false);
@@ -140,9 +108,6 @@ async function buildMenuItems(actions: IAction[], context: IContext): Promise<IM
   return Promise.all(itemPromises);
 }
 
-/**
- * Builds menu groups from actions, sorting subgroups and building items.
- */
 async function buildMenuGroups(actions: IAction[], context: IContext): Promise<IMenuGroup[]> {
   const subgroupMap = groupActionsBySubgroup(actions);
 
@@ -186,19 +151,18 @@ async function buildMenuGroups(actions: IAction[], context: IContext): Promise<I
   return groups;
 }
 
-/**
- * Builds the complete menu bar model from actions.
- * This is the main orchestrator function that calls the helpers in sequence.
- */
 export async function buildMenuBarModel(actions: IAction[]): Promise<IDynamicMenuBarModel> {
   // Get current context from service
   const context = getDefaultServiceLayer().getContextService();
 
+  // Filter out hidden actions
+  const visibleActions = actions.filter(action => !action.hideFromMenu);
+
   // Step 1: Get unique menus sorted by preferred order
-  const menuLabels = extractUniqueMenus(actions);
+  const menuLabels = extractUniqueMenus(visibleActions);
 
   // Step 2: Group actions by menu
-  const menuMap = groupActionsByMenu(actions);
+  const menuMap = groupActionsByMenu(visibleActions);
 
   // Step 3: Build each menu with its groups and items
   const orderedMenus: IMenu[] = [];

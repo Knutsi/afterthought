@@ -1,4 +1,4 @@
-import { DiagramElement } from "../types";
+import { DiagramElement, IDiagramContext } from "../types";
 
 export class BaseElement extends DiagramElement {
   constructor() {
@@ -6,7 +6,7 @@ export class BaseElement extends DiagramElement {
     this.type = "base";
   }
 
-  override render(ctx: CanvasRenderingContext2D): void {
+  override render(ctx: CanvasRenderingContext2D, _diagramCtx: IDiagramContext): void {
     const radius = 8;
     const { posX, posY, width, height } = this;
 

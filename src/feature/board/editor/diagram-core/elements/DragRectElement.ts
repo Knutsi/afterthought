@@ -1,9 +1,5 @@
-import { DiagramElement } from "../types";
+import { DiagramElement, IDiagramContext } from "../types";
 
-/**
- * Selection rectangle element rendered during drag-select.
- * Semi-transparent fill with dashed border.
- */
 export class DragRectElement extends DiagramElement {
   constructor() {
     super();
@@ -13,7 +9,7 @@ export class DragRectElement extends DiagramElement {
     this.height = 0;
   }
 
-  override render(ctx: CanvasRenderingContext2D): void {
+  override render(ctx: CanvasRenderingContext2D, _diagramCtx: IDiagramContext): void {
     const { posX, posY, width, height } = this;
 
     // Semi-transparent fill

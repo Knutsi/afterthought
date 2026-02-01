@@ -1,22 +1,42 @@
 import { IObject } from "../../service/ObjectService";
 import { ServiceLayer } from "../../service/ServiceLayer";
-import { URI_SCHEMES, type IContext } from "../../service/context/types";
+import { createUri, parseUri, type Uri, URI_SCHEMES } from "../../core-model/uri";
 import type { IBoardActivityData } from "./BoardActivity";
 import {
-  BOARD_ACTIVITY_TAG,
-  CREATE_BOARD_ACTION_ID,
-  CREATE_TASK_ON_BOARD_ACTION_ID,
-  IBoardActivityParams,
-  OPEN_BOARD_ACTION_ID
+  createNewBoardAction,
+  createOpenBoardAction,
+  createNewTaskAction,
+  createSelectAllAction,
+  createSelectNoneAction,
+  createSelectionSetAction,
+  createSelectionAddAction,
+  createSelectionRemoveAction,
+} from "./actions";
+import { TaskService } from "../task/TaskService";
+import { TASK_SERVICE_NAME } from "../task/types";
+import {
+  BoardTaskPlacement,
+  BoardData,
+  AddTaskResult,
+  BoardEvents,
+  TaskAddedEventDetail,
+  TaskUpdatedEventDetail,
+  TaskRemovedEventDetail,
+  DEFAULT_TASK_PLACEMENT_WIDTH,
+  DEFAULT_TASK_PLACEMENT_HEIGHT,
+  DEFAULT_TASK_PLACEMENT_X,
+  DEFAULT_TASK_PLACEMENT_Y,
+  BOARD_SELECTION_FEATURE,
 } from "./types";
 
 const BOARD_STORE_ID = 'board-store';
 
-export class BoardService {
+export class BoardService extends EventTarget {
   private serviceLayer: ServiceLayer;
   private boardCount = 0;
 
   constructor(serviceLayer: ServiceLayer) {
+    super();
     this.serviceLayer = serviceLayer;
   }
 
@@ -30,7 +50,8 @@ export class BoardService {
   public async newBoard(): Promise<IObject> {
     const objectService = this.serviceLayer.getObjectService();
     const name = this.getNextBoardName();
-    return objectService.createObject(BOARD_STORE_ID, 'board', { name });
+    const id = crypto.randomUUID();
+    return objectService.createObjectWithId(BOARD_STORE_ID, id, 'board', { name, tasks: [] });
   }
 
   public openBoard(_id: string): IBoardActivityData {
@@ -44,69 +65,153 @@ export class BoardService {
 
   }
 
+  public async getBoardData(boardId: string): Promise<BoardData | null> {
+    const objectService = this.serviceLayer.getObjectService();
+    const boardObject = await objectService.getObject(BOARD_STORE_ID, boardId);
+    if (!boardObject) return null;
+
+    return {
+      id: boardObject.id,
+      name: boardObject.data.name,
+      tasks: boardObject.data.tasks ?? [],
+    };
+  }
+
+  public async updateBoardData(boardId: string, updates: Partial<Omit<BoardData, 'id'>>): Promise<IObject | null> {
+    const objectService = this.serviceLayer.getObjectService();
+    const existing = await objectService.getObject(BOARD_STORE_ID, boardId);
+    if (!existing) return null;
+
+    return objectService.updateObject(BOARD_STORE_ID, boardId, {
+      ...existing.data,
+      ...updates,
+    });
+  }
+
+  public async createNewTaskOnBoard(boardUri: string): Promise<AddTaskResult> {
+    const parsed = parseUri(boardUri);
+    if (!parsed || parsed.scheme !== URI_SCHEMES.BOARD) {
+      throw new Error(`Invalid board URI: ${boardUri}`);
+    }
+    const boardId = parsed.id;
+
+    const boardData = await this.getBoardData(boardId);
+    if (!boardData) {
+      throw new Error(`Board not found: ${boardId}`);
+    }
+
+    const taskService = this.serviceLayer.getFeatureService<TaskService>(TASK_SERVICE_NAME);
+    const { taskUri } = await taskService.newTask("New task");
+
+    const taskOnBoardId = crypto.randomUUID();
+    const taskOnBoardUri = createUri(URI_SCHEMES.TASK_ON_BOARD, taskOnBoardId);
+
+    const existingTasks = boardData.tasks;
+    const staggerOffset = existingTasks.length * 20;
+
+    const placement: BoardTaskPlacement = {
+      uri: taskOnBoardUri,
+      taskUri,
+      x: DEFAULT_TASK_PLACEMENT_X + staggerOffset,
+      y: DEFAULT_TASK_PLACEMENT_Y + staggerOffset,
+      width: DEFAULT_TASK_PLACEMENT_WIDTH,
+      height: DEFAULT_TASK_PLACEMENT_HEIGHT,
+    };
+
+    await this.updateBoardData(boardId, {
+      tasks: [...existingTasks, placement],
+    });
+
+    this.dispatchEvent(new CustomEvent<TaskAddedEventDetail>(BoardEvents.TASK_ADDED, {
+      detail: { boardUri, taskUri, placement },
+    }));
+
+    return { taskUri, taskOnBoardUri, placement };
+  }
+
+  public async removeTaskFromBoard(boardUri: string, taskUri: string): Promise<boolean> {
+    const parsed = parseUri(boardUri);
+    if (!parsed || parsed.scheme !== URI_SCHEMES.BOARD) {
+      return false;
+    }
+    const boardId = parsed.id;
+
+    const boardData = await this.getBoardData(boardId);
+    if (!boardData) return false;
+
+    const filteredTasks = boardData.tasks.filter(t => t.taskUri !== taskUri);
+    if (filteredTasks.length === boardData.tasks.length) {
+      return false;
+    }
+
+    await this.updateBoardData(boardId, { tasks: filteredTasks });
+
+    this.dispatchEvent(new CustomEvent<TaskRemovedEventDetail>(BoardEvents.TASK_REMOVED, {
+      detail: { boardUri, taskUri },
+    }));
+
+    return true;
+  }
+
+  public async updateTaskPlacement(
+    boardUri: string,
+    taskUri: string,
+    placement: Partial<Omit<BoardTaskPlacement, 'taskUri'>>
+  ): Promise<BoardTaskPlacement | null> {
+    const parsed = parseUri(boardUri);
+    if (!parsed || parsed.scheme !== URI_SCHEMES.BOARD) {
+      return null;
+    }
+    const boardId = parsed.id;
+
+    const boardData = await this.getBoardData(boardId);
+    if (!boardData) return null;
+
+    const taskIndex = boardData.tasks.findIndex(t => t.taskUri === taskUri);
+    if (taskIndex === -1) return null;
+
+    const updatedPlacement: BoardTaskPlacement = {
+      ...boardData.tasks[taskIndex],
+      ...placement,
+    };
+
+    const updatedTasks = [...boardData.tasks];
+    updatedTasks[taskIndex] = updatedPlacement;
+
+    await this.updateBoardData(boardId, { tasks: updatedTasks });
+
+    this.dispatchEvent(new CustomEvent<TaskUpdatedEventDetail>(BoardEvents.TASK_UPDATED, {
+      detail: { boardUri, taskUri, placement: updatedPlacement },
+    }));
+
+    return updatedPlacement;
+  }
+
   public getNextBoardName(): string {
     const name = "Board " + this.boardCount;
     this.boardCount++;
     return name;
   }
 
+  public updateSelectionContext(boardUri: Uri, taskUris: Uri[]): void {
+    const contextService = this.serviceLayer.getContextService();
+    contextService.removeEntriesByFeature(BOARD_SELECTION_FEATURE);
+
+    for (const taskUri of taskUris) {
+      contextService.addEntry(taskUri, BOARD_SELECTION_FEATURE, boardUri);
+    }
+  }
+
   public registerActions(): void {
     const actionService = this.serviceLayer.actionService;
-    const activityService = this.serviceLayer.getActivityService()
-
-    actionService.addAction({
-      id: CREATE_BOARD_ACTION_ID,
-      name: "New Board",
-      shortcut: "Ctrl+N B",
-      menuGroup: "File",
-      menuSubGroup: "create",
-      do: async () => {
-        const board = await this.newBoard();
-        const args: IBoardActivityParams = {
-          openBoardId: board.id,
-          name: board.data.name
-        }
-        const activity = activityService.startActivity<IBoardActivityParams>(BOARD_ACTIVITY_TAG, args);
-        activityService.switchToActivity(activity.id);
-      },
-      canDo: async (_context) => true,
-    });
-
-    actionService.addAction({
-      id: OPEN_BOARD_ACTION_ID,
-      name: "Open Board",
-      shortcut: "Ctrl+O B",
-      menuGroup: "File",
-      menuSubGroup: "open",
-      do: async () => {
-        const board = await this.newBoard();
-        const args: IBoardActivityParams = {
-          openBoardId: board.id,
-          name: board.data.name
-        }
-        const activity = activityService.startActivity<IBoardActivityParams>(BOARD_ACTIVITY_TAG, args);
-        activityService.switchToActivity(activity.id);
-      },
-      canDo: async (_context) => true,
-    });
-
-    const contextService = this.serviceLayer.getContextService();
-    actionService.addAction({
-      id: CREATE_TASK_ON_BOARD_ACTION_ID,
-      name: "New Task",
-      shortcut: "Ctrl+N T",
-      menuGroup: "Board",
-      menuSubGroup: "create",
-      do: async () => {
-        const boardEntries = contextService.getEntriesByScheme(URI_SCHEMES.BOARD);
-        if (boardEntries.length === 0) return;
-        // TODO: Create task via TaskService when implemented
-        console.log("Create task on board:", boardEntries[0].uri);
-      },
-      canDo: async (context: IContext) => {
-        return context.hasScheme(URI_SCHEMES.BOARD);
-      },
-    });
+    actionService.addAction(createNewBoardAction(this.serviceLayer));
+    actionService.addAction(createOpenBoardAction(this.serviceLayer));
+    actionService.addAction(createNewTaskAction(this.serviceLayer));
+    actionService.addAction(createSelectAllAction(this.serviceLayer));
+    actionService.addAction(createSelectNoneAction(this.serviceLayer));
+    actionService.addAction(createSelectionSetAction(this.serviceLayer));
+    actionService.addAction(createSelectionAddAction(this.serviceLayer));
+    actionService.addAction(createSelectionRemoveAction(this.serviceLayer));
   }
 
 

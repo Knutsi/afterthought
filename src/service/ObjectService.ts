@@ -79,8 +79,8 @@ export class ObjectService {
 
   // Object API
 
-  async createObject(storeId: string, type: string, data: any): Promise<IObject> {
-    const object = await this.storeManager.createObject(storeId, type, data);
+  async createObjectWithId(storeId: string, id: string, type: string, data: any): Promise<IObject> {
+    const object = await this.storeManager.createObjectWithId(storeId, id, type, data);
     this.notifyObjectSubscribers(storeId, { type: 'created', object, storeId });
     return object;
   }

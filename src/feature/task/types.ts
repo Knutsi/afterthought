@@ -1,3 +1,5 @@
+import type { IObject } from "../../service/ObjectService";
+
 export type TaskID = string;
 
 export const TASK_STORE_ID = 'task-store';
@@ -32,6 +34,11 @@ export class TaskRelation {
     this.from = from;
     this.to = to;
   }
+}
+
+export interface TaskCreateResult {
+  taskUri: string;
+  object: IObject;
 }
 
 

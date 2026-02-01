@@ -1,9 +1,11 @@
-import { DiagramModel, IDiagram } from "./types";
+import { DiagramModel, IDiagramCallbacks, IDiagramOptions, IDiagram, IdleModeFactoryFn, IDiagramContext, DiagramElement, SelectionRequestCallback } from "./types";
+import type { ITheme } from "../../../../service/ThemeService";
 import { IDiagramMode } from "./modes/types";
 import { IdleMode } from "./modes/IdleMode";
 import { InputManager } from "./managers/InputManager";
 import { StageManager } from "./managers/StageManager";
-import { BaseElement } from "./elements/BaseElement";
+import { GeometryManager } from "./managers/GeometryManager";
+import { SelectionManager } from "./managers/SelectionManager";
 import {
   worldOffsetToScrollPosition,
   scrollPositionToWorldOffset,
@@ -22,14 +24,24 @@ export class Diagram implements IDiagram {
   private statusDiv!: HTMLDivElement;
   private inputManager!: InputManager;
   private stageManager!: StageManager;
-
-  // Render scheduling
+  private geometryManager!: GeometryManager;
+  private selectionManager!: SelectionManager;
   private renderPending = false;
+  private createIdleMode: IdleModeFactoryFn;
+  private getThemeFn: () => ITheme;
+  private onSelectionSetRequest?: SelectionRequestCallback;
+  private onSelectionAddRequest?: SelectionRequestCallback;
+  private onSelectionRemoveRequest?: SelectionRequestCallback;
 
-  constructor(container: HTMLElement) {
+  constructor(container: HTMLElement, callbacks: IDiagramCallbacks | undefined, options: IDiagramOptions) {
     this.instanceId = Diagram.instanceCounter++;
     this.data = new DiagramModel();
     this.container = container;
+    this.createIdleMode = options.createIdleModeFn ?? ((d) => new IdleMode(d));
+    this.getThemeFn = options.getThemeFn;
+    this.onSelectionSetRequest = callbacks?.onSelectionSetRequest;
+    this.onSelectionAddRequest = callbacks?.onSelectionAddRequest;
+    this.onSelectionRemoveRequest = callbacks?.onSelectionRemoveRequest;
     this.createDOMStructure();
     this.updateExtentDivSize();
     this.setupScrollListener();
@@ -37,31 +49,12 @@ export class Diagram implements IDiagram {
     this.initializeModeStack();
     this.inputManager = new InputManager(this, this.scrollArea, this.canvas);
     this.inputManager.attach();
-    this.stageManager = new StageManager(this, this.data.layers);
-    this.setupDebugElements();
+    this.geometryManager = new GeometryManager(this.data.layers);
+    this.stageManager = new StageManager(this, this.data.layers, this.geometryManager, callbacks?.onElementChange);
+    this.selectionManager = new SelectionManager(this, callbacks?.onSelectionChange);
   }
 
-  /**
-   * Setup debug elements to verify rendering.
-   */
-  private setupDebugElements(): void {
-    const layer = this.stageManager.addLayer("elements");
-
-    for (let i = 0; i < 10; i++) {
-      const element = new BaseElement();
-      element.posX = Math.random() * 2000 + 100;
-      element.posY = Math.random() * 2000 + 100;
-      element.width = 200 + Math.random() * 150;
-      element.height = 80 + Math.random() * 80;
-      this.stageManager.addElement(layer.id, element);
-    }
-  }
-
-  /**
-   * Create the DOM structure: root container with scroll area and canvas as siblings.
-   */
   private createDOMStructure(): void {
-    // Create root container
     const root = document.createElement("div");
     root.id = `diagram-root-${this.instanceId}`;
     root.className = "diagram-root";
@@ -75,7 +68,6 @@ export class Diagram implements IDiagram {
     `;
     root.draggable = false;
 
-    // Create canvas (below scroll area)
     this.canvas = document.createElement("canvas");
     this.canvas.id = `diagram-canvas-${this.instanceId}`;
     this.canvas.className = "diagram-canvas";
@@ -89,11 +81,10 @@ export class Diagram implements IDiagram {
     `;
     this.canvas.draggable = false;
 
-    // Create scroll area (on top of canvas, transparent)
     this.scrollArea = document.createElement("div");
     this.scrollArea.id = `diagram-scroll-area-${this.instanceId}`;
     this.scrollArea.className = "diagram-scroll-area";
-    this.scrollArea.tabIndex = 0; // Make focusable to capture keyboard events
+    this.scrollArea.tabIndex = 0;
     this.scrollArea.style.cssText = `
       position: absolute;
       inset: 0;
@@ -107,7 +98,6 @@ export class Diagram implements IDiagram {
     `;
     this.scrollArea.draggable = false;
 
-    // Create extent div (creates scrollbars)
     this.extentDiv = document.createElement("div");
     this.extentDiv.id = `diagram-extent-${this.instanceId}`;
     this.extentDiv.className = "diagram-extent";
@@ -120,13 +110,11 @@ export class Diagram implements IDiagram {
     `;
     this.extentDiv.draggable = false;
 
-    // Get canvas context
     this.context = this.canvas.getContext("2d");
     if (!this.context) {
       throw new Error("Failed to get 2D context from canvas");
     }
 
-    // Create status text overlay (sibling to scroll area)
     this.statusDiv = document.createElement("div");
     this.statusDiv.id = `diagram-status-${this.instanceId}`;
     this.statusDiv.className = "diagram-status";
@@ -146,7 +134,6 @@ export class Diagram implements IDiagram {
       white-space: pre;
     `;
 
-    // Assemble DOM hierarchy: canvas first (bottom), then scroll area (middle), then status (top)
     this.scrollArea.appendChild(this.extentDiv);
     root.appendChild(this.canvas);
     root.appendChild(this.scrollArea);
@@ -154,10 +141,6 @@ export class Diagram implements IDiagram {
     this.container.appendChild(root);
   }
 
-  /**
-   * Update extent div size based on world size and zoom.
-   * Extent div must be scaled by zoom so scrollbars match zoomed content.
-   */
   private updateExtentDivSize(): void {
     const zoomedWidth = this.data.extentWidth * this.data.zoom;
     const zoomedHeight = this.data.extentHeight * this.data.zoom;
@@ -165,17 +148,10 @@ export class Diagram implements IDiagram {
     this.extentDiv.style.height = `${zoomedHeight}px`;
   }
 
-  /**
-   * Setup scroll event listener to track viewport offset.
-   */
   private setupScrollListener(): void {
     this.scrollArea.addEventListener("scroll", this.handleScroll, { passive: true });
   }
 
-  /**
-   * Handle scroll events and update diagram model offset.
-   * Convert from CSS pixels (zoomed space) to world units.
-   */
   private handleScroll = (): void => {
     const { offsetX, offsetY } = scrollPositionToWorldOffset(
       this.scrollArea.scrollLeft,
@@ -187,70 +163,42 @@ export class Diagram implements IDiagram {
     this.requestRender();
   };
 
-  /**
-   * Setup ResizeObserver to handle container size changes.
-   */
   private setupResizeObserver(): void {
     this.resizeObserver = new ResizeObserver(() => {
       this.resizeCanvas();
     });
-    // Observe the container, not the scroll area
     this.resizeObserver.observe(this.container);
   }
 
-  /**
-   * Resize canvas to match container while handling DPI scaling.
-   */
   private resizeCanvas(): void {
     const dpr = window.devicePixelRatio || 1;
-
-    // Get CSS size from container (the root now fills the container)
     const cssWidth = this.container.clientWidth;
     const cssHeight = this.container.clientHeight;
 
-    // Set canvas CSS size (logical pixels)
     this.canvas.style.width = `${cssWidth}px`;
     this.canvas.style.height = `${cssHeight}px`;
-
-    // Set backing store size (physical pixels)
     this.canvas.width = cssWidth * dpr;
     this.canvas.height = cssHeight * dpr;
 
     this.requestRender();
   }
 
-  // ==================== Mode Management ====================
-
-  /**
-   * Initialize mode stack with IdleMode as the base.
-   */
   private initializeModeStack(): void {
-    const idleMode = new IdleMode(this);
+    const idleMode = this.createIdleMode(this);
     this.data.modeStack.push(idleMode);
     idleMode.onEnter();
   }
 
-  /**
-   * Get the current active mode (top of stack).
-   */
   public getCurrentMode(): IDiagramMode {
     return this.data.modeStack[this.data.modeStack.length - 1];
   }
 
-  /**
-   * Push a new mode onto the stack.
-   * @param mode - Mode to push
-   */
   public pushMode(mode: IDiagramMode): void {
     this.data.modeStack.push(mode);
     mode.onEnter();
     this.requestRender();
   }
 
-  /**
-   * Pop the current mode from the stack.
-   * Will not pop if only one mode (Idle) remains.
-   */
   public popMode(): void {
     if (this.data.modeStack.length <= 1) {
       return;
@@ -260,42 +208,25 @@ export class Diagram implements IDiagram {
     this.requestRender();
   }
 
-  // ==================== Rendering ====================
-
-  /**
-   * Configure canvas context transformation matrix for rendering in diagram space.
-   * After calling this, all draw operations use diagram space coordinates directly.
-   * @param ctx - Canvas 2D rendering context
-   */
   private setupRenderTransform(ctx: CanvasRenderingContext2D): void {
-    // Combined scale: DPI * zoom
     const S = (window.devicePixelRatio || 1) * this.data.zoom;
-
-    // Single transform: scale by S, translate by -offset * S
-    // This transforms: world point (wx, wy) -> ((wx - offsetX) * zoom * dpr, (wy - offsetY) * zoom * dpr)
     ctx.setTransform(S, 0, 0, S, -this.data.offsetX * S, -this.data.offsetY * S);
   }
 
-  /**
-   * Render background grid (optional, for testing).
-   */
   private renderBackground(ctx: CanvasRenderingContext2D): void {
     ctx.strokeStyle = "#e0e0e0";
-    ctx.lineWidth = 1 / this.data.zoom; // Maintain 1px line at any zoom
+    ctx.lineWidth = 1 / this.data.zoom;
 
-    // offsetX/offsetY are already in world units
     const visibleLeft = this.data.offsetX;
     const visibleTop = this.data.offsetY;
     const visibleWidth = this.canvas.width / window.devicePixelRatio / this.data.zoom;
     const visibleHeight = this.canvas.height / window.devicePixelRatio / this.data.zoom;
 
-    // Clamp to extent bounds
     const gridStartX = Math.max(0, Math.floor(visibleLeft / 100) * 100) - 1;
     const gridEndX = Math.min(this.data.extentWidth, visibleLeft + visibleWidth) - 1;
     const gridStartY = Math.max(0, Math.floor(visibleTop / 100) * 100) - 1;
     const gridEndY = Math.min(this.data.extentHeight, visibleTop + visibleHeight) - 1;
 
-    // Draw vertical lines
     for (let x = gridStartX; x <= gridEndX; x += 100) {
       ctx.beginPath();
       ctx.moveTo(x, Math.max(0, visibleTop));
@@ -303,7 +234,6 @@ export class Diagram implements IDiagram {
       ctx.stroke();
     }
 
-    // Draw horizontal lines
     for (let y = gridStartY; y <= gridEndY; y += 100) {
       ctx.beginPath();
       ctx.moveTo(Math.max(0, visibleLeft), y);
@@ -312,20 +242,18 @@ export class Diagram implements IDiagram {
     }
   }
 
-  /**
-   * Render all diagram elements across all layers.
-   */
-  private renderElements(ctx: CanvasRenderingContext2D): void {
+  private renderElements(ctx: CanvasRenderingContext2D, theme: ITheme): void {
     for (const layer of this.data.layers) {
       for (const element of layer.elements) {
-        element.render(ctx);
+        const diagramCtx: IDiagramContext = {
+          isSelected: this.selectionManager.isSelected(element.id),
+          theme,
+        };
+        element.render(ctx, diagramCtx);
       }
     }
   }
 
-  /**
-   * Update status text overlay with current diagram state.
-   */
   private updateStatusText(): void {
     const dpr = window.devicePixelRatio || 1;
     this.statusDiv.textContent =
@@ -336,10 +264,6 @@ export class Diagram implements IDiagram {
       `DPI: ${dpr.toFixed(2)}x`;
   }
 
-  /**
-   * Request a render on the next animation frame.
-   * Multiple requests within the same frame are coalesced.
-   */
   public requestRender(): void {
     if (this.renderPending) return;
     this.renderPending = true;
@@ -349,51 +273,30 @@ export class Diagram implements IDiagram {
     });
   }
 
-  /**
-   * Main render method with coordinate transformation pipeline.
-   */
   private performRender(): void {
     const ctx = this.context;
     if (!ctx) {
       throw new Error("Context not found");
     }
 
-    // Step 1: Clear canvas (physical pixels)
+    const theme = this.getThemeFn();
+
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-
-    // Step 2: Setup transformation to diagram space
     this.setupRenderTransform(ctx);
-
-    // Step 3: Save state
     ctx.save();
-
-    // Step 4: Render content (all coordinates in diagram space)
     this.renderBackground(ctx);
-    this.renderElements(ctx);
-
-    // Step 5: Restore state
+    this.renderElements(ctx, theme);
     ctx.restore();
-
-    // Step 6: Update status text
     this.updateStatusText();
   }
 
-  /**
-   * Set the scrollable extent (diagram bounds).
-   * @param width - Total width in diagram space pixels
-   * @param height - Total height in diagram space pixels
-   */
   public setExtent(width: number, height: number): void {
     this.data.extentWidth = width;
     this.data.extentHeight = height;
     this.updateExtentDivSize();
   }
 
-  /**
-   * Get current extent dimensions.
-   * @returns {width, height} of scrollable area
-   */
   public getExtent(): { width: number; height: number } {
     return {
       width: this.data.extentWidth,
@@ -401,10 +304,6 @@ export class Diagram implements IDiagram {
     };
   }
 
-  /**
-   * Set zoom level.
-   * @param zoom - Zoom factor (1.0 = 100%, 0.5 = 50%, 2.0 = 200%)
-   */
   public setZoom(zoom: number): void {
     if (zoom <= 0) {
       throw new Error("Zoom must be positive");
@@ -417,13 +316,6 @@ export class Diagram implements IDiagram {
     this.requestRender();
   }
 
-  /**
-   * Set zoom level anchored at a specific screen point.
-   * The world point under the anchor stays under the anchor after zoom.
-   * @param newZoom - New zoom factor
-   * @param anchorClientX - Anchor X in client coordinates (optional, defaults to center)
-   * @param anchorClientY - Anchor Y in client coordinates (optional, defaults to center)
-   */
   public setZoomAtPoint(newZoom: number, anchorClientX?: number, anchorClientY?: number): void {
     if (newZoom <= 0) {
       throw new Error("Zoom must be positive");
@@ -435,23 +327,18 @@ export class Diagram implements IDiagram {
     const oldZoom = this.data.zoom;
     const rect = this.canvas.getBoundingClientRect();
 
-    // Default anchor to center of canvas
     const ax = anchorClientX !== undefined ? anchorClientX - rect.left : rect.width / 2;
     const ay = anchorClientY !== undefined ? anchorClientY - rect.top : rect.height / 2;
 
-    // Calculate world position at anchor point (before zoom)
     const anchorWorldX = this.data.offsetX + ax / oldZoom;
     const anchorWorldY = this.data.offsetY + ay / oldZoom;
 
-    // Update zoom
     this.data.zoom = newZoom;
     this.updateExtentDivSize();
 
-    // Calculate new offset to keep anchor point fixed
     const newOffsetX = anchorWorldX - ax / newZoom;
     const newOffsetY = anchorWorldY - ay / newZoom;
 
-    // Clamp offsets to valid range
     const viewW = rect.width / newZoom;
     const viewH = rect.height / newZoom;
     const maxX = Math.max(0, this.data.extentWidth - viewW);
@@ -460,25 +347,16 @@ export class Diagram implements IDiagram {
     this.data.offsetX = Math.min(Math.max(0, newOffsetX), maxX);
     this.data.offsetY = Math.min(Math.max(0, newOffsetY), maxY);
 
-    // Update scroll position to match new offset
     this.scrollArea.scrollLeft = this.data.offsetX * newZoom;
     this.scrollArea.scrollTop = this.data.offsetY * newZoom;
 
     this.requestRender();
   }
 
-  /**
-   * Get current zoom level.
-   * @returns Current zoom factor
-   */
   public getZoom(): number {
     return this.data.zoom;
   }
 
-  /**
-   * Get current scroll offset.
-   * @returns {x, y} scroll offset in pixels
-   */
   public getOffset(): { x: number; y: number } {
     return {
       x: this.data.offsetX,
@@ -486,54 +364,25 @@ export class Diagram implements IDiagram {
     };
   }
 
-  /**
-   * Programmatically set scroll offset.
-   * @param x - Horizontal offset in world units
-   * @param y - Vertical offset in world units
-   */
   public setOffset(x: number, y: number): void {
     const { scrollLeft, scrollTop } = worldOffsetToScrollPosition(x, y, this.data.zoom);
     this.scrollArea.scrollLeft = scrollLeft;
     this.scrollArea.scrollTop = scrollTop;
-    // Scroll event will trigger and update data.offsetX/offsetY
   }
 
-  /**
-   * Pan the viewport by a world-space delta.
-   * Moves the view in the opposite direction of the delta
-   * (drag left = view moves right, revealing content to the left).
-   * @param deltaX - World-space X delta
-   * @param deltaY - World-space Y delta
-   */
   public panByWorldOffset(deltaX: number, deltaY: number): void {
     this.setOffset(this.data.offsetX - deltaX, this.data.offsetY - deltaY);
   }
 
-  /**
-   * Pan the viewport by canvas-space delta (CSS pixels).
-   * Directly adjusts scroll position without coordinate conversion.
-   * @param canvasDeltaX - Canvas-space X delta (CSS pixels)
-   * @param canvasDeltaY - Canvas-space Y delta (CSS pixels)
-   */
   public panByCanvas(canvasDeltaX: number, canvasDeltaY: number): void {
     this.scrollArea.scrollLeft -= canvasDeltaX;
     this.scrollArea.scrollTop -= canvasDeltaY;
-    // Scroll event will trigger and update data.offsetX/offsetY
   }
 
-  /**
-   * Set the cursor style for the diagram.
-   * @param cursorStyle - CSS cursor value (e.g., "grab", "grabbing", "default")
-   */
   public setCursor(cursorStyle: string): void {
     this.scrollArea.style.cursor = cursorStyle;
   }
 
-  /**
-   * Get viewport size in CSS pixels (not world space).
-   * This is the visible area of the canvas in browser coordinates.
-   * Use with panByCanvas() which also operates in CSS pixels.
-   */
   public getViewportSize(): { width: number; height: number } {
     return {
       width: this.container.clientWidth,
@@ -541,17 +390,31 @@ export class Diagram implements IDiagram {
     };
   }
 
-  /**
-   * Start the diagram (trigger initial render).
-   */
   public start(): void {
     this.requestRender();
   }
 
-  /**
-   * Get the stage manager for layer and element operations.
-   */
   public getStageManager(): StageManager {
     return this.stageManager;
+  }
+
+  public getGeometryManager(): GeometryManager {
+    return this.geometryManager;
+  }
+
+  public getSelectionManager(): SelectionManager {
+    return this.selectionManager;
+  }
+
+  public requestSelectionSet(elements: DiagramElement[]): void {
+    this.onSelectionSetRequest?.(elements);
+  }
+
+  public requestSelectionAdd(elements: DiagramElement[]): void {
+    this.onSelectionAddRequest?.(elements);
+  }
+
+  public requestSelectionRemove(elements: DiagramElement[]): void {
+    this.onSelectionRemoveRequest?.(elements);
   }
 }

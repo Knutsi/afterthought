@@ -1,6 +1,7 @@
 import { ServiceLayer } from "../../service/ServiceLayer";
 import { IObject } from "../../service/ObjectService";
-import { Task, TaskID, TASK_STORE_ID } from "./types";
+import { Task, TaskID, TaskCreateResult, TASK_STORE_ID } from "./types";
+import { createUri, URI_SCHEMES } from "../../core-model/uri";
 
 export class TaskService {
   private serviceLayer: ServiceLayer;
@@ -15,15 +16,22 @@ export class TaskService {
   }
 
   // Create new task
-  async newTask(name: string): Promise<IObject> {
+  async newTask(name: string): Promise<TaskCreateResult> {
     const objectService = this.serviceLayer.getObjectService();
-    return objectService.createObject(TASK_STORE_ID, 'task', {
+
+    const taskId = crypto.randomUUID();
+    const taskUri = createUri(URI_SCHEMES.TASK, taskId);
+
+    const object = await objectService.createObjectWithId(TASK_STORE_ID, taskId, 'task', {
+      id: taskUri,
       name,
       done: false,
       description: null,
       deadline: null,
       archivedAtUtc: null
     });
+
+    return { taskUri, object };
   }
 
   // Delete task
