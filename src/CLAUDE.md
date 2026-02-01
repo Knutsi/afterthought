@@ -23,6 +23,12 @@ So we do command pattern: An example is the diagram component notices events tha
 
 We also have a dynamic menubar and more UI elements (right click) that filters all actions registered in the action service based on the context it is given. The theory is that this all allows us to make great superuser UX.
 
+So never: 
+- Let activities (UI layer) edit data or handle service task
+
+Always:
+- Use IAction entries to enable edits (exception MAY exist, but ask developer about this always) 
+
 ## Component Registration Pattern
 
 All components extend `BaseComponent` and use `defineComponent()` for registration:
@@ -68,7 +74,7 @@ You can run the following commands to verify code:
 
 **DO NOT** run the dev server (`npm run dev`) as it requires user interaction.
 
-**Organization**
+## **Organization**
 
 Afterthought has a core set of services, and a collection of features. 
 
@@ -93,14 +99,14 @@ Afterthought has a core set of services, and a collection of features.
 
   Features can use core application mehanisms directly, but need to go through an interface to talk to other non-core features.
 
-**Prefered choices**
+**## Prefered choices**
 
 - Prefer css grid to flex
 - themes use css variables
 - never commit to git yourself
 
 
-Code style:
+## Code style:
 - Add CONSTANTS_IN_CAPS to avoid magic strings in the modules. Place constants on top of modules and only export the needed ones. 
 - For constants used in more than one file, put them into the relevant types.ts file. 
 - Dont comment above code functions, methods etc. with code docs. 
