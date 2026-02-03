@@ -57,6 +57,7 @@ export interface IDiagram {
   requestSelectionAdd(elements: DiagramElement[]): void;
   requestSelectionRemove(elements: DiagramElement[]): void;
   fireBackgroundDoubleClick(worldX: number, worldY: number): void;
+  fireMoveComplete(elements: DiagramElement[], deltaX: number, deltaY: number): void;
 }
 
 // ==================== Change Detection ====================
@@ -82,6 +83,7 @@ export interface IDiagramCallbacks {
   onSelectionAddRequest?: SelectionRequestCallback;
   onSelectionRemoveRequest?: SelectionRequestCallback;
   onBackgroundDoubleClick?: (worldX: number, worldY: number) => void;
+  onMoveComplete?: (elements: DiagramElement[], deltaX: number, deltaY: number) => void;
 }
 
 export interface IDiagramOptions {

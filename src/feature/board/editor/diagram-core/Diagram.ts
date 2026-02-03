@@ -32,6 +32,7 @@ export class Diagram implements IDiagram {
   private onSelectionAddRequest?: SelectionRequestCallback;
   private onSelectionRemoveRequest?: SelectionRequestCallback;
   private onBackgroundDoubleClick?: (worldX: number, worldY: number) => void;
+  private onMoveComplete?: (elements: DiagramElement[], deltaX: number, deltaY: number) => void;
 
   constructor(container: HTMLElement, callbacks: IDiagramCallbacks | undefined, options: IDiagramOptions) {
     this.instanceId = Diagram.instanceCounter++;
@@ -42,6 +43,7 @@ export class Diagram implements IDiagram {
     this.onSelectionAddRequest = callbacks?.onSelectionAddRequest;
     this.onSelectionRemoveRequest = callbacks?.onSelectionRemoveRequest;
     this.onBackgroundDoubleClick = callbacks?.onBackgroundDoubleClick;
+    this.onMoveComplete = callbacks?.onMoveComplete;
     this.createDOMStructure();
     this.updateExtentDivSize();
     this.setupScrollListener();
@@ -420,5 +422,9 @@ export class Diagram implements IDiagram {
 
   public fireBackgroundDoubleClick(worldX: number, worldY: number): void {
     this.onBackgroundDoubleClick?.(worldX, worldY);
+  }
+
+  public fireMoveComplete(elements: DiagramElement[], deltaX: number, deltaY: number): void {
+    this.onMoveComplete?.(elements, deltaX, deltaY);
   }
 }

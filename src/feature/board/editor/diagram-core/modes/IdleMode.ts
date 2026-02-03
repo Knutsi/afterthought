@@ -1,11 +1,19 @@
 import { IDiagramMode, IDiagram, DiagramPointerInfo } from "./types";
+import type { DiagramElement } from "../types";
 import { PanMode } from "./PanMode";
 import { DragSelectMode } from "./DragSelectMode";
+import { MoveMode } from "./MoveMode";
 import { MOUSE_BUTTON_PRIMARY } from "../managers/InputManager";
+
+const DRAG_THRESHOLD = 3;
 
 export class IdleMode implements IDiagramMode {
   readonly name: string = "idle";
   protected diagram: IDiagram;
+  private pendingDrag: {
+    elements: DiagramElement[];
+    startInfo: DiagramPointerInfo;
+  } | null = null;
 
   constructor(diagram: IDiagram) {
     this.diagram = diagram;
@@ -35,21 +43,41 @@ export class IdleMode implements IDiagramMode {
         } else {
           this.diagram.requestSelectionAdd([element]);
         }
-      } else {
+      } else if (!isSelected) {
         this.diagram.requestSelectionSet([element]);
       }
+      // if already selected without ctrl, keep selection for potential group move
+
+      // set up pending drag with current selection
+      const selectedIds = selectionManager.getSelection();
+      const stageManager = this.diagram.getStageManager();
+      const elements = stageManager.getAllElements()
+        .filter(e => selectedIds.includes(e.id));
+      this.pendingDrag = { elements, startInfo: info };
       return;
     }
 
     this.diagram.pushMode(new DragSelectMode(this.diagram, info, event.ctrlKey));
   }
 
-  onPointerMove(_info: DiagramPointerInfo, _event: PointerEvent): void {
-    // No action in idle mode for now
+  onPointerMove(info: DiagramPointerInfo, _event: PointerEvent): void {
+    if (!this.pendingDrag) return;
+
+    const dx = info.worldX - this.pendingDrag.startInfo.worldX;
+    const dy = info.worldY - this.pendingDrag.startInfo.worldY;
+
+    if (Math.abs(dx) > DRAG_THRESHOLD || Math.abs(dy) > DRAG_THRESHOLD) {
+      this.diagram.pushMode(new MoveMode(
+        this.diagram,
+        this.pendingDrag.elements,
+        this.pendingDrag.startInfo
+      ));
+      this.pendingDrag = null;
+    }
   }
 
   onPointerUp(_info: DiagramPointerInfo, _event: PointerEvent): void {
-    // No action in idle mode for now
+    this.pendingDrag = null;
   }
 
   onKeyDown(event: KeyboardEvent): void {

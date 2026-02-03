@@ -11,6 +11,7 @@ import {
   createSelectionSetAction,
   createSelectionAddAction,
   createSelectionRemoveAction,
+  createMoveElementsAction,
 } from "./actions";
 import { TaskService } from "../task/TaskService";
 import { TASK_SERVICE_NAME } from "../task/types";
@@ -212,6 +213,7 @@ export class BoardService extends EventTarget {
     actionService.addAction(createSelectionSetAction(this.serviceLayer));
     actionService.addAction(createSelectionAddAction(this.serviceLayer));
     actionService.addAction(createSelectionRemoveAction(this.serviceLayer));
+    actionService.addAction(createMoveElementsAction(this.serviceLayer));
   }
 
 

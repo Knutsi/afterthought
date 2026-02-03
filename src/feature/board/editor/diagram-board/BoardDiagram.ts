@@ -1,5 +1,5 @@
 import { Diagram } from "../diagram-core/Diagram";
-import { ElementChangeCallback, SelectionChangeCallback, SelectionRequestCallback } from "../diagram-core/types";
+import { DiagramElement, ElementChangeCallback, SelectionChangeCallback, SelectionRequestCallback } from "../diagram-core/types";
 import { getDefaultServiceLayer } from "../../../../service/ServiceLayer";
 
 export interface BoardDiagramOptions {
@@ -9,6 +9,7 @@ export interface BoardDiagramOptions {
   onSelectionSetRequest?: SelectionRequestCallback;
   onSelectionAddRequest?: SelectionRequestCallback;
   onSelectionRemoveRequest?: SelectionRequestCallback;
+  onMoveComplete?: (elements: DiagramElement[], deltaX: number, deltaY: number) => void;
 }
 
 export function createBoardDiagram(
@@ -25,6 +26,7 @@ export function createBoardDiagram(
       onSelectionAddRequest: options?.onSelectionAddRequest,
       onSelectionRemoveRequest: options?.onSelectionRemoveRequest,
       onBackgroundDoubleClick: options?.onBackgroundDoubleClick,
+      onMoveComplete: options?.onMoveComplete,
     },
     {
       getThemeFn: () => serviceLayer.getThemeService().getTheme(),
