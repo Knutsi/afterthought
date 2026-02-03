@@ -87,7 +87,7 @@ export class BoardActivity extends BaseComponent implements IActivity {
     }
     // sets up the main event loop of the board:
     this.diagram = createBoardDiagram(container, {
-      onTaskCreate: this.handleTaskCreate.bind(this),
+      onBackgroundDoubleClick: this.handleBackgroundDoubleClick.bind(this),
       onSelectionSetRequest: this.handleSelectionSetRequest.bind(this),
       onSelectionAddRequest: this.handleSelectionAddRequest.bind(this),
       onSelectionRemoveRequest: this.handleSelectionRemoveRequest.bind(this),
@@ -143,7 +143,7 @@ export class BoardActivity extends BaseComponent implements IActivity {
     }
   }
 
-  private handleTaskCreate(worldX: number, worldY: number): void {
+  private handleBackgroundDoubleClick(worldX: number, worldY: number): void {
     console.log(`Create task at (${worldX}, ${worldY})`);
     // TODO: Integrate with task service
   }

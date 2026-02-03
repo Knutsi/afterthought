@@ -62,4 +62,10 @@ export class IdleMode implements IDiagramMode {
   onKeyUp(_event: KeyboardEvent): void {
     // No action in idle mode for now
   }
+
+  onDoubleClick(info: DiagramPointerInfo, _event: MouseEvent): void {
+    if (!info.elementUnderPointer) {
+      this.diagram.fireBackgroundDoubleClick(info.worldX, info.worldY);
+    }
+  }
 }

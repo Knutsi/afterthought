@@ -1,4 +1,4 @@
-import { DiagramModel, IDiagramCallbacks, IDiagramOptions, IDiagram, IdleModeFactoryFn, IDiagramContext, DiagramElement, SelectionRequestCallback } from "./types";
+import { DiagramModel, IDiagramCallbacks, IDiagramOptions, IDiagram, IDiagramContext, DiagramElement, SelectionRequestCallback } from "./types";
 import type { ITheme } from "../../../../service/ThemeService";
 import { IDiagramMode } from "./modes/types";
 import { IdleMode } from "./modes/IdleMode";
@@ -27,21 +27,21 @@ export class Diagram implements IDiagram {
   private geometryManager!: GeometryManager;
   private selectionManager!: SelectionManager;
   private renderPending = false;
-  private createIdleMode: IdleModeFactoryFn;
   private getThemeFn: () => ITheme;
   private onSelectionSetRequest?: SelectionRequestCallback;
   private onSelectionAddRequest?: SelectionRequestCallback;
   private onSelectionRemoveRequest?: SelectionRequestCallback;
+  private onBackgroundDoubleClick?: (worldX: number, worldY: number) => void;
 
   constructor(container: HTMLElement, callbacks: IDiagramCallbacks | undefined, options: IDiagramOptions) {
     this.instanceId = Diagram.instanceCounter++;
     this.data = new DiagramModel();
     this.container = container;
-    this.createIdleMode = options.createIdleModeFn ?? ((d) => new IdleMode(d));
     this.getThemeFn = options.getThemeFn;
     this.onSelectionSetRequest = callbacks?.onSelectionSetRequest;
     this.onSelectionAddRequest = callbacks?.onSelectionAddRequest;
     this.onSelectionRemoveRequest = callbacks?.onSelectionRemoveRequest;
+    this.onBackgroundDoubleClick = callbacks?.onBackgroundDoubleClick;
     this.createDOMStructure();
     this.updateExtentDivSize();
     this.setupScrollListener();
@@ -184,7 +184,7 @@ export class Diagram implements IDiagram {
   }
 
   private initializeModeStack(): void {
-    const idleMode = this.createIdleMode(this);
+    const idleMode = new IdleMode(this);
     this.data.modeStack.push(idleMode);
     idleMode.onEnter();
   }
@@ -416,5 +416,9 @@ export class Diagram implements IDiagram {
 
   public requestSelectionRemove(elements: DiagramElement[]): void {
     this.onSelectionRemoveRequest?.(elements);
+  }
+
+  public fireBackgroundDoubleClick(worldX: number, worldY: number): void {
+    this.onBackgroundDoubleClick?.(worldX, worldY);
   }
 }
