@@ -18,13 +18,15 @@ main.ts is the entrypoint
 - Actions: actions the user can take are abstracted into IAction. This includes e.g. "delete task" and "select all"
   - Actions consume IContext, and determine from that what needs to be done
   - Context only holds data for the frontmost activity, e.g. a task board with the board itself and the currently selected
+  - Flow: UI event → action → service (NOT UI event → service → action)
 
 So we do command pattern: An example is the diagram component notices events that indicated the user wants to SELECT a task on the 2D board. It is not allowed for perform this itself. It triggers a callback with the data, then that callback (installed by a service) needs to run an IAction with the ActionService. 
 
 We also have a dynamic menubar and more UI elements (right click) that filters all actions registered in the action service based on the context it is given. The theory is that this all allows us to make great superuser UX.
 
-So never: 
+So never:
 - Let activities (UI layer) edit data or handle service task
+- Let activities register actions (only services register actions at setup time)
 
 Always:
 - Use IAction entries to enable edits (exception MAY exist, but ask developer about this always) 
