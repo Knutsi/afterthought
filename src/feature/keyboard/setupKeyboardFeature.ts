@@ -4,7 +4,7 @@ import type { ChordPicker } from "../../gui/keyboard/ChordPicker";
 
 import "../../gui/keyboard/ChordPicker";
 
-let chordPickerElement: ChordPicker | null = null;
+const CHORD_PICKER_ID = "chord-picker";
 
 export function setupKeyboardFeature(serviceLayer: ServiceLayer): void {
   serviceLayer.keyboardService.initialize();
@@ -22,26 +22,27 @@ export function setupKeyboardFeature(serviceLayer: ServiceLayer): void {
   });
 }
 
+function getChordPicker(): ChordPicker | null {
+  return document.getElementById(CHORD_PICKER_ID) as ChordPicker | null;
+}
+
 function showChordPicker(serviceLayer: ServiceLayer, prefix: string, options: ChordOption[]): void {
-  hideChordPicker();
+  const picker = getChordPicker();
+  if (!picker) return;
 
-  chordPickerElement = document.createElement("chord-picker") as ChordPicker;
-  chordPickerElement.configure(options);
+  picker.configure(options);
 
-  chordPickerElement.onSelect = (option: ChordOption) => {
+  picker.onSelect = (option: ChordOption) => {
     serviceLayer.keyboardService.executeChordOption(prefix, option.key);
   };
 
-  chordPickerElement.onCancel = () => {
+  picker.onCancel = () => {
     serviceLayer.keyboardService.cancelChord();
   };
 
-  document.body.appendChild(chordPickerElement);
+  picker.show();
 }
 
 function hideChordPicker(): void {
-  if (chordPickerElement) {
-    chordPickerElement.remove();
-    chordPickerElement = null;
-  }
+  getChordPicker()?.hide();
 }

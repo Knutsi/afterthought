@@ -14,7 +14,7 @@ export class ChordPicker extends BaseComponent {
   protected onInit(): void {
     this.events.add(this as unknown as Element, "keydown", this.handleKeydown as EventListener);
     this.setAttribute("tabindex", "0");
-    this.focus();
+    this.render();
   }
 
   protected onDestroy(): void {
@@ -25,6 +25,15 @@ export class ChordPicker extends BaseComponent {
     this.chordOptions = options;
     this.selectedIndex = 0;
     this.render();
+  }
+
+  public show(): void {
+    this.setAttribute("visible", "");
+    this.focus();
+  }
+
+  public hide(): void {
+    this.removeAttribute("visible");
   }
 
   protected render(): void {
@@ -43,12 +52,16 @@ export class ChordPicker extends BaseComponent {
     this.shadowRoot!.innerHTML = `
       <style>
         :host {
+          display: none;
           position: fixed;
           top: 50%;
           left: 50%;
           transform: translate(-50%, -50%);
-          z-index: 2000;
           ${noSelect()}
+        }
+
+        :host([visible]) {
+          display: block;
         }
 
         :host(:focus) {
@@ -59,10 +72,10 @@ export class ChordPicker extends BaseComponent {
           position: fixed;
           inset: 0;
           background: rgba(0, 0, 0, 0.3);
-          z-index: -1;
         }
 
         .picker {
+          position: relative;
           background: var(--theme-color-background);
           border: 1px solid color-mix(in srgb, var(--theme-color-secondary) 40%, transparent);
           border-radius: var(--theme-spacing-border-radius);
