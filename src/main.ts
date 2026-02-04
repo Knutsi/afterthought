@@ -14,6 +14,7 @@ import "./feature/board/BoardActivity.ts";
 
 // Import default actions setup:
 import { setupDefaultActions } from "./default-actions.ts";
+import { setupKeyboardFeature } from "./feature/keyboard/setupKeyboardFeature.ts";
 import { setupBoardFeature } from "./feature/board/setupBoardFeature.ts";
 import { setupHomeFeature } from "./feature/home/setupHomeFeature.ts";
 import { setupTaskFeature } from "./feature/task/setupTaskFeature.ts";
@@ -27,6 +28,9 @@ async function initializeApp(): Promise<void> {
 
   // setup default actions:
   setupDefaultActions(serviceLayer);
+
+  // setup keyboard shortcuts:
+  setupKeyboardFeature(serviceLayer);
 
   // main container for activities:
   const activityContainer = getActivityContainer();

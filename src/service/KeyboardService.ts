@@ -1,0 +1,200 @@
+import type { ServiceLayer } from "./ServiceLayer";
+import type { IAction } from "./ActionService";
+
+const IS_MAC = navigator.platform.toUpperCase().indexOf("MAC") >= 0;
+
+type ChordState = { type: "idle" } | { type: "awaiting_second"; prefix: string };
+
+export interface ChordOption {
+  key: string;
+  action: IAction;
+  displayKey: string;
+}
+
+export const KeyboardEvents = {
+  CHORD_STARTED: "chordStarted",
+  CHORD_CANCELLED: "chordCancelled",
+  CHORD_COMPLETED: "chordCompleted",
+};
+
+export class KeyboardService extends EventTarget {
+  private serviceLayer: ServiceLayer;
+  private chordState: ChordState = { type: "idle" };
+  private boundHandleKeydown: (e: KeyboardEvent) => void;
+
+  constructor(serviceLayer: ServiceLayer) {
+    super();
+    this.serviceLayer = serviceLayer;
+    this.boundHandleKeydown = this.handleKeydown.bind(this);
+  }
+
+  public initialize(): void {
+    window.addEventListener("keydown", this.boundHandleKeydown, true);
+  }
+
+  public destroy(): void {
+    window.removeEventListener("keydown", this.boundHandleKeydown, true);
+    this.cancelChord();
+  }
+
+  public getChordState(): ChordState {
+    return this.chordState;
+  }
+
+  public cancelChord(): void {
+    if (this.chordState.type === "awaiting_second") {
+      this.chordState = { type: "idle" };
+      this.dispatchEvent(new Event(KeyboardEvents.CHORD_CANCELLED));
+    }
+  }
+
+  public getChordOptions(prefix: string): ChordOption[] {
+    const actions = this.serviceLayer.actionService.getActions();
+    const options: ChordOption[] = [];
+
+    for (const action of actions) {
+      if (!action.shortcut) continue;
+
+      const normalized = this.normalizeShortcut(action.shortcut);
+      if (normalized.startsWith(prefix + " ")) {
+        const secondKey = normalized.slice(prefix.length + 1);
+        options.push({
+          key: secondKey,
+          action,
+          displayKey: this.formatKeyForDisplay(secondKey),
+        });
+      }
+    }
+
+    return options;
+  }
+
+  public async executeChordOption(prefix: string, secondKey: string): Promise<boolean> {
+    const fullShortcut = `${prefix} ${secondKey.toUpperCase()}`;
+    this.chordState = { type: "idle" };
+    this.dispatchEvent(new Event(KeyboardEvents.CHORD_COMPLETED));
+    return this.matchAndExecute(fullShortcut);
+  }
+
+  private handleKeydown(e: KeyboardEvent): void {
+    if (this.shouldIgnoreEvent(e)) return;
+
+    const shortcut = this.parseKeyboardEvent(e);
+    if (!shortcut) return;
+
+    if (this.chordState.type === "awaiting_second") {
+      e.preventDefault();
+      e.stopPropagation();
+
+      if (e.key === "Escape") {
+        this.cancelChord();
+        return;
+      }
+
+      const secondKey = e.key.toUpperCase();
+      const prefix = this.chordState.prefix;
+      this.executeChordOption(prefix, secondKey);
+      return;
+    }
+
+    const chordOptions = this.getChordOptions(shortcut);
+    if (chordOptions.length > 0) {
+      e.preventDefault();
+      e.stopPropagation();
+      this.startChord(shortcut);
+      return;
+    }
+
+    this.matchAndExecute(shortcut).then((matched) => {
+      if (matched) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+    });
+  }
+
+  private shouldIgnoreEvent(e: KeyboardEvent): boolean {
+    const target = e.target as HTMLElement;
+    if (!target) return false;
+
+    const tagName = target.tagName.toLowerCase();
+    if (tagName === "input" || tagName === "textarea" || target.isContentEditable) {
+      return true;
+    }
+
+    return false;
+  }
+
+  private parseKeyboardEvent(e: KeyboardEvent): string | null {
+    if (e.key === "Control" || e.key === "Alt" || e.key === "Shift" || e.key === "Meta") {
+      return null;
+    }
+
+    const parts: string[] = [];
+
+    const hasPrimaryMod = IS_MAC ? e.metaKey : e.ctrlKey;
+    if (hasPrimaryMod) parts.push("Mod");
+    if (e.altKey) parts.push("Alt");
+    if (e.shiftKey) parts.push("Shift");
+
+    const key = e.key.length === 1 ? e.key.toUpperCase() : e.key;
+    parts.push(key);
+
+    return parts.join("+");
+  }
+
+  private normalizeShortcut(shortcut: string): string {
+    return shortcut
+      .replace(/Ctrl\+/g, "Mod+")
+      .replace(/Cmd\+/g, "Mod+")
+      .replace(/⌘/g, "Mod+")
+      .toUpperCase()
+      .replace(/MOD/g, "Mod")
+      .replace(/ALT/g, "Alt")
+      .replace(/SHIFT/g, "Shift");
+  }
+
+  private startChord(prefix: string): void {
+    this.chordState = { type: "awaiting_second", prefix };
+    this.dispatchEvent(
+      new CustomEvent(KeyboardEvents.CHORD_STARTED, {
+        detail: { prefix, options: this.getChordOptions(prefix) },
+      })
+    );
+  }
+
+  private async matchAndExecute(shortcut: string): Promise<boolean> {
+    const actions = this.serviceLayer.actionService.getActions();
+    const context = this.serviceLayer.getContextService();
+
+    for (const action of actions) {
+      if (!action.shortcut) continue;
+
+      const normalized = this.normalizeShortcut(action.shortcut);
+      if (normalized === shortcut) {
+        const canDo = await action.canDo(context);
+        if (canDo) {
+          await this.serviceLayer.actionService.doAction(action.id);
+          return true;
+        }
+      }
+    }
+
+    return false;
+  }
+
+  private formatKeyForDisplay(key: string): string {
+    return key;
+  }
+
+  public formatShortcutForDisplay(shortcut: string): string {
+    if (IS_MAC) {
+      return shortcut
+        .replace(/Mod\+/g, "⌘")
+        .replace(/Ctrl\+/g, "⌃")
+        .replace(/Alt\+/g, "⌥")
+        .replace(/Shift\+/g, "⇧");
+    }
+    return shortcut.replace(/Mod\+/g, "Ctrl+");
+  }
+}
