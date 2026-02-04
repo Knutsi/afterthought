@@ -8,7 +8,7 @@ const UNDO_REDO_SUBGROUP = "undo-redo";
 var newProjectAction: IAction = {
   id: "core.newProject",
   name: "New Project",
-  shortcut: "Ctrl+N",
+  shortcuts: ["Ctrl+N"],
   menuGroup: "File",
   menuSubGroup: "create",
   do: async (_context: IContext, _args?: Record<string, unknown>) => {
@@ -20,7 +20,7 @@ var newProjectAction: IAction = {
 var quitAction: IAction = {
   id: "core.quit",
   name: "Quit",
-  shortcut: "Ctrl+Q",
+  shortcuts: ["Ctrl+Q"],
   menuGroup: "File",
   menuSubGroup: "exit",
   do: async (_context: IContext, _args?: Record<string, unknown>) => {
@@ -32,7 +32,7 @@ var quitAction: IAction = {
 var helpAction: IAction = {
   id: "core.help",
   name: "Documentation",
-  shortcut: "F1",
+  shortcuts: ["F1"],
   menuGroup: "Help",
   menuSubGroup: "Docs",
   do: async (_context: IContext, _args?: Record<string, unknown>) => {
@@ -44,7 +44,7 @@ var helpAction: IAction = {
 var undoAction: IAction = {
   id: "core.undo",
   name: "Undo",
-  shortcut: "Ctrl+Z",
+  shortcuts: ["Ctrl+Z", "U"],
   menuGroup: "Edit",
   menuSubGroup: UNDO_REDO_SUBGROUP,
   do: async (_context: IContext, _args?: Record<string, unknown>) => {
@@ -56,7 +56,7 @@ var undoAction: IAction = {
 var redoAction: IAction = {
   id: "core.redo",
   name: "Redo",
-  shortcut: "Ctrl+Y",
+  shortcuts: ["Ctrl+Y", "R"],
   menuGroup: "Edit",
   menuSubGroup: UNDO_REDO_SUBGROUP,
   do: async (_context: IContext, _args?: Record<string, unknown>) => {
@@ -68,7 +68,7 @@ var redoAction: IAction = {
 var cutAction: IAction = {
   id: "core.cut",
   name: "Cut",
-  shortcut: "Ctrl+X",
+  shortcuts: ["Ctrl+X"],
   menuGroup: "Edit",
   menuSubGroup: "clipboard",
   do: async (_context: IContext, _args?: Record<string, unknown>) => {
@@ -80,7 +80,7 @@ var cutAction: IAction = {
 var copyAction: IAction = {
   id: "core.copy",
   name: "Copy",
-  shortcut: "Ctrl+C",
+  shortcuts: ["Ctrl+C"],
   menuGroup: "Edit",
   menuSubGroup: "clipboard",
   do: async (_context: IContext, _args?: Record<string, unknown>) => {
@@ -92,7 +92,7 @@ var copyAction: IAction = {
 var pasteAction: IAction = {
   id: "core.paste",
   name: "Paste",
-  shortcut: "Ctrl+V",
+  shortcuts: ["Ctrl+V"],
   menuGroup: "Edit",
   menuSubGroup: "clipboard",
   do: async (_context: IContext, _args?: Record<string, unknown>) => {
@@ -104,7 +104,7 @@ var pasteAction: IAction = {
 var repeatAction: IAction = {
   id: "core.repeat",
   name: "Repeat Last Action",
-  shortcut: ".",
+  shortcuts: ["."],
   menuGroup: "Edit",
   menuSubGroup: UNDO_REDO_SUBGROUP,
   do: async (_context: IContext, _args?: Record<string, unknown>) => {
@@ -120,7 +120,7 @@ var repeatAction: IAction = {
 var aboutAction: IAction = {
   id: "core.about",
   name: "About",
-  shortcut: "",
+  shortcuts: [],
   menuGroup: "Help",
   menuSubGroup: "About",
   do: async (_context: IContext, _args?: Record<string, unknown>) => {

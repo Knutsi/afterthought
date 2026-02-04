@@ -53,16 +53,19 @@ export class KeyboardService extends EventTarget {
     const options: ChordOption[] = [];
 
     for (const action of actions) {
-      if (!action.shortcut) continue;
+      if (!action.shortcuts || action.shortcuts.length === 0) continue;
 
-      const normalized = this.normalizeShortcut(action.shortcut);
-      if (normalized.startsWith(prefix + " ")) {
-        const secondKey = normalized.slice(prefix.length + 1);
-        options.push({
-          key: secondKey,
-          action,
-          displayKey: this.formatKeyForDisplay(secondKey),
-        });
+      for (const shortcut of action.shortcuts) {
+        if (!shortcut) continue;
+        const normalized = this.normalizeShortcut(shortcut);
+        if (normalized.startsWith(prefix + " ")) {
+          const secondKey = normalized.slice(prefix.length + 1);
+          options.push({
+            key: secondKey,
+            action,
+            displayKey: this.formatKeyForDisplay(secondKey),
+          });
+        }
       }
     }
 
@@ -168,14 +171,17 @@ export class KeyboardService extends EventTarget {
     const context = this.serviceLayer.getContextService();
 
     for (const action of actions) {
-      if (!action.shortcut) continue;
+      if (!action.shortcuts || action.shortcuts.length === 0) continue;
 
-      const normalized = this.normalizeShortcut(action.shortcut);
-      if (normalized === shortcut) {
-        const canDo = await action.canDo(context);
-        if (canDo) {
-          await this.serviceLayer.actionService.doAction(action.id);
-          return true;
+      for (const actionShortcut of action.shortcuts) {
+        if (!actionShortcut) continue;
+        const normalized = this.normalizeShortcut(actionShortcut);
+        if (normalized === shortcut) {
+          const canDo = await action.canDo(context);
+          if (canDo) {
+            await this.serviceLayer.actionService.doAction(action.id);
+            return true;
+          }
         }
       }
     }

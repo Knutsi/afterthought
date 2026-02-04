@@ -30,7 +30,7 @@ export function createSelectionSetAction(serviceLayer: ServiceLayer): IAction {
   return {
     id: SELECTION_SET_ACTION_ID,
     name: "Set Selection",
-    shortcut: "",
+    shortcuts: [],
     menuGroup: "Edit",
     hideFromMenu: true,
     do: async (_context: IContext, args?: Record<string, unknown>): Promise<UndoFunction | void> => {
@@ -66,7 +66,7 @@ export function createSelectionAddAction(serviceLayer: ServiceLayer): IAction {
   return {
     id: SELECTION_ADD_ACTION_ID,
     name: "Add to Selection",
-    shortcut: "",
+    shortcuts: [],
     menuGroup: "Edit",
     hideFromMenu: true,
     do: async (_context: IContext, args?: Record<string, unknown>): Promise<UndoFunction | void> => {
@@ -106,7 +106,7 @@ export function createSelectionRemoveAction(serviceLayer: ServiceLayer): IAction
   return {
     id: SELECTION_REMOVE_ACTION_ID,
     name: "Remove from Selection",
-    shortcut: "",
+    shortcuts: [],
     menuGroup: "Edit",
     hideFromMenu: true,
     do: async (_context: IContext, args?: Record<string, unknown>): Promise<UndoFunction | void> => {

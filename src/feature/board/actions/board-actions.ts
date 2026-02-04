@@ -14,7 +14,7 @@ export function createNewBoardAction(serviceLayer: ServiceLayer): IAction {
   return {
     id: CREATE_BOARD_ACTION_ID,
     name: "New Board",
-    shortcut: "Ctrl+N B",
+    shortcuts: ["Ctrl+N B"],
     menuGroup: "File",
     menuSubGroup: "create",
     do: async (_context: IContext, _args?: Record<string, unknown>): Promise<UndoFunction | void> => {
@@ -34,7 +34,7 @@ export function createOpenBoardAction(serviceLayer: ServiceLayer): IAction {
   return {
     id: OPEN_BOARD_ACTION_ID,
     name: "Open Board",
-    shortcut: "Ctrl+O B",
+    shortcuts: ["Ctrl+O B"],
     menuGroup: "File",
     menuSubGroup: "open",
     do: async (_context: IContext, _args?: Record<string, unknown>): Promise<UndoFunction | void> => {

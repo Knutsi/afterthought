@@ -8,7 +8,7 @@ export function createSelectAllAction(serviceLayer: ServiceLayer): IAction {
   return {
     id: SELECT_ALL_ACTION_ID,
     name: "Select All",
-    shortcut: "Ctrl+A",
+    shortcuts: ["Ctrl+A"],
     menuGroup: "Edit",
     menuSubGroup: "selection",
     do: async (_context: IContext, _args?: Record<string, unknown>): Promise<UndoFunction | void> => {
@@ -43,7 +43,7 @@ export function createSelectNoneAction(serviceLayer: ServiceLayer): IAction {
   return {
     id: SELECT_NONE_ACTION_ID,
     name: "Select None",
-    shortcut: "Escape",
+    shortcuts: ["Escape"],
     menuGroup: "Edit",
     menuSubGroup: "selection",
     do: async (_context: IContext, _args?: Record<string, unknown>): Promise<UndoFunction | void> => {

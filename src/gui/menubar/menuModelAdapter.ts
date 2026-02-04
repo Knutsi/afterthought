@@ -99,7 +99,7 @@ async function buildMenuItems(actions: IAction[], context: IContext): Promise<IM
     return {
       id: action.id,
       label: action.name,
-      shortcut: action.shortcut,
+      shortcut: action.shortcuts[0] || "",
       actionId: action.id,
       disabled: !canDo,
     } as IMenuItem;

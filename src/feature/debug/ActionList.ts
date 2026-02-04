@@ -85,11 +85,14 @@ export class ActionList extends BaseComponent {
 
   private renderAction(action: IAction): string {
     const subGroup = action.menuSubGroup ? ` > ${this.escapeHtml(action.menuSubGroup)}` : '';
+    const shortcutsDisplay = action.shortcuts.length > 0
+      ? action.shortcuts.map(s => this.escapeHtml(s)).join(', ')
+      : '(none)';
     return `
       <div class="action-item">
         <div class="action-name">${this.escapeHtml(action.name)}</div>
         <div class="action-id">${this.escapeHtml(action.id)}</div>
-        <div class="action-shortcut">Shortcut: ${this.escapeHtml(action.shortcut)}</div>
+        <div class="action-shortcut">Shortcuts: ${shortcutsDisplay}</div>
         <div class="action-group">Group: ${this.escapeHtml(action.menuGroup)}${subGroup}</div>
       </div>
     `;

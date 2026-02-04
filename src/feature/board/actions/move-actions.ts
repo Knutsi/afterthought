@@ -12,7 +12,7 @@ export function createMoveElementsAction(serviceLayer: ServiceLayer): IAction {
   return {
     id: MOVE_ELEMENTS_ACTION_ID,
     name: "Move Elements",
-    shortcut: "",
+    shortcuts: [],
     menuGroup: "Edit",
     hideFromMenu: true,
     do: async (_context: IContext, args?: Record<string, unknown>): Promise<UndoFunction | void> => {

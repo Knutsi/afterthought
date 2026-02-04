@@ -7,7 +7,7 @@ export type DoFunction = (context: IContext, args?: Record<string, unknown>) => 
 export interface IAction {
   id: string;
   name: string;
-  shortcut: string;
+  shortcuts: string[];
   menuGroup: string;
   menuSubGroup?: string;
   hideFromMenu?: boolean;

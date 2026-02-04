@@ -9,7 +9,7 @@ export function createNewTaskAction(serviceLayer: ServiceLayer): IAction {
   return {
     id: CREATE_TASK_ON_BOARD_ACTION_ID,
     name: "New task on board",
-    shortcut: "Ctrl+N T",
+    shortcuts: ["Ctrl+N T"],
     menuGroup: "Board",
     menuSubGroup: "create",
     do: async (context: IContext, _args?: Record<string, unknown>): Promise<UndoFunction | void> => {
