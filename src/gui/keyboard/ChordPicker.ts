@@ -54,9 +54,7 @@ export class ChordPicker extends BaseComponent {
         :host {
           display: none;
           position: fixed;
-          top: 50%;
-          left: 50%;
-          transform: translate(-50%, -50%);
+          inset: 0;
           ${noSelect()}
         }
 
@@ -75,7 +73,10 @@ export class ChordPicker extends BaseComponent {
         }
 
         .picker {
-          position: relative;
+          position: fixed;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
           background: var(--theme-color-background);
           border: 1px solid color-mix(in srgb, var(--theme-color-secondary) 40%, transparent);
           border-radius: var(--theme-spacing-border-radius);
