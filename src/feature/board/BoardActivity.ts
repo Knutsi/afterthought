@@ -9,6 +9,7 @@ import {
   SELECTION_SET_ACTION_ID,
   SELECTION_ADD_ACTION_ID,
   SELECTION_REMOVE_ACTION_ID,
+  MOVE_ELEMENTS_ACTION_ID,
   IBoardActivityParams,
 } from "./types";
 import { createBoardDiagram } from "./editor/diagram-board/BoardDiagram";
@@ -87,10 +88,11 @@ export class BoardActivity extends BaseComponent implements IActivity {
     }
     // sets up the main event loop of the board:
     this.diagram = createBoardDiagram(container, {
-      onTaskCreate: this.handleTaskCreate.bind(this),
+      onBackgroundDoubleClick: this.handleBackgroundDoubleClick.bind(this),
       onSelectionSetRequest: this.handleSelectionSetRequest.bind(this),
       onSelectionAddRequest: this.handleSelectionAddRequest.bind(this),
       onSelectionRemoveRequest: this.handleSelectionRemoveRequest.bind(this),
+      onMoveComplete: this.handleMoveComplete.bind(this),
     });
 
     // Initialize sync adapter
@@ -143,7 +145,7 @@ export class BoardActivity extends BaseComponent implements IActivity {
     }
   }
 
-  private handleTaskCreate(worldX: number, worldY: number): void {
+  private handleBackgroundDoubleClick(worldX: number, worldY: number): void {
     console.log(`Create task at (${worldX}, ${worldY})`);
     // TODO: Integrate with task service
   }
@@ -183,6 +185,23 @@ export class BoardActivity extends BaseComponent implements IActivity {
       elements,
       selectionManager,
       stageManager,
+      boardUri: this.boardUri,
+    });
+  }
+
+  private handleMoveComplete(
+    elements: DiagramElement[],
+    deltaX: number,
+    deltaY: number
+  ): void {
+    const selectionManager = this.diagram?.getSelectionManager();
+    if (!selectionManager || !this.boardUri) return;
+
+    getDefaultServiceLayer().actionService.doAction(MOVE_ELEMENTS_ACTION_ID, {
+      elements,
+      deltaX,
+      deltaY,
+      selectionManager,
       boardUri: this.boardUri,
     });
   }

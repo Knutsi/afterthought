@@ -1,15 +1,15 @@
 import { Diagram } from "../diagram-core/Diagram";
-import { ElementChangeCallback, SelectionChangeCallback, SelectionRequestCallback } from "../diagram-core/types";
-import { BoardIdleMode, OnTaskCreateCallback } from "./modes";
+import { DiagramElement, ElementChangeCallback, SelectionChangeCallback, SelectionRequestCallback } from "../diagram-core/types";
 import { getDefaultServiceLayer } from "../../../../service/ServiceLayer";
 
 export interface BoardDiagramOptions {
-  onTaskCreate?: OnTaskCreateCallback;
+  onBackgroundDoubleClick?: (worldX: number, worldY: number) => void;
   onElementChange?: ElementChangeCallback;
   onSelectionChange?: SelectionChangeCallback;
   onSelectionSetRequest?: SelectionRequestCallback;
   onSelectionAddRequest?: SelectionRequestCallback;
   onSelectionRemoveRequest?: SelectionRequestCallback;
+  onMoveComplete?: (elements: DiagramElement[], deltaX: number, deltaY: number) => void;
 }
 
 export function createBoardDiagram(
@@ -25,9 +25,10 @@ export function createBoardDiagram(
       onSelectionSetRequest: options?.onSelectionSetRequest,
       onSelectionAddRequest: options?.onSelectionAddRequest,
       onSelectionRemoveRequest: options?.onSelectionRemoveRequest,
+      onBackgroundDoubleClick: options?.onBackgroundDoubleClick,
+      onMoveComplete: options?.onMoveComplete,
     },
     {
-      createIdleModeFn: (d) => new BoardIdleMode(d, options?.onTaskCreate),
       getThemeFn: () => serviceLayer.getThemeService().getTheme(),
     }
   );

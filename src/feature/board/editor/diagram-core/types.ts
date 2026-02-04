@@ -56,9 +56,9 @@ export interface IDiagram {
   requestSelectionSet(elements: DiagramElement[]): void;
   requestSelectionAdd(elements: DiagramElement[]): void;
   requestSelectionRemove(elements: DiagramElement[]): void;
+  fireBackgroundDoubleClick(worldX: number, worldY: number): void;
+  fireMoveComplete(elements: DiagramElement[], deltaX: number, deltaY: number): void;
 }
-
-export type IdleModeFactoryFn = (diagram: IDiagram) => IDiagramMode;
 
 // ==================== Change Detection ====================
 
@@ -82,10 +82,11 @@ export interface IDiagramCallbacks {
   onSelectionSetRequest?: SelectionRequestCallback;
   onSelectionAddRequest?: SelectionRequestCallback;
   onSelectionRemoveRequest?: SelectionRequestCallback;
+  onBackgroundDoubleClick?: (worldX: number, worldY: number) => void;
+  onMoveComplete?: (elements: DiagramElement[], deltaX: number, deltaY: number) => void;
 }
 
 export interface IDiagramOptions {
-  createIdleModeFn?: IdleModeFactoryFn;
   getThemeFn: () => ITheme;
 }
 

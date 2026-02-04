@@ -25,6 +25,7 @@ export const SELECT_NONE_ACTION_ID = "select-none";
 export const SELECTION_SET_ACTION_ID = "board.selection-set";
 export const SELECTION_ADD_ACTION_ID = "board.selection-add";
 export const SELECTION_REMOVE_ACTION_ID = "board.selection-remove";
+export const MOVE_ELEMENTS_ACTION_ID = "board.move-elements";
 
 // feature identifier for selection context entries
 export const BOARD_SELECTION_FEATURE = "board-selection";
