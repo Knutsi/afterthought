@@ -1,7 +1,8 @@
 import type { IContext } from "./context/types";
 import type { ServiceLayer } from "./ServiceLayer";
 
-export type UndoFunction = () => Promise<void>;
+export type RedoFunction = () => Promise<UndoFunction | void>;
+export type UndoFunction = () => Promise<RedoFunction | void>;
 export type DoFunction = (context: IContext, args?: Record<string, unknown>) => Promise<UndoFunction | void>;
 
 export interface IAction {
@@ -31,7 +32,7 @@ export const ActionEvents = {
 export class ActionService extends EventTarget {
   private actions: IAction[] = [];
   private undoStack: UndoFunction[] = [];
-  private redoStack: UndoFunction[] = [];
+  private redoStack: RedoFunction[] = [];
   private serviceLayer: ServiceLayer;
   private lastActionId: string | null = null;
 
@@ -69,8 +70,10 @@ export class ActionService extends EventTarget {
     const undoFn = this.undoStack.pop();
     if (!undoFn) return;
 
-    await undoFn();
-    this.redoStack.push(undoFn);
+    const redoFn = await undoFn();
+    if (redoFn) {
+      this.redoStack.push(redoFn);
+    }
     this.dispatchEvent(new Event(ActionEvents.HISTORY_CHANGED));
     this.updateActionAvailability();
   }
@@ -79,8 +82,10 @@ export class ActionService extends EventTarget {
     const redoFn = this.redoStack.pop();
     if (!redoFn) return;
 
-    await redoFn();
-    this.undoStack.push(redoFn);
+    const undoFn = await redoFn();
+    if (undoFn) {
+      this.undoStack.push(undoFn);
+    }
     this.dispatchEvent(new Event(ActionEvents.HISTORY_CHANGED));
     this.updateActionAvailability();
   }

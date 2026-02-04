@@ -1,4 +1,4 @@
-import type { IAction, UndoFunction } from "../../../service/ActionService";
+import type { IAction, UndoFunction, RedoFunction } from "../../../service/ActionService";
 import type { ServiceLayer } from "../../../service/ServiceLayer";
 import type { IContext } from "../../../service/context/types";
 import { SELECT_ALL_ACTION_ID, SELECT_NONE_ACTION_ID } from "../types";
@@ -27,8 +27,17 @@ export function createSelectAllAction(serviceLayer: ServiceLayer): IAction {
 
       selectionManager.selectAll();
 
-      return async () => {
+      return async (): Promise<RedoFunction | void> => {
         selectionManager.setSelection(previousSelection);
+
+        return async (): Promise<UndoFunction | void> => {
+          const undoSelection = selectionManager.getSelection();
+          selectionManager.selectAll();
+
+          return async () => {
+            selectionManager.setSelection(undoSelection);
+          };
+        };
       };
     },
     canDo: async (_context: IContext): Promise<boolean> => {
@@ -62,8 +71,17 @@ export function createSelectNoneAction(serviceLayer: ServiceLayer): IAction {
 
       selectionManager.selectNone();
 
-      return async () => {
+      return async (): Promise<RedoFunction | void> => {
         selectionManager.setSelection(previousSelection);
+
+        return async (): Promise<UndoFunction | void> => {
+          const undoSelection = selectionManager.getSelection();
+          selectionManager.selectNone();
+
+          return async () => {
+            selectionManager.setSelection(undoSelection);
+          };
+        };
       };
     },
     canDo: async (_context: IContext): Promise<boolean> => {
