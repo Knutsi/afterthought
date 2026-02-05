@@ -1,4 +1,4 @@
-import type { IAction, UndoFunction } from "../../../service/ActionService";
+import type { IAction, UndoFunction, RedoFunction } from "../../../service/ActionService";
 import type { ServiceLayer } from "../../../service/ServiceLayer";
 import type { IContext } from "../../../service/context/types";
 import type { Uri } from "../../../core-model/uri";
@@ -53,10 +53,19 @@ export function createSelectionSetAction(serviceLayer: ServiceLayer): IAction {
       selectionManager.setSelection(newSelection);
       boardService.updateSelectionContext(boardUri, newTaskUris);
 
-      return async () => {
-        selectionManager.setSelection(previousSelection);
-        boardService.updateSelectionContext(boardUri, previousTaskUris);
+      const makeUndoFn = (prev: string[], prevUris: Uri[], cur: string[], curUris: Uri[]): UndoFunction => {
+        return async (): Promise<RedoFunction | void> => {
+          selectionManager.setSelection(prev);
+          boardService.updateSelectionContext(boardUri, prevUris);
+          return async (): Promise<UndoFunction | void> => {
+            selectionManager.setSelection(cur);
+            boardService.updateSelectionContext(boardUri, curUris);
+            return makeUndoFn(prev, prevUris, cur, curUris);
+          };
+        };
       };
+
+      return makeUndoFn(previousSelection, previousTaskUris, newSelection, newTaskUris);
     },
     canDo: async () => true,
   };
@@ -93,10 +102,19 @@ export function createSelectionAddAction(serviceLayer: ServiceLayer): IAction {
       selectionManager.setSelection(combinedSelection);
       boardService.updateSelectionContext(boardUri, combinedTaskUris);
 
-      return async () => {
-        selectionManager.setSelection(previousSelection);
-        boardService.updateSelectionContext(boardUri, previousTaskUris);
+      const makeUndoFn = (prev: string[], prevUris: Uri[], cur: string[], curUris: Uri[]): UndoFunction => {
+        return async (): Promise<RedoFunction | void> => {
+          selectionManager.setSelection(prev);
+          boardService.updateSelectionContext(boardUri, prevUris);
+          return async (): Promise<UndoFunction | void> => {
+            selectionManager.setSelection(cur);
+            boardService.updateSelectionContext(boardUri, curUris);
+            return makeUndoFn(prev, prevUris, cur, curUris);
+          };
+        };
       };
+
+      return makeUndoFn(previousSelection, previousTaskUris, combinedSelection, combinedTaskUris);
     },
     canDo: async () => true,
   };
@@ -132,10 +150,19 @@ export function createSelectionRemoveAction(serviceLayer: ServiceLayer): IAction
       selectionManager.setSelection(remainingSelection);
       boardService.updateSelectionContext(boardUri, remainingTaskUris);
 
-      return async () => {
-        selectionManager.setSelection(previousSelection);
-        boardService.updateSelectionContext(boardUri, previousTaskUris);
+      const makeUndoFn = (prev: string[], prevUris: Uri[], cur: string[], curUris: Uri[]): UndoFunction => {
+        return async (): Promise<RedoFunction | void> => {
+          selectionManager.setSelection(prev);
+          boardService.updateSelectionContext(boardUri, prevUris);
+          return async (): Promise<UndoFunction | void> => {
+            selectionManager.setSelection(cur);
+            boardService.updateSelectionContext(boardUri, curUris);
+            return makeUndoFn(prev, prevUris, cur, curUris);
+          };
+        };
       };
+
+      return makeUndoFn(previousSelection, previousTaskUris, remainingSelection, remainingTaskUris);
     },
     canDo: async () => true,
   };
