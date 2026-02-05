@@ -1,12 +1,9 @@
 import type { IAction, UndoFunction, RedoFunction } from "../../../service/ActionService";
 import type { ServiceLayer } from "../../../service/ServiceLayer";
 import type { IContext } from "../../../service/context/types";
-import type { DiagramElement } from "../editor/diagram-core/types";
-import type { SelectionManager } from "../editor/diagram-core/managers/SelectionManager";
-import type { Uri } from "../../../core-model/uri";
 import { TaskElement } from "../editor/diagram-board/elements/TaskElement";
 import { BoardService } from "../BoardService";
-import { MOVE_ELEMENTS_ACTION_ID, BOARD_SERVICE_NAME } from "../types";
+import { MOVE_ELEMENTS_ACTION_ID, BOARD_SERVICE_NAME, type MoveElementsArgs } from "../types";
 
 export function createMoveElementsAction(serviceLayer: ServiceLayer): IAction {
   return {
@@ -15,14 +12,13 @@ export function createMoveElementsAction(serviceLayer: ServiceLayer): IAction {
     shortcuts: [],
     menuGroup: "Edit",
     hideFromMenu: true,
+    repeatable: false,
     do: async (_context: IContext, args?: Record<string, unknown>): Promise<UndoFunction | void> => {
-      const elements = args?.elements as DiagramElement[] | undefined;
-      const deltaX = args?.deltaX as number | undefined;
-      const deltaY = args?.deltaY as number | undefined;
-      const selectionManager = args?.selectionManager as SelectionManager | undefined;
-      const boardUri = args?.boardUri as Uri | undefined;
+      const typedArgs = args as MoveElementsArgs | undefined;
+      if (!typedArgs) return;
+      const { elements, deltaX, deltaY, selectionManager, boardUri } = typedArgs;
 
-      if (!elements || deltaX === undefined || deltaY === undefined || !selectionManager || !boardUri) return;
+      if (deltaX === undefined || deltaY === undefined) return;
 
       const boardService = serviceLayer.getFeatureService<BoardService>(BOARD_SERVICE_NAME);
 

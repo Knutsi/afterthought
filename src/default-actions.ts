@@ -47,6 +47,7 @@ var undoAction: IAction = {
   shortcuts: ["Ctrl+Z", "U"],
   menuGroup: "Edit",
   menuSubGroup: UNDO_REDO_SUBGROUP,
+  repeatable: false,
   do: async (_context: IContext, _args?: Record<string, unknown>) => {
     await getDefaultServiceLayer().actionService.undo();
   },
@@ -59,6 +60,7 @@ var redoAction: IAction = {
   shortcuts: ["Ctrl+Y", "R"],
   menuGroup: "Edit",
   menuSubGroup: UNDO_REDO_SUBGROUP,
+  repeatable: false,
   do: async (_context: IContext, _args?: Record<string, unknown>) => {
     await getDefaultServiceLayer().actionService.redo();
   },
@@ -107,11 +109,12 @@ var repeatAction: IAction = {
   shortcuts: ["."],
   menuGroup: "Edit",
   menuSubGroup: UNDO_REDO_SUBGROUP,
+  repeatable: false,
   do: async (_context: IContext, _args?: Record<string, unknown>) => {
     const actionService = getDefaultServiceLayer().actionService;
     const lastActionId = actionService.getLastActionId();
     if (lastActionId) {
-      await actionService.doAction(lastActionId);
+      await actionService.doAction(lastActionId, actionService.getLastArgs());
     }
   },
   canDo: async () => getDefaultServiceLayer().actionService.canRepeat(),

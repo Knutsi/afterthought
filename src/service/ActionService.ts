@@ -12,6 +12,7 @@ export interface IAction {
   menuGroup: string;
   menuSubGroup?: string;
   hideFromMenu?: boolean;
+  repeatable?: boolean;
   do: DoFunction;
   canDo: (context: IContext) => Promise<boolean>;
 }
@@ -20,7 +21,17 @@ export const UNDO_ACTION_ID = "core.undo";
 export const REDO_ACTION_ID = "core.redo";
 export const REPEAT_ACTION_ID = "core.repeat";
 
-const NON_REPEATABLE_ACTIONS = [UNDO_ACTION_ID, REDO_ACTION_ID, REPEAT_ACTION_ID];
+interface UndoEntry {
+  actionId: string;
+  actionName: string;
+  undoFn: UndoFunction;
+}
+
+interface RedoEntry {
+  actionId: string;
+  actionName: string;
+  redoFn: RedoFunction;
+}
 
 export const ActionEvents = {
   ACTION_ADDED: "actionAdded",
@@ -31,10 +42,11 @@ export const ActionEvents = {
 
 export class ActionService extends EventTarget {
   private actions: IAction[] = [];
-  private undoStack: UndoFunction[] = [];
-  private redoStack: RedoFunction[] = [];
+  private undoStack: UndoEntry[] = [];
+  private redoStack: RedoEntry[] = [];
   private serviceLayer: ServiceLayer;
   private lastActionId: string | null = null;
+  private lastArgs: Record<string, unknown> | undefined = undefined;
 
   constructor(serviceLayer: ServiceLayer) {
     super();
@@ -53,38 +65,51 @@ export class ActionService extends EventTarget {
     const undoFn = await action.do(context, args);
 
     if (undoFn) {
-      this.undoStack.push(undoFn);
+      this.undoStack.push({
+        actionId: action.id,
+        actionName: action.name,
+        undoFn,
+      });
       this.redoStack = [];
       this.dispatchEvent(new Event(ActionEvents.HISTORY_CHANGED));
       this.updateActionAvailability();
     }
 
-    if (!NON_REPEATABLE_ACTIONS.includes(actionId)) {
+    if (action.repeatable !== false) {
       this.lastActionId = actionId;
+      this.lastArgs = args;
     }
 
     this.dispatchEvent(new CustomEvent(ActionEvents.ACTION_DONE, { detail: { actionId } }));
   }
 
   public async undo(): Promise<void> {
-    const undoFn = this.undoStack.pop();
-    if (!undoFn) return;
+    const entry = this.undoStack.pop();
+    if (!entry) return;
 
-    const redoFn = await undoFn();
+    const redoFn = await entry.undoFn();
     if (redoFn) {
-      this.redoStack.push(redoFn);
+      this.redoStack.push({
+        actionId: entry.actionId,
+        actionName: entry.actionName,
+        redoFn,
+      });
     }
     this.dispatchEvent(new Event(ActionEvents.HISTORY_CHANGED));
     this.updateActionAvailability();
   }
 
   public async redo(): Promise<void> {
-    const redoFn = this.redoStack.pop();
-    if (!redoFn) return;
+    const entry = this.redoStack.pop();
+    if (!entry) return;
 
-    const undoFn = await redoFn();
+    const undoFn = await entry.redoFn();
     if (undoFn) {
-      this.undoStack.push(undoFn);
+      this.undoStack.push({
+        actionId: entry.actionId,
+        actionName: entry.actionName,
+        undoFn,
+      });
     }
     this.dispatchEvent(new Event(ActionEvents.HISTORY_CHANGED));
     this.updateActionAvailability();
@@ -98,8 +123,22 @@ export class ActionService extends EventTarget {
     return this.redoStack.length > 0;
   }
 
+  public getUndoDescription(): string | null {
+    if (this.undoStack.length === 0) return null;
+    return this.undoStack[this.undoStack.length - 1].actionName;
+  }
+
+  public getRedoDescription(): string | null {
+    if (this.redoStack.length === 0) return null;
+    return this.redoStack[this.redoStack.length - 1].actionName;
+  }
+
   public getLastActionId(): string | null {
     return this.lastActionId;
+  }
+
+  public getLastArgs(): Record<string, unknown> | undefined {
+    return this.lastArgs;
   }
 
   public canRepeat(): boolean {
@@ -118,7 +157,6 @@ export class ActionService extends EventTarget {
   }
 
   public updateActionAvailability(): void {
-    // Dispatch event to notify listeners that action availability should be rechecked
     this.dispatchEvent(new Event(ActionEvents.ACTION_AVAILABILITY_UPDATED));
   }
 

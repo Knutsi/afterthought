@@ -12,6 +12,7 @@ import {
   SELECTION_ADD_ACTION_ID,
   SELECTION_REMOVE_ACTION_ID,
   BOARD_SERVICE_NAME,
+  type SelectionRequestArgs,
 } from "../types";
 
 function getTaskUrisFromElements(elements: DiagramElement[]): Uri[] {
@@ -26,6 +27,26 @@ function getElementsFromIds(stageManager: StageManager, ids: string[]): DiagramE
   return allElements.filter(e => idSet.has(e.id));
 }
 
+function makeSelectionUndoFn(
+  selectionManager: SelectionManager,
+  boardService: BoardService,
+  boardUri: Uri,
+  prev: string[],
+  prevUris: Uri[],
+  cur: string[],
+  curUris: Uri[],
+): UndoFunction {
+  return async (): Promise<RedoFunction | void> => {
+    selectionManager.setSelection(prev);
+    boardService.updateSelectionContext(boardUri, prevUris);
+    return async (): Promise<UndoFunction | void> => {
+      selectionManager.setSelection(cur);
+      boardService.updateSelectionContext(boardUri, curUris);
+      return makeSelectionUndoFn(selectionManager, boardService, boardUri, prev, prevUris, cur, curUris);
+    };
+  };
+}
+
 export function createSelectionSetAction(serviceLayer: ServiceLayer): IAction {
   return {
     id: SELECTION_SET_ACTION_ID,
@@ -33,13 +54,11 @@ export function createSelectionSetAction(serviceLayer: ServiceLayer): IAction {
     shortcuts: [],
     menuGroup: "Edit",
     hideFromMenu: true,
+    repeatable: false,
     do: async (_context: IContext, args?: Record<string, unknown>): Promise<UndoFunction | void> => {
-      const elements = args?.elements as DiagramElement[] | undefined;
-      const selectionManager = args?.selectionManager as SelectionManager | undefined;
-      const stageManager = args?.stageManager as StageManager | undefined;
-      const boardUri = args?.boardUri as Uri | undefined;
-
-      if (!elements || !selectionManager || !stageManager || !boardUri) return;
+      const typedArgs = args as SelectionRequestArgs | undefined;
+      if (!typedArgs) return;
+      const { elements, selectionManager, stageManager, boardUri } = typedArgs;
 
       const boardService = serviceLayer.getFeatureService<BoardService>(BOARD_SERVICE_NAME);
 
@@ -53,19 +72,7 @@ export function createSelectionSetAction(serviceLayer: ServiceLayer): IAction {
       selectionManager.setSelection(newSelection);
       boardService.updateSelectionContext(boardUri, newTaskUris);
 
-      const makeUndoFn = (prev: string[], prevUris: Uri[], cur: string[], curUris: Uri[]): UndoFunction => {
-        return async (): Promise<RedoFunction | void> => {
-          selectionManager.setSelection(prev);
-          boardService.updateSelectionContext(boardUri, prevUris);
-          return async (): Promise<UndoFunction | void> => {
-            selectionManager.setSelection(cur);
-            boardService.updateSelectionContext(boardUri, curUris);
-            return makeUndoFn(prev, prevUris, cur, curUris);
-          };
-        };
-      };
-
-      return makeUndoFn(previousSelection, previousTaskUris, newSelection, newTaskUris);
+      return makeSelectionUndoFn(selectionManager, boardService, boardUri, previousSelection, previousTaskUris, newSelection, newTaskUris);
     },
     canDo: async () => true,
   };
@@ -78,13 +85,11 @@ export function createSelectionAddAction(serviceLayer: ServiceLayer): IAction {
     shortcuts: [],
     menuGroup: "Edit",
     hideFromMenu: true,
+    repeatable: false,
     do: async (_context: IContext, args?: Record<string, unknown>): Promise<UndoFunction | void> => {
-      const elements = args?.elements as DiagramElement[] | undefined;
-      const selectionManager = args?.selectionManager as SelectionManager | undefined;
-      const stageManager = args?.stageManager as StageManager | undefined;
-      const boardUri = args?.boardUri as Uri | undefined;
-
-      if (!elements || !selectionManager || !stageManager || !boardUri) return;
+      const typedArgs = args as SelectionRequestArgs | undefined;
+      if (!typedArgs) return;
+      const { elements, selectionManager, stageManager, boardUri } = typedArgs;
 
       const boardService = serviceLayer.getFeatureService<BoardService>(BOARD_SERVICE_NAME);
 
@@ -102,19 +107,7 @@ export function createSelectionAddAction(serviceLayer: ServiceLayer): IAction {
       selectionManager.setSelection(combinedSelection);
       boardService.updateSelectionContext(boardUri, combinedTaskUris);
 
-      const makeUndoFn = (prev: string[], prevUris: Uri[], cur: string[], curUris: Uri[]): UndoFunction => {
-        return async (): Promise<RedoFunction | void> => {
-          selectionManager.setSelection(prev);
-          boardService.updateSelectionContext(boardUri, prevUris);
-          return async (): Promise<UndoFunction | void> => {
-            selectionManager.setSelection(cur);
-            boardService.updateSelectionContext(boardUri, curUris);
-            return makeUndoFn(prev, prevUris, cur, curUris);
-          };
-        };
-      };
-
-      return makeUndoFn(previousSelection, previousTaskUris, combinedSelection, combinedTaskUris);
+      return makeSelectionUndoFn(selectionManager, boardService, boardUri, previousSelection, previousTaskUris, combinedSelection, combinedTaskUris);
     },
     canDo: async () => true,
   };
@@ -127,13 +120,11 @@ export function createSelectionRemoveAction(serviceLayer: ServiceLayer): IAction
     shortcuts: [],
     menuGroup: "Edit",
     hideFromMenu: true,
+    repeatable: false,
     do: async (_context: IContext, args?: Record<string, unknown>): Promise<UndoFunction | void> => {
-      const elements = args?.elements as DiagramElement[] | undefined;
-      const selectionManager = args?.selectionManager as SelectionManager | undefined;
-      const stageManager = args?.stageManager as StageManager | undefined;
-      const boardUri = args?.boardUri as Uri | undefined;
-
-      if (!elements || !selectionManager || !stageManager || !boardUri) return;
+      const typedArgs = args as SelectionRequestArgs | undefined;
+      if (!typedArgs) return;
+      const { elements, selectionManager, stageManager, boardUri } = typedArgs;
 
       const boardService = serviceLayer.getFeatureService<BoardService>(BOARD_SERVICE_NAME);
 
@@ -150,19 +141,7 @@ export function createSelectionRemoveAction(serviceLayer: ServiceLayer): IAction
       selectionManager.setSelection(remainingSelection);
       boardService.updateSelectionContext(boardUri, remainingTaskUris);
 
-      const makeUndoFn = (prev: string[], prevUris: Uri[], cur: string[], curUris: Uri[]): UndoFunction => {
-        return async (): Promise<RedoFunction | void> => {
-          selectionManager.setSelection(prev);
-          boardService.updateSelectionContext(boardUri, prevUris);
-          return async (): Promise<UndoFunction | void> => {
-            selectionManager.setSelection(cur);
-            boardService.updateSelectionContext(boardUri, curUris);
-            return makeUndoFn(prev, prevUris, cur, curUris);
-          };
-        };
-      };
-
-      return makeUndoFn(previousSelection, previousTaskUris, remainingSelection, remainingTaskUris);
+      return makeSelectionUndoFn(selectionManager, boardService, boardUri, previousSelection, previousTaskUris, remainingSelection, remainingTaskUris);
     },
     canDo: async () => true,
   };
