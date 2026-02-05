@@ -15,25 +15,34 @@ export const KeyboardEvents = {
   CHORD_STARTED: "chordStarted",
   CHORD_CANCELLED: "chordCancelled",
   CHORD_COMPLETED: "chordCompleted",
+  SHIFT_SHIFT: "shiftShift",
 };
+
+const SHIFT_SHIFT_TIMEOUT_MS = 400;
 
 export class KeyboardService extends EventTarget {
   private serviceLayer: ServiceLayer;
   private chordState: ChordState = { type: "idle" };
   private boundHandleKeydown: (e: KeyboardEvent) => void;
+  private boundHandleKeyup: (e: KeyboardEvent) => void;
+  private lastShiftKeyupTimestamp = 0;
+  private shiftWasUsedWithOtherKey = false;
 
   constructor(serviceLayer: ServiceLayer) {
     super();
     this.serviceLayer = serviceLayer;
     this.boundHandleKeydown = this.handleKeydown.bind(this);
+    this.boundHandleKeyup = this.handleKeyup.bind(this);
   }
 
   public initialize(): void {
     window.addEventListener("keydown", this.boundHandleKeydown, true);
+    window.addEventListener("keyup", this.boundHandleKeyup, true);
   }
 
   public destroy(): void {
     window.removeEventListener("keydown", this.boundHandleKeydown, true);
+    window.removeEventListener("keyup", this.boundHandleKeyup, true);
     this.cancelChord();
   }
 
@@ -79,7 +88,33 @@ export class KeyboardService extends EventTarget {
     return this.matchAndExecute(fullShortcut);
   }
 
+  private handleKeyup(e: KeyboardEvent): void {
+    if (e.key === "Shift") {
+      if (!this.shiftWasUsedWithOtherKey) {
+        this.lastShiftKeyupTimestamp = Date.now();
+      }
+      this.shiftWasUsedWithOtherKey = false;
+    }
+  }
+
   private handleKeydown(e: KeyboardEvent): void {
+    if (e.key === "Shift" && this.chordState.type === "idle") {
+      if (!this.shiftWasUsedWithOtherKey) {
+        const now = Date.now();
+        if (now - this.lastShiftKeyupTimestamp < SHIFT_SHIFT_TIMEOUT_MS && this.lastShiftKeyupTimestamp > 0) {
+          this.lastShiftKeyupTimestamp = 0;
+          this.dispatchEvent(new Event(KeyboardEvents.SHIFT_SHIFT));
+          return;
+        }
+      }
+    }
+
+    if (e.key !== "Shift" && e.key !== "Control" && e.key !== "Alt" && e.key !== "Meta") {
+      if (e.shiftKey) {
+        this.shiftWasUsedWithOtherKey = true;
+      }
+    }
+
     if (this.shouldIgnoreEvent(e)) return;
 
     const shortcut = this.parseKeyboardEvent(e);
@@ -117,7 +152,7 @@ export class KeyboardService extends EventTarget {
   }
 
   private shouldIgnoreEvent(e: KeyboardEvent): boolean {
-    const target = e.target as HTMLElement;
+    const target = (e.composedPath()[0] || e.target) as HTMLElement;
     if (!target) return false;
 
     const tagName = target.tagName.toLowerCase();
