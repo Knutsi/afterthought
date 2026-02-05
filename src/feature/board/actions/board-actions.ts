@@ -1,4 +1,4 @@
-import type { IAction, UndoFunction } from "../../../service/ActionService";
+import type { IAction, UndoFunction, RedoFunction } from "../../../service/ActionService";
 import type { ServiceLayer } from "../../../service/ServiceLayer";
 import type { IContext } from "../../../service/context/types";
 import {
@@ -25,6 +25,23 @@ export function createNewBoardAction(serviceLayer: ServiceLayer): IAction {
       const activityArgs: IBoardActivityParams = { openBoardId: board.id, name: board.data.name };
       const activity = activityService.startActivity<IBoardActivityParams>(BOARD_ACTIVITY_TAG, activityArgs);
       activityService.switchToActivity(activity.id);
+
+      const makeUndoFn = (boardId: string, activityId: string): UndoFunction => {
+        return async (): Promise<RedoFunction | void> => {
+          activityService.closeActivity(activityId);
+          await boardService.deleteBoard(boardId);
+
+          return async (): Promise<UndoFunction | void> => {
+            const newBoard = await boardService.newBoard();
+            const newArgs: IBoardActivityParams = { openBoardId: newBoard.id, name: newBoard.data.name };
+            const newActivity = activityService.startActivity<IBoardActivityParams>(BOARD_ACTIVITY_TAG, newArgs);
+            activityService.switchToActivity(newActivity.id);
+            return makeUndoFn(newBoard.id, newActivity.id);
+          };
+        };
+      };
+
+      return makeUndoFn(board.id, activity.id);
     },
     canDo: async () => true,
   };

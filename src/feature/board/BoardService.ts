@@ -55,6 +55,11 @@ export class BoardService extends EventTarget {
     return objectService.createObjectWithId(BOARD_STORE_ID, id, 'board', { name, tasks: [] });
   }
 
+  public async deleteBoard(boardId: string): Promise<boolean> {
+    const objectService = this.serviceLayer.getObjectService();
+    return objectService.deleteObject(BOARD_STORE_ID, boardId);
+  }
+
   public openBoard(_id: string): IBoardActivityData {
     // TODO: re-open a store based on the ID
     return {
