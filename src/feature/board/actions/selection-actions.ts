@@ -27,18 +27,19 @@ export function createSelectAllAction(serviceLayer: ServiceLayer): IAction {
 
       selectionManager.selectAll();
 
-      return async (): Promise<RedoFunction | void> => {
-        selectionManager.setSelection(previousSelection);
+      const makeUndoFn = (prevSelection: string[]): UndoFunction => {
+        return async (): Promise<RedoFunction | void> => {
+          selectionManager.setSelection(prevSelection);
 
-        return async (): Promise<UndoFunction | void> => {
-          const undoSelection = selectionManager.getSelection();
-          selectionManager.selectAll();
-
-          return async () => {
-            selectionManager.setSelection(undoSelection);
+          return async (): Promise<UndoFunction | void> => {
+            const undoSelection = selectionManager.getSelection();
+            selectionManager.selectAll();
+            return makeUndoFn(undoSelection);
           };
         };
       };
+
+      return makeUndoFn(previousSelection);
     },
     canDo: async (_context: IContext): Promise<boolean> => {
       const activityService = serviceLayer.getActivityService();
@@ -71,18 +72,19 @@ export function createSelectNoneAction(serviceLayer: ServiceLayer): IAction {
 
       selectionManager.selectNone();
 
-      return async (): Promise<RedoFunction | void> => {
-        selectionManager.setSelection(previousSelection);
+      const makeUndoFn = (prevSelection: string[]): UndoFunction => {
+        return async (): Promise<RedoFunction | void> => {
+          selectionManager.setSelection(prevSelection);
 
-        return async (): Promise<UndoFunction | void> => {
-          const undoSelection = selectionManager.getSelection();
-          selectionManager.selectNone();
-
-          return async () => {
-            selectionManager.setSelection(undoSelection);
+          return async (): Promise<UndoFunction | void> => {
+            const undoSelection = selectionManager.getSelection();
+            selectionManager.selectNone();
+            return makeUndoFn(undoSelection);
           };
         };
       };
+
+      return makeUndoFn(previousSelection);
     },
     canDo: async (_context: IContext): Promise<boolean> => {
       const activityService = serviceLayer.getActivityService();

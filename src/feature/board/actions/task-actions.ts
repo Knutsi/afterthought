@@ -25,20 +25,20 @@ export function createNewTaskAction(serviceLayer: ServiceLayer): IAction {
 
       console.log("Created task:", result.taskUri, "at position:", result.placement.x, result.placement.y);
 
-      return async (): Promise<RedoFunction | void> => {
-        await boardService.removeTaskFromBoard(boardUri, result.taskUri);
-        console.log("Undone: removed task", result.taskUri, "from board", boardUri);
+      const makeUndoFn = (taskUri: string): UndoFunction => {
+        return async (): Promise<RedoFunction | void> => {
+          await boardService.removeTaskFromBoard(boardUri, taskUri);
+          console.log("Undone: removed task", taskUri, "from board", boardUri);
 
-        return async (): Promise<UndoFunction | void> => {
-          const newResult = await boardService.createNewTaskOnBoard(boardUri);
-          console.log("Redone: created task", newResult.taskUri);
-
-          return async () => {
-            await boardService.removeTaskFromBoard(boardUri, newResult.taskUri);
-            console.log("Undone: removed task", newResult.taskUri, "from board", boardUri);
+          return async (): Promise<UndoFunction | void> => {
+            const newResult = await boardService.createNewTaskOnBoard(boardUri);
+            console.log("Redone: created task", newResult.taskUri);
+            return makeUndoFn(newResult.taskUri);
           };
         };
       };
+
+      return makeUndoFn(result.taskUri);
     },
     canDo: async (context: IContext): Promise<boolean> => {
       return context.hasScheme(URI_SCHEMES.BOARD);
