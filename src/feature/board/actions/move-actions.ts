@@ -1,4 +1,4 @@
-import type { IAction, UndoFunction } from "../../../service/ActionService";
+import type { IAction, UndoFunction, RedoFunction } from "../../../service/ActionService";
 import type { ServiceLayer } from "../../../service/ServiceLayer";
 import type { IContext } from "../../../service/context/types";
 import type { DiagramElement } from "../editor/diagram-core/types";
@@ -40,21 +40,37 @@ export function createMoveElementsAction(serviceLayer: ServiceLayer): IAction {
 
       selectionManager.setSelection(elements.map(e => e.id));
 
-      return async () => {
+      const movedPositions = new Map<string, { x: number; y: number }>();
+      for (const el of elements) {
+        if (el instanceof TaskElement && el.taskUri) {
+          movedPositions.set(el.taskUri, { x: el.posX, y: el.posY });
+        }
+      }
+
+      const applyPositions = async (positions: Map<string, { x: number; y: number }>): Promise<void> => {
         for (const el of elements) {
           if (el instanceof TaskElement && el.taskUri) {
-            const original = originalPositions.get(el.taskUri);
-            if (original) {
-              el.posX = original.x;
-              el.posY = original.y;
-              await boardService.updateTaskPlacement(boardUri, el.taskUri, {
-                x: original.x,
-                y: original.y,
-              });
+            const pos = positions.get(el.taskUri);
+            if (pos) {
+              el.posX = pos.x;
+              el.posY = pos.y;
+              await boardService.updateTaskPlacement(boardUri, el.taskUri, { x: pos.x, y: pos.y });
             }
           }
         }
       };
+
+      const makeUndoFn = (from: Map<string, { x: number; y: number }>, to: Map<string, { x: number; y: number }>): UndoFunction => {
+        return async (): Promise<RedoFunction | void> => {
+          await applyPositions(to);
+          return async (): Promise<UndoFunction | void> => {
+            await applyPositions(from);
+            return makeUndoFn(from, to);
+          };
+        };
+      };
+
+      return makeUndoFn(movedPositions, originalPositions);
     },
     canDo: async () => true,
   };
