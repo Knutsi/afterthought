@@ -10,7 +10,9 @@ import {
   SELECTION_ADD_ACTION_ID,
   SELECTION_REMOVE_ACTION_ID,
   MOVE_ELEMENTS_ACTION_ID,
-  IBoardActivityParams,
+  type IBoardActivityParams,
+  type SelectionRequestArgs,
+  type MoveElementsArgs,
 } from "./types";
 import { createBoardDiagram } from "./editor/diagram-board/BoardDiagram";
 import { Diagram } from "./editor/diagram-core/Diagram";
@@ -155,12 +157,13 @@ export class BoardActivity extends BaseComponent implements IActivity {
     const stageManager = this.diagram?.getStageManager();
     if (!selectionManager || !stageManager || !this.boardUri) return;
 
-    getDefaultServiceLayer().actionService.doAction(SELECTION_SET_ACTION_ID, {
+    const selectionArgs: SelectionRequestArgs = {
       elements,
       selectionManager,
       stageManager,
       boardUri: this.boardUri,
-    });
+    };
+    getDefaultServiceLayer().actionService.doAction(SELECTION_SET_ACTION_ID, selectionArgs);
   }
 
   private handleSelectionAddRequest(elements: DiagramElement[]): void {
@@ -168,12 +171,13 @@ export class BoardActivity extends BaseComponent implements IActivity {
     const stageManager = this.diagram?.getStageManager();
     if (!selectionManager || !stageManager || !this.boardUri) return;
 
-    getDefaultServiceLayer().actionService.doAction(SELECTION_ADD_ACTION_ID, {
+    const selectionArgs: SelectionRequestArgs = {
       elements,
       selectionManager,
       stageManager,
       boardUri: this.boardUri,
-    });
+    };
+    getDefaultServiceLayer().actionService.doAction(SELECTION_ADD_ACTION_ID, selectionArgs);
   }
 
   private handleSelectionRemoveRequest(elements: DiagramElement[]): void {
@@ -181,12 +185,13 @@ export class BoardActivity extends BaseComponent implements IActivity {
     const stageManager = this.diagram?.getStageManager();
     if (!selectionManager || !stageManager || !this.boardUri) return;
 
-    getDefaultServiceLayer().actionService.doAction(SELECTION_REMOVE_ACTION_ID, {
+    const selectionArgs: SelectionRequestArgs = {
       elements,
       selectionManager,
       stageManager,
       boardUri: this.boardUri,
-    });
+    };
+    getDefaultServiceLayer().actionService.doAction(SELECTION_REMOVE_ACTION_ID, selectionArgs);
   }
 
   private handleMoveComplete(
@@ -197,13 +202,14 @@ export class BoardActivity extends BaseComponent implements IActivity {
     const selectionManager = this.diagram?.getSelectionManager();
     if (!selectionManager || !this.boardUri) return;
 
-    getDefaultServiceLayer().actionService.doAction(MOVE_ELEMENTS_ACTION_ID, {
+    const moveArgs: MoveElementsArgs = {
       elements,
       deltaX,
       deltaY,
       selectionManager,
       boardUri: this.boardUri,
-    });
+    };
+    getDefaultServiceLayer().actionService.doAction(MOVE_ELEMENTS_ACTION_ID, moveArgs);
   }
 
   private async initializeSyncAdapter(): Promise<void> {

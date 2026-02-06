@@ -1,4 +1,4 @@
-import type { IAction } from "../../service/ActionService";
+import { UNDO_ACTION_ID, REDO_ACTION_ID, type IAction } from "../../service/ActionService";
 import type { IContext } from "../../service/context/types";
 import { getDefaultServiceLayer } from "../../service/ServiceLayer";
 import { preferredMenuOrder, preferredMenuGroupOrder } from "./menu-order";
@@ -93,13 +93,26 @@ function groupActionsBySubgroup(actions: IAction[]): Map<string | undefined, IAc
   return subgroupMap;
 }
 
+function getActionLabel(action: IAction): string {
+  const actionService = getDefaultServiceLayer().actionService;
+  if (action.id === UNDO_ACTION_ID) {
+    const desc = actionService.getUndoDescription();
+    return desc ? `${action.name} ${desc}` : action.name;
+  }
+  if (action.id === REDO_ACTION_ID) {
+    const desc = actionService.getRedoDescription();
+    return desc ? `${action.name} ${desc}` : action.name;
+  }
+  return action.name;
+}
+
 async function buildMenuItems(actions: IAction[], context: IContext): Promise<IMenuItem[]> {
   const itemPromises = actions.map(async (action) => {
     const canDo = await action.canDo(context).catch(() => false);
     return {
       id: action.id,
-      label: action.name,
-      shortcut: action.shortcut,
+      label: getActionLabel(action),
+      shortcut: action.shortcuts.join(" / "),
       actionId: action.id,
       disabled: !canDo,
     } as IMenuItem;

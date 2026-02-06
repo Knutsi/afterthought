@@ -71,7 +71,7 @@ export class MenuItem extends BaseComponent {
           .menu-item {
             display: grid;
             grid-template-columns: 1fr auto;
-            gap: 32px;
+            gap: 29px;
             align-items: center;
             padding: 4px 24px 4px 12px;
             min-height: 24px;
@@ -102,15 +102,46 @@ export class MenuItem extends BaseComponent {
           }
 
           .shortcut {
-            font-size: 12px;
-            opacity: 0.7;
+            display: flex;
+            align-items: center;
+            gap: 4px;
             white-space: nowrap;
             ${noSelect()}
+          }
+
+          .shortcut kbd {
+            display: inline-block;
+            padding: 2px 5px;
+            font-size: 11px;
+            font-family: inherit;
+            line-height: 1;
+            border-radius: 3px;
+            background: color-mix(in srgb, var(--theme-color-text) 10%, transparent);
+            border: 1px solid color-mix(in srgb, var(--theme-color-text) 20%, transparent);
+            box-shadow: 0 1px 0 color-mix(in srgb, var(--theme-color-text) 15%, transparent);
+          }
+
+          .menu-item:hover:not(.disabled) kbd,
+          .menu-item.selected:not(.disabled) kbd {
+            background: color-mix(in srgb, var(--theme-color-background) 20%, transparent);
+            border-color: color-mix(in srgb, var(--theme-color-background) 30%, transparent);
+            box-shadow: 0 1px 0 color-mix(in srgb, var(--theme-color-background) 20%, transparent);
+          }
+
+          .shortcut .separator {
+            opacity: 0.5;
+            font-size: 10px;
+          }
+
+          .shortcut .chord-sep {
+            opacity: 0.5;
+            font-size: 10px;
+            margin: 0 3px;
           }
         </style>
         <div class="menu-item ${disabled ? 'disabled' : ''} ${selected ? 'selected' : ''}" part="menu-item">
           <span class="label">${label}</span>
-          <span class="shortcut">${shortcut}</span>
+          <span class="shortcut">${this.formatShortcut(shortcut)}</span>
         </div>
       `;
 
@@ -119,6 +150,25 @@ export class MenuItem extends BaseComponent {
       this.events.removeAll();  // Clear old listeners
       this.events.addToShadow(this.shadowRoot, '.menu-item', 'click', this._handleClick);
     }
+  }
+
+  private formatShortcut(shortcut: string): string {
+    if (!shortcut) return '';
+
+    // split by " / " to get alternative shortcuts
+    const alternatives = shortcut.split(' / ');
+
+    return alternatives.map((alt, i) => {
+      // split by space to get chord strokes (e.g., "Ctrl+N B" -> ["Ctrl+N", "B"])
+      const strokes = alt.split(' ').filter(s => s);
+      const formattedStrokes = strokes.map(stroke => {
+        // split each stroke by "+" to get individual keys
+        return stroke.split('+').map(key => `<kbd>${key.trim()}</kbd>`).join('');
+      }).join('<span class="chord-sep">+</span>');
+
+      const separator = i < alternatives.length - 1 ? '<span class="separator">/</span>' : '';
+      return formattedStrokes + separator;
+    }).join('');
   }
 
   private _handleClick = (e: Event): void => {

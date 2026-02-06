@@ -13,6 +13,7 @@ export const preferredMenuOrder = [
 ];
 
 export const preferredMenuGroupOrder = [
+  "command-palette",
   "undo-redo",
   "clipboard",
   "selection",

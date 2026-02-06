@@ -231,7 +231,7 @@ export class ThemeService extends EventTarget {
       actionService.addAction({
         id: `theme.${themeName}`,
         name: themeName === "default" ? "Light Theme" : themeName === "default-dark" ? "Dark Theme" : themeName,
-        shortcut: "",
+        shortcuts: [],
         menuGroup: "View",
         menuSubGroup: "Theme",
         do: async (_context: IContext, _args?: Record<string, unknown>) => {

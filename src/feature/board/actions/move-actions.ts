@@ -1,28 +1,24 @@
-import type { IAction, UndoFunction } from "../../../service/ActionService";
+import type { IAction, UndoFunction, RedoFunction } from "../../../service/ActionService";
 import type { ServiceLayer } from "../../../service/ServiceLayer";
 import type { IContext } from "../../../service/context/types";
-import type { DiagramElement } from "../editor/diagram-core/types";
-import type { SelectionManager } from "../editor/diagram-core/managers/SelectionManager";
-import type { Uri } from "../../../core-model/uri";
 import { TaskElement } from "../editor/diagram-board/elements/TaskElement";
 import { BoardService } from "../BoardService";
-import { MOVE_ELEMENTS_ACTION_ID, BOARD_SERVICE_NAME } from "../types";
+import { MOVE_ELEMENTS_ACTION_ID, BOARD_SERVICE_NAME, type MoveElementsArgs } from "../types";
 
 export function createMoveElementsAction(serviceLayer: ServiceLayer): IAction {
   return {
     id: MOVE_ELEMENTS_ACTION_ID,
     name: "Move Elements",
-    shortcut: "",
+    shortcuts: [],
     menuGroup: "Edit",
     hideFromMenu: true,
+    repeatable: false,
     do: async (_context: IContext, args?: Record<string, unknown>): Promise<UndoFunction | void> => {
-      const elements = args?.elements as DiagramElement[] | undefined;
-      const deltaX = args?.deltaX as number | undefined;
-      const deltaY = args?.deltaY as number | undefined;
-      const selectionManager = args?.selectionManager as SelectionManager | undefined;
-      const boardUri = args?.boardUri as Uri | undefined;
+      const typedArgs = args as MoveElementsArgs | undefined;
+      if (!typedArgs) return;
+      const { elements, deltaX, deltaY, selectionManager, boardUri } = typedArgs;
 
-      if (!elements || deltaX === undefined || deltaY === undefined || !selectionManager || !boardUri) return;
+      if (deltaX === undefined || deltaY === undefined) return;
 
       const boardService = serviceLayer.getFeatureService<BoardService>(BOARD_SERVICE_NAME);
 
@@ -40,21 +36,37 @@ export function createMoveElementsAction(serviceLayer: ServiceLayer): IAction {
 
       selectionManager.setSelection(elements.map(e => e.id));
 
-      return async () => {
+      const movedPositions = new Map<string, { x: number; y: number }>();
+      for (const el of elements) {
+        if (el instanceof TaskElement && el.taskUri) {
+          movedPositions.set(el.taskUri, { x: el.posX, y: el.posY });
+        }
+      }
+
+      const applyPositions = async (positions: Map<string, { x: number; y: number }>): Promise<void> => {
         for (const el of elements) {
           if (el instanceof TaskElement && el.taskUri) {
-            const original = originalPositions.get(el.taskUri);
-            if (original) {
-              el.posX = original.x;
-              el.posY = original.y;
-              await boardService.updateTaskPlacement(boardUri, el.taskUri, {
-                x: original.x,
-                y: original.y,
-              });
+            const pos = positions.get(el.taskUri);
+            if (pos) {
+              el.posX = pos.x;
+              el.posY = pos.y;
+              await boardService.updateTaskPlacement(boardUri, el.taskUri, { x: pos.x, y: pos.y });
             }
           }
         }
       };
+
+      const makeUndoFn = (from: Map<string, { x: number; y: number }>, to: Map<string, { x: number; y: number }>): UndoFunction => {
+        return async (): Promise<RedoFunction | void> => {
+          await applyPositions(to);
+          return async (): Promise<UndoFunction | void> => {
+            await applyPositions(from);
+            return makeUndoFn(from, to);
+          };
+        };
+      };
+
+      return makeUndoFn(movedPositions, originalPositions);
     },
     canDo: async () => true,
   };

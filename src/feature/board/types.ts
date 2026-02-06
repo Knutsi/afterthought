@@ -1,3 +1,8 @@
+import type { DiagramElement } from "./editor/diagram-core/types";
+import type { SelectionManager } from "./editor/diagram-core/managers/SelectionManager";
+import type { StageManager } from "./editor/diagram-core/managers/StageManager";
+import type { Uri } from "../../core-model/uri";
+
 export const BOARD_ACTIVITY_TAG = "board-activity";
 export const BOARD_SERVICE_NAME = "board-service";
 
@@ -71,4 +76,19 @@ export interface TaskUpdatedEventDetail {
 export interface TaskRemovedEventDetail {
   boardUri: string;
   taskUri: string;
+}
+
+export interface SelectionRequestArgs extends Record<string, unknown> {
+  elements: DiagramElement[];
+  selectionManager: SelectionManager;
+  stageManager: StageManager;
+  boardUri: Uri;
+}
+
+export interface MoveElementsArgs extends Record<string, unknown> {
+  elements: DiagramElement[];
+  deltaX: number;
+  deltaY: number;
+  selectionManager: SelectionManager;
+  boardUri: Uri;
 }

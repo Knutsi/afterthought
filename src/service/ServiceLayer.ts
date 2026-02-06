@@ -3,6 +3,7 @@ import { ContextService } from "./context/ContextService";
 import { ObjectService } from "./ObjectService";
 import { ThemeService } from "./ThemeService";
 import { ActivityService } from "./ActivityService";
+import { KeyboardService } from "./KeyboardService";
 
 export class ServiceLayer {
   actionService: ActionService;
@@ -10,6 +11,7 @@ export class ServiceLayer {
   objectService: ObjectService;
   themeService: ThemeService;
   activityService: ActivityService;
+  keyboardService: KeyboardService;
 
   private featureServices: Record<string, any> = {};
 
@@ -19,6 +21,7 @@ export class ServiceLayer {
     this.objectService = new ObjectService(this);
     this.themeService = new ThemeService();
     this.activityService = new ActivityService();
+    this.keyboardService = new KeyboardService(this);
   }
 
   public getContextService(): ContextService {
