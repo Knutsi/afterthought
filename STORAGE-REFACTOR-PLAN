@@ -1,0 +1,52 @@
+The original plan was to have an object service that features and services can use. E.g. each board can be stored as a object or a series of objects on this board. Initially JSON data. We want to replace this with the following:
+
+Goals:
+1. Databases: The user can create multiple databases, such as one for work and one for private projects. 
+2. Stores: Each feature must be able to create stores for themselves in the current database, and add objects to that store.
+3. Sync: We need to sync the data between computers and devices
+4. Flexible architecture: we want to be able to change the storage mechanism in the future
+5. 
+
+Strategy: 
+1. Start with databases that are directories, synched with Git. Add support for (a) branches and (b) versioning later
+2. Create a IStorageProvider that abstracts away the details
+3. Add a "Git"" feature that we can later disabled or dynamically enable/disable when 
+
+Requirements:
+- Simple, clean code that is easy to read and follow. (prefer to refactor to keep project clean > new abstractions if possible)
+
+Part 1: Implement a settings service:
+We need to persist some settings between sessions. 
+(1) Add a SessionService to the core services. This service will on linux/macos simply read and write keys to an .afterthought/afterthrought.config
+(2) Implement a basic "ISettingsProvider" that underpins that
+(3) Implement a HomeDirectorySettingsProvider that is used on Linux and macOS. Later we might add one for Windws
+(4) Add to serice layer
+(5) Check for and if neccesary create a default settings file when the system opens for the first time. It can be empty, but it's nice if it has a comment section on top with "# Afterthrought personal configuration file - Enjoy (:"
+
+
+Task: Create shared UI components for dialogue
+
+Part 2 : Implement user story for createing databases:
+
+Task 1: dialgue
+User story: User creates a database:
+1. User clicks file menu and gets a choice "New Database (ctrl-n d)"
+2. System offers a dialogue to 
+- pick a name (suggest "Personal")
+- directory to create database in (default to system documents - check if it exists first)
+- preview of the final path (e.g. /home/knut/Documents/Personal/Personal.afdb if name is "Personal") 
+- Button to create the database or cancel
+
+
+Task 3: Create the storage system
+
+Task 4: Create default database on OS-correct location on first launch
+
+Task 5: Try to re-open last database used when the program launches
+
+Task 5: Connect to remote repository to enable sync  
+Menu option to 
+
+Task 6: Check to changes automatically 
+
+

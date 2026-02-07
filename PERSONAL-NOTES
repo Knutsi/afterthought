@@ -1,0 +1,43 @@
+DOING:
+
+-> [ ] Slette task på board
+
+[ ] Grunnlag for flere databaser og tasks i et prosjetk (grunnprosjekt)
+  - Mål:
+      - Kunne opprette og jobbe med flere databaser samtidig.
+
+- Internationalization (basic)
+[ ] Håndtere aktivt bytte av context ved at det klikkes i en aktivtet 
+  -> visuel indikere man bytter
+  -> Sikret at dette skjer uansett hvilken kontroll som klikkes
+
+[ ] Debug-visning som viser context - bør kunne plasseres i en tab-group eller sidepanel? 
+[ ] Task-picker fra toolbar -> raskt legge til eksisterende tasks
+[ ] Task browser? (videre hvordan du kan holde denne uncoupled) 
+[ ] Gjøre en vurdering: målene dine for dette prosjektet, og status?
+
+
+
+
+- Board datamodell m/plassering for alle tasks 
+
+
+
+TODO:
+
+
+CONSIDER: 
+
+
+NOTES:
+
+Hvordan identifisiere at action for ny task via board er tilgengelig?
+- Vi må være på et board - ideelt sett er det del av context (ID + type + feature - kanskje en URI, helt enkelt?)
+- Vi må kunne legge til og oppdatere context enkelt - men hvordan gjøre det på en pålitelig måte?
+  - Etterspørre "hva er context", og mellomlagre -> krever struktur til å gjøre det 
+  - CRUD operasjoner på context -> krever oppryddnig
+
+Eksempler:
+Man står på et board, klikker så på en task -> trigger oppdatering
+  -> "add to context" vs. "updatae context"
+  -> følge struktur -> aktivtet som er aktiv -> den velger å legge til noe i context
