@@ -25,27 +25,27 @@ export class InputManager {
 
   constructor(
     private diagram: IDiagram,
-    private scrollArea: HTMLDivElement,
+    private eventLayer: HTMLDivElement,
     private canvas: HTMLCanvasElement
   ) {}
 
   public attach(): void {
-    this.scrollArea.addEventListener("pointerdown", this.handlePointerDown);
-    this.scrollArea.addEventListener("pointermove", this.handlePointerMove);
-    this.scrollArea.addEventListener("pointerup", this.handlePointerUp);
-    this.scrollArea.addEventListener("pointercancel", this.handlePointerUp);
+    this.eventLayer.addEventListener("pointerdown", this.handlePointerDown);
+    this.eventLayer.addEventListener("pointermove", this.handlePointerMove);
+    this.eventLayer.addEventListener("pointerup", this.handlePointerUp);
+    this.eventLayer.addEventListener("pointercancel", this.handlePointerUp);
 
-    // Prevent space key from scrolling the scroll area (capture phase to intercept before default behavior)
-    this.scrollArea.addEventListener("keydown", this.handleScrollAreaKeyDown, { capture: true });
+    // prevent space key from triggering default behavior (capture phase)
+    this.eventLayer.addEventListener("keydown", this.handleEventLayerKeyDown, { capture: true });
 
     // Wheel events for zoom
-    this.scrollArea.addEventListener("wheel", this.handleWheel, { passive: false });
+    this.eventLayer.addEventListener("wheel", this.handleWheel, { passive: false });
 
     // Double-click events
-    this.scrollArea.addEventListener("dblclick", this.handleDoubleClick);
+    this.eventLayer.addEventListener("dblclick", this.handleDoubleClick);
 
     // Prevent default context menu to ensure clean pointer event flow
-    this.scrollArea.addEventListener("contextmenu", this.handleContextMenu);
+    this.eventLayer.addEventListener("contextmenu", this.handleContextMenu);
 
     window.addEventListener("keydown", this.handleKeyDown);
     window.addEventListener("keyup", this.handleKeyUp);
@@ -53,14 +53,14 @@ export class InputManager {
   }
 
   public detach(): void {
-    this.scrollArea.removeEventListener("pointerdown", this.handlePointerDown);
-    this.scrollArea.removeEventListener("pointermove", this.handlePointerMove);
-    this.scrollArea.removeEventListener("pointerup", this.handlePointerUp);
-    this.scrollArea.removeEventListener("pointercancel", this.handlePointerUp);
-    this.scrollArea.removeEventListener("keydown", this.handleScrollAreaKeyDown, { capture: true });
-    this.scrollArea.removeEventListener("wheel", this.handleWheel);
-    this.scrollArea.removeEventListener("dblclick", this.handleDoubleClick);
-    this.scrollArea.removeEventListener("contextmenu", this.handleContextMenu);
+    this.eventLayer.removeEventListener("pointerdown", this.handlePointerDown);
+    this.eventLayer.removeEventListener("pointermove", this.handlePointerMove);
+    this.eventLayer.removeEventListener("pointerup", this.handlePointerUp);
+    this.eventLayer.removeEventListener("pointercancel", this.handlePointerUp);
+    this.eventLayer.removeEventListener("keydown", this.handleEventLayerKeyDown, { capture: true });
+    this.eventLayer.removeEventListener("wheel", this.handleWheel);
+    this.eventLayer.removeEventListener("dblclick", this.handleDoubleClick);
+    this.eventLayer.removeEventListener("contextmenu", this.handleContextMenu);
 
     window.removeEventListener("keydown", this.handleKeyDown);
     window.removeEventListener("keyup", this.handleKeyUp);
@@ -123,9 +123,9 @@ export class InputManager {
     // Only capture pointer and track drag for primary button (left-click)
     // Right-click and middle-click should not initiate drag tracking
     if (event.button === MOUSE_BUTTON_PRIMARY) {
-      this.scrollArea.setPointerCapture(event.pointerId);
+      this.eventLayer.setPointerCapture(event.pointerId);
     }
-    this.scrollArea.focus(); // Always focus to capture keyboard events
+    this.eventLayer.focus(); // Always focus to capture keyboard events
 
     const rect = this.canvas.getBoundingClientRect();
     const canvasX = event.clientX - rect.left;
@@ -198,8 +198,8 @@ export class InputManager {
   };
 
   private handlePointerUp = (event: PointerEvent): void => {
-    if (this.scrollArea.hasPointerCapture(event.pointerId)) {
-      this.scrollArea.releasePointerCapture(event.pointerId);
+    if (this.eventLayer.hasPointerCapture(event.pointerId)) {
+      this.eventLayer.releasePointerCapture(event.pointerId);
     }
 
     // Only process pointer up for primary button (matches our pointerdown handling)
@@ -221,7 +221,7 @@ export class InputManager {
     this.diagram.getCurrentMode().onKeyUp(event);
   };
 
-  private handleScrollAreaKeyDown = (event: KeyboardEvent): void => {
+  private handleEventLayerKeyDown = (event: KeyboardEvent): void => {
     if (event.code === "Space") {
       event.preventDefault();
     }

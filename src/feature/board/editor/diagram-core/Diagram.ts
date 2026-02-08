@@ -6,18 +6,13 @@ import { InputManager } from "./managers/InputManager";
 import { StageManager } from "./managers/StageManager";
 import { GeometryManager } from "./managers/GeometryManager";
 import { SelectionManager } from "./managers/SelectionManager";
-import {
-  worldOffsetToScrollPosition,
-  scrollPositionToWorldOffset,
-} from "./calculations";
 
 export class Diagram implements IDiagram {
   private static instanceCounter = 0;
   private readonly instanceId: number;
   private data: DiagramModel;
   private container: HTMLElement;
-  private scrollArea!: HTMLDivElement;
-  private extentDiv!: HTMLDivElement;
+  private eventLayer!: HTMLDivElement;
   private canvas!: HTMLCanvasElement;
   private context: CanvasRenderingContext2D | null = null;
   private resizeObserver?: ResizeObserver;
@@ -45,11 +40,9 @@ export class Diagram implements IDiagram {
     this.onBackgroundDoubleClick = callbacks?.onBackgroundDoubleClick;
     this.onMoveComplete = callbacks?.onMoveComplete;
     this.createDOMStructure();
-    this.updateExtentDivSize();
-    this.setupScrollListener();
     this.setupResizeObserver();
     this.initializeModeStack();
-    this.inputManager = new InputManager(this, this.scrollArea, this.canvas);
+    this.inputManager = new InputManager(this, this.eventLayer, this.canvas);
     this.inputManager.attach();
     this.geometryManager = new GeometryManager(this.data.layers);
     this.stageManager = new StageManager(this, this.data.layers, this.geometryManager, callbacks?.onElementChange);
@@ -83,14 +76,14 @@ export class Diagram implements IDiagram {
     `;
     this.canvas.draggable = false;
 
-    this.scrollArea = document.createElement("div");
-    this.scrollArea.id = `diagram-scroll-area-${this.instanceId}`;
-    this.scrollArea.className = "diagram-scroll-area";
-    this.scrollArea.tabIndex = 0;
-    this.scrollArea.style.cssText = `
+    this.eventLayer = document.createElement("div");
+    this.eventLayer.id = `diagram-event-layer-${this.instanceId}`;
+    this.eventLayer.className = "diagram-event-layer";
+    this.eventLayer.tabIndex = 0;
+    this.eventLayer.style.cssText = `
       position: absolute;
       inset: 0;
-      overflow: auto;
+      overflow: hidden;
       box-sizing: border-box;
       z-index: 1;
       background: transparent;
@@ -98,19 +91,7 @@ export class Diagram implements IDiagram {
       user-select: none;
       -webkit-user-drag: none;
     `;
-    this.scrollArea.draggable = false;
-
-    this.extentDiv = document.createElement("div");
-    this.extentDiv.id = `diagram-extent-${this.instanceId}`;
-    this.extentDiv.className = "diagram-extent";
-    this.extentDiv.style.cssText = `
-      width: ${this.data.extentWidth}px;
-      height: ${this.data.extentHeight}px;
-      pointer-events: none;
-      user-select: none;
-      -webkit-user-drag: none;
-    `;
-    this.extentDiv.draggable = false;
+    this.eventLayer.draggable = false;
 
     this.context = this.canvas.getContext("2d");
     if (!this.context) {
@@ -136,34 +117,11 @@ export class Diagram implements IDiagram {
       white-space: pre;
     `;
 
-    this.scrollArea.appendChild(this.extentDiv);
     root.appendChild(this.canvas);
-    root.appendChild(this.scrollArea);
+    root.appendChild(this.eventLayer);
     root.appendChild(this.statusDiv);
     this.container.appendChild(root);
   }
-
-  private updateExtentDivSize(): void {
-    const zoomedWidth = this.data.extentWidth * this.data.zoom;
-    const zoomedHeight = this.data.extentHeight * this.data.zoom;
-    this.extentDiv.style.width = `${zoomedWidth}px`;
-    this.extentDiv.style.height = `${zoomedHeight}px`;
-  }
-
-  private setupScrollListener(): void {
-    this.scrollArea.addEventListener("scroll", this.handleScroll, { passive: true });
-  }
-
-  private handleScroll = (): void => {
-    const { offsetX, offsetY } = scrollPositionToWorldOffset(
-      this.scrollArea.scrollLeft,
-      this.scrollArea.scrollTop,
-      this.data.zoom
-    );
-    this.data.offsetX = offsetX;
-    this.data.offsetY = offsetY;
-    this.requestRender();
-  };
 
   private setupResizeObserver(): void {
     this.resizeObserver = new ResizeObserver(() => {
@@ -224,22 +182,22 @@ export class Diagram implements IDiagram {
     const visibleWidth = this.canvas.width / window.devicePixelRatio / this.data.zoom;
     const visibleHeight = this.canvas.height / window.devicePixelRatio / this.data.zoom;
 
-    const gridStartX = Math.max(0, Math.floor(visibleLeft / 100) * 100) - 1;
-    const gridEndX = Math.min(this.data.extentWidth, visibleLeft + visibleWidth) - 1;
-    const gridStartY = Math.max(0, Math.floor(visibleTop / 100) * 100) - 1;
-    const gridEndY = Math.min(this.data.extentHeight, visibleTop + visibleHeight) - 1;
+    const gridStartX = Math.floor(visibleLeft / 100) * 100;
+    const gridEndX = visibleLeft + visibleWidth;
+    const gridStartY = Math.floor(visibleTop / 100) * 100;
+    const gridEndY = visibleTop + visibleHeight;
 
     for (let x = gridStartX; x <= gridEndX; x += 100) {
       ctx.beginPath();
-      ctx.moveTo(x, Math.max(0, visibleTop));
-      ctx.lineTo(x, Math.min(this.data.extentHeight, visibleTop + visibleHeight));
+      ctx.moveTo(x, visibleTop);
+      ctx.lineTo(x, visibleTop + visibleHeight);
       ctx.stroke();
     }
 
     for (let y = gridStartY; y <= gridEndY; y += 100) {
       ctx.beginPath();
-      ctx.moveTo(Math.max(0, visibleLeft), y);
-      ctx.lineTo(Math.min(this.data.extentWidth, visibleLeft + visibleWidth), y);
+      ctx.moveTo(visibleLeft, y);
+      ctx.lineTo(visibleLeft + visibleWidth, y);
       ctx.stroke();
     }
   }
@@ -261,7 +219,6 @@ export class Diagram implements IDiagram {
     this.statusDiv.textContent =
       `Mode: ${this.getCurrentMode().name}\n` +
       `Offset: (${this.data.offsetX.toFixed(1)}, ${this.data.offsetY.toFixed(1)})\n` +
-      `Extent: ${this.data.extentWidth} × ${this.data.extentHeight}\n` +
       `Zoom: ${(this.data.zoom * 100).toFixed(0)}%\n` +
       `DPI: ${dpr.toFixed(2)}x`;
   }
@@ -293,19 +250,6 @@ export class Diagram implements IDiagram {
     this.updateStatusText();
   }
 
-  public setExtent(width: number, height: number): void {
-    this.data.extentWidth = width;
-    this.data.extentHeight = height;
-    this.updateExtentDivSize();
-  }
-
-  public getExtent(): { width: number; height: number } {
-    return {
-      width: this.data.extentWidth,
-      height: this.data.extentHeight,
-    };
-  }
-
   public setZoom(zoom: number): void {
     if (zoom <= 0) {
       throw new Error("Zoom must be positive");
@@ -314,7 +258,6 @@ export class Diagram implements IDiagram {
       console.warn("Zoom value outside recommended range (0.1 - 5.0)");
     }
     this.data.zoom = zoom;
-    this.updateExtentDivSize();
     this.requestRender();
   }
 
@@ -336,22 +279,8 @@ export class Diagram implements IDiagram {
     const anchorWorldY = this.data.offsetY + ay / oldZoom;
 
     this.data.zoom = newZoom;
-    this.updateExtentDivSize();
-
-    const newOffsetX = anchorWorldX - ax / newZoom;
-    const newOffsetY = anchorWorldY - ay / newZoom;
-
-    const viewW = rect.width / newZoom;
-    const viewH = rect.height / newZoom;
-    const maxX = Math.max(0, this.data.extentWidth - viewW);
-    const maxY = Math.max(0, this.data.extentHeight - viewH);
-
-    this.data.offsetX = Math.min(Math.max(0, newOffsetX), maxX);
-    this.data.offsetY = Math.min(Math.max(0, newOffsetY), maxY);
-
-    this.scrollArea.scrollLeft = this.data.offsetX * newZoom;
-    this.scrollArea.scrollTop = this.data.offsetY * newZoom;
-
+    this.data.offsetX = anchorWorldX - ax / newZoom;
+    this.data.offsetY = anchorWorldY - ay / newZoom;
     this.requestRender();
   }
 
@@ -367,9 +296,9 @@ export class Diagram implements IDiagram {
   }
 
   public setOffset(x: number, y: number): void {
-    const { scrollLeft, scrollTop } = worldOffsetToScrollPosition(x, y, this.data.zoom);
-    this.scrollArea.scrollLeft = scrollLeft;
-    this.scrollArea.scrollTop = scrollTop;
+    this.data.offsetX = x;
+    this.data.offsetY = y;
+    this.requestRender();
   }
 
   public panByWorldOffset(deltaX: number, deltaY: number): void {
@@ -377,12 +306,13 @@ export class Diagram implements IDiagram {
   }
 
   public panByCanvas(canvasDeltaX: number, canvasDeltaY: number): void {
-    this.scrollArea.scrollLeft -= canvasDeltaX;
-    this.scrollArea.scrollTop -= canvasDeltaY;
+    this.data.offsetX -= canvasDeltaX / this.data.zoom;
+    this.data.offsetY -= canvasDeltaY / this.data.zoom;
+    this.requestRender();
   }
 
   public setCursor(cursorStyle: string): void {
-    this.scrollArea.style.cursor = cursorStyle;
+    this.eventLayer.style.cursor = cursorStyle;
   }
 
   public getViewportSize(): { width: number; height: number } {
