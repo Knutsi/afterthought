@@ -1,5 +1,6 @@
 import { BaseComponent, defineComponent } from "../../gui/core/BaseComponent";
 import { ActivityType, type IActivity } from "../../service/ActivityService";
+import type { IContextPart } from "../../service/context/types";
 import { HOME_ACTIVITY_TAG } from "./types";
 
 export class HomeActivity extends BaseComponent implements IActivity {
@@ -16,7 +17,7 @@ export class HomeActivity extends BaseComponent implements IActivity {
     return ActivityType.TAB;
   }
 
-  onGetContext(): void {
+  onGetContext(_contextPart: IContextPart): void {
     // HomeActivity has no context to manage
   }
 

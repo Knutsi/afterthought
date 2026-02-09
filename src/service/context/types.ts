@@ -31,7 +31,13 @@ export interface IContext {
   getChildren(parentUri: Uri): IContextEntry[];
 }
 
-export interface IContextScopeToken {
-  readonly id: string;
-  dispose(): void;
+export interface IContextPart {
+  readonly entries: ReadonlyMap<Uri, IContextEntry>;
+  addEntry(uri: Uri, feature: string, parentUri?: Uri): IContextEntry;
+  removeEntry(uri: Uri): boolean;
+  removeEntriesByFeature(feature: string): void;
+  hasEntry(uri: Uri): boolean;
+  getEntry(uri: Uri): IContextEntry | undefined;
+  getEntriesByScheme(scheme: string): IContextEntry[];
+  getChildren(parentUri: Uri): IContextEntry[];
 }

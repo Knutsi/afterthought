@@ -1,10 +1,10 @@
 import { BaseComponent, defineComponent } from "../../gui/core/BaseComponent";
 import { ActivityType, type IActivity } from "../../service/ActivityService";
 import { createUri, type Uri, URI_SCHEMES } from "../../core-model/uri";
+import type { IContextPart } from "../../service/context/types";
 import {
   BOARD_ACTIVITY_TAG,
   BOARD_SERVICE_NAME,
-  BOARD_SELECTION_FEATURE,
   SELECTION_SET_ACTION_ID,
   SELECTION_ADD_ACTION_ID,
   SELECTION_REMOVE_ACTION_ID,
@@ -28,6 +28,7 @@ export class BoardActivity extends BaseComponent implements IActivity {
   private diagram: Diagram | null = null;
   private boardUri: Uri | null = null;
   private viewModel: BoardActivityViewModel | null = null;
+  private contextPart: IContextPart | null = null;
 
   static get observedAttributes(): string[] {
     return [];
@@ -50,16 +51,18 @@ export class BoardActivity extends BaseComponent implements IActivity {
     return this.boardUri;
   }
 
+  getContextPart(): IContextPart | null {
+    return this.contextPart;
+  }
+
   getSyncAdapter(): BoardSyncAdapter | null {
     return this.viewModel?.getSyncAdapter() ?? null;
   }
 
-  onGetContext(): void {
-    if (this.boardUri) {
-      const contextService = this.getServiceLayer().getContextService();
-      if (!contextService.hasEntry(this.boardUri)) {
-        contextService.addEntry(this.boardUri, BOARD_SERVICE_NAME);
-      }
+  onGetContext(contextPart: IContextPart): void {
+    this.contextPart = contextPart;
+    if (this.boardUri && !contextPart.hasEntry(this.boardUri)) {
+      contextPart.addEntry(this.boardUri, BOARD_SERVICE_NAME);
     }
   }
 
@@ -134,15 +137,7 @@ export class BoardActivity extends BaseComponent implements IActivity {
       this.viewModel.destroy();
       this.viewModel = null;
     }
-
-    // Cleanup selection context entries
-    const contextService = this.getServiceLayer().getContextService();
-    contextService.removeEntriesByFeature(BOARD_SELECTION_FEATURE);
-
-    // Remove from context if present
-    if (this.boardUri) {
-      contextService.removeEntry(this.boardUri);
-    }
+    this.contextPart = null;
   }
 
   private handleBackgroundDoubleClick(worldX: number, worldY: number): void {

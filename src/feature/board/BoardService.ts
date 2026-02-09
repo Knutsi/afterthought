@@ -200,11 +200,12 @@ export class BoardService extends EventTarget {
   }
 
   public updateSelectionContext(boardUri: Uri, taskUris: Uri[]): void {
-    const contextService = this.serviceLayer.getContextService();
-    contextService.removeEntriesByFeature(BOARD_SELECTION_FEATURE);
+    const contextPart = this.serviceLayer.getActivityService().getActiveContextPart();
+    if (!contextPart) return;
 
+    contextPart.removeEntriesByFeature(BOARD_SELECTION_FEATURE);
     for (const taskUri of taskUris) {
-      contextService.addEntry(taskUri, BOARD_SELECTION_FEATURE, boardUri);
+      contextPart.addEntry(taskUri, BOARD_SELECTION_FEATURE, boardUri);
     }
   }
 
