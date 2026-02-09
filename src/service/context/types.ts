@@ -30,3 +30,8 @@ export interface IContext {
   getEntry(uri: Uri): IContextEntry | undefined;
   getChildren(parentUri: Uri): IContextEntry[];
 }
+
+export interface IContextScopeToken {
+  readonly id: string;
+  dispose(): void;
+}

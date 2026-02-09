@@ -1,6 +1,6 @@
 import { Diagram } from "../diagram-core/Diagram";
 import { DiagramElement, ElementChangeCallback, SelectionChangeCallback, SelectionRequestCallback } from "../diagram-core/types";
-import { getDefaultServiceLayer } from "../../../../service/ServiceLayer";
+import { getDefaultServiceLayer, type ServiceLayer } from "../../../../service/ServiceLayer";
 
 export interface BoardDiagramOptions {
   onBackgroundDoubleClick?: (worldX: number, worldY: number) => void;
@@ -14,9 +14,10 @@ export interface BoardDiagramOptions {
 
 export function createBoardDiagram(
   container: HTMLElement,
-  options?: BoardDiagramOptions
+  options?: BoardDiagramOptions,
+  serviceLayer?: ServiceLayer
 ): Diagram {
-  const serviceLayer = getDefaultServiceLayer();
+  const resolvedServiceLayer = serviceLayer ?? getDefaultServiceLayer();
   const diagram = new Diagram(
     container,
     {
@@ -29,7 +30,7 @@ export function createBoardDiagram(
       onMoveComplete: options?.onMoveComplete,
     },
     {
-      getThemeFn: () => serviceLayer.getThemeService().getTheme(),
+      getThemeFn: () => resolvedServiceLayer.getThemeService().getTheme(),
     }
   );
   diagram.start();

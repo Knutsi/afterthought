@@ -9,16 +9,18 @@
   </head>
 
   <body>
-    <main-layout show-menus show-statusbar mode="normal">
-      <dynamic-menu-bar slot="menubar"></dynamic-menu-bar>
-      <div slot="toolbar">Toolbar!</div>
-      <div slot="statusbar">Statusbar!</div>
-      <tab-view id="activity-container" slot="main" />
-    </main-layout>
+    <service-provider>
+      <main-layout show-menus show-statusbar mode="normal">
+        <dynamic-menu-bar slot="menubar"></dynamic-menu-bar>
+        <div slot="toolbar">Toolbar!</div>
+        <div slot="statusbar">Statusbar!</div>
+        <tab-view id="activity-container" slot="main" />
+      </main-layout>
 
-    <div id="overlay">
-      <chord-picker id="chord-picker"></chord-picker>
-      <command-palette id="command-palette"></command-palette>
-    </div>
+      <div id="overlay">
+        <chord-picker id="chord-picker"></chord-picker>
+        <command-palette id="command-palette"></command-palette>
+      </div>
+    </service-provider>
   </body>
 </html>

@@ -1,3 +1,9 @@
+import { getDefaultServiceLayer, type ServiceLayer } from "../../service/ServiceLayer";
+
+interface IServiceProviderElement extends HTMLElement {
+  serviceLayer: ServiceLayer;
+}
+
 export abstract class BaseComponent extends HTMLElement {
   protected _initialized: boolean = false;
 
@@ -25,6 +31,11 @@ export abstract class BaseComponent extends HTMLElement {
   }
 
   protected abstract render(): void;
+
+  protected getServiceLayer(): ServiceLayer {
+    const provider = this.closest("service-provider") as IServiceProviderElement | null;
+    return provider?.serviceLayer ?? getDefaultServiceLayer();
+  }
 
   // Standard Web Component lifecycle (final - don't override these)
   connectedCallback(): void {

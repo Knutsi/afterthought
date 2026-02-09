@@ -1,6 +1,7 @@
 // NOTE:
 //  We currently only support one activity container, but will add support for different types in the future,
 //  e.g. modals and widgets that are slotted into larger customizable workspace pages.
+import type { ServiceLayer } from "./ServiceLayer";
 
 export enum ActivityType {
   TAB = "tab",
@@ -29,11 +30,18 @@ interface IActivityStackEntry {
   element: HTMLElement;
   activityType: ActivityType;
   isHomeActivity: boolean;
+  contextScope?: import("./context/types").IContextScopeToken;
 }
 
 export class ActivityService extends EventTarget {
   private activityContainer: HTMLElement | null = null;
   private activityStack: IActivityStackEntry[] = [];
+  private serviceLayer: ServiceLayer;
+
+  constructor(serviceLayer: ServiceLayer) {
+    super();
+    this.serviceLayer = serviceLayer;
+  }
 
   public registerActivityContainer(container: HTMLElement) {
     this.activityContainer = container;
@@ -58,22 +66,22 @@ export class ActivityService extends EventTarget {
     const previousTop = this.activityStack.length > 0
       ? this.activityStack[this.activityStack.length - 1]
       : null;
-    if (previousTop && this.isActivity(previousTop.element)) {
-      previousTop.element.onDropContext();
+    if (previousTop) {
+      this.dropContextForActivity(previousTop);
     }
 
     // Push to stack
-    this.activityStack.push({
+    const stackEntry: IActivityStackEntry = {
       id: activityElement.id,
       element: activityElement,
       activityType,
       isHomeActivity,
-    });
+    };
 
     // New activity gets context
-    if (this.isActivity(activityElement)) {
-      activityElement.onGetContext();
-    }
+    this.applyContextToActivity(stackEntry);
+
+    this.activityStack.push(stackEntry);
 
     return { id: activityElement.id };
   }
@@ -89,8 +97,8 @@ export class ActivityService extends EventTarget {
     if (currentTop && currentTop.id === id) return;
 
     // Call onDropContext on previous top activity
-    if (currentTop && this.isActivity(currentTop.element)) {
-      currentTop.element.onDropContext();
+    if (currentTop) {
+      this.dropContextForActivity(currentTop);
     }
 
     // Move target to top of stack (reorder)
@@ -98,9 +106,7 @@ export class ActivityService extends EventTarget {
     this.activityStack.push(target);
 
     // Call onGetContext on new top activity
-    if (this.isActivity(target.element)) {
-      target.element.onGetContext();
-    }
+    this.applyContextToActivity(target);
 
     this.dispatchEvent(new CustomEvent(ActivityEvents.ACTIVITY_SWITCHED));
   }
@@ -120,8 +126,8 @@ export class ActivityService extends EventTarget {
     const isActiveActivity = targetIndex === this.activityStack.length - 1;
 
     // If closing the active activity, call onDropContext
-    if (isActiveActivity && this.isActivity(target.element)) {
-      target.element.onDropContext();
+    if (isActiveActivity) {
+      this.dropContextForActivity(target);
     }
 
     // Remove from stack
@@ -134,9 +140,7 @@ export class ActivityService extends EventTarget {
     if (isActiveActivity && this.activityStack.length > 0) {
       const newTop = this.activityStack[this.activityStack.length - 1];
       // Call onGetContext on the new top
-      if (this.isActivity(newTop.element)) {
-        newTop.element.onGetContext();
-      }
+      this.applyContextToActivity(newTop);
       this.dispatchEvent(new CustomEvent(ActivityEvents.ACTIVITY_SWITCHED));
     }
   }
@@ -164,5 +168,22 @@ export class ActivityService extends EventTarget {
       typeof (element as IActivity).onGetContext === "function" &&
       typeof (element as IActivity).onDropContext === "function"
     );
+  }
+
+  private applyContextToActivity(entry: IActivityStackEntry): void {
+    if (!this.isActivity(entry.element)) return;
+    const contextService = this.serviceLayer.getContextService();
+    entry.contextScope = contextService.pushScope(entry.id);
+    entry.element.onGetContext();
+  }
+
+  private dropContextForActivity(entry: IActivityStackEntry): void {
+    if (entry.contextScope) {
+      entry.contextScope.dispose();
+      entry.contextScope = undefined;
+    }
+    if (this.isActivity(entry.element)) {
+      entry.element.onDropContext();
+    }
   }
 }

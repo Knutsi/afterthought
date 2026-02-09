@@ -4,6 +4,7 @@ import type { ServiceLayer } from "./ServiceLayer";
 export type RedoFunction = () => Promise<UndoFunction | void>;
 export type UndoFunction = () => Promise<RedoFunction | void>;
 export type DoFunction = (context: IContext, args?: Record<string, unknown>) => Promise<UndoFunction | void>;
+export type ActionAvailabilityMap = ReadonlyMap<string, boolean>;
 
 export interface IAction {
   id: string;
@@ -47,6 +48,10 @@ export class ActionService extends EventTarget {
   private serviceLayer: ServiceLayer;
   private lastActionId: string | null = null;
   private lastArgs: Record<string, unknown> | undefined = undefined;
+  private availabilityByActionId: Map<string, boolean> = new Map();
+  private availabilityVersion = 0;
+  private availabilityUpdateRunning = false;
+  private availabilityUpdateQueued = false;
 
   constructor(serviceLayer: ServiceLayer) {
     super();
@@ -150,6 +155,7 @@ export class ActionService extends EventTarget {
     this.validateAction(action);
     this.actions.push(action);
     this.dispatchEvent(new CustomEvent(ActionEvents.ACTION_ADDED, { detail: { action } }));
+    this.updateActionAvailability();
   }
 
   public getActions(): IAction[] {
@@ -157,7 +163,48 @@ export class ActionService extends EventTarget {
   }
 
   public updateActionAvailability(): void {
-    this.dispatchEvent(new Event(ActionEvents.ACTION_AVAILABILITY_UPDATED));
+    if (this.availabilityUpdateRunning) {
+      this.availabilityUpdateQueued = true;
+      return;
+    }
+
+    this.availabilityUpdateRunning = true;
+    const actions = [...this.actions];
+    const context = this.serviceLayer.getContextService();
+
+    Promise.all(
+      actions.map(async (action) => {
+        const canDo = await action.canDo(context).catch(() => false);
+        return [action.id, canDo] as const;
+      })
+    )
+      .then((entries) => {
+        this.availabilityByActionId = new Map(entries);
+        this.availabilityVersion++;
+        this.dispatchEvent(
+          new CustomEvent(ActionEvents.ACTION_AVAILABILITY_UPDATED, {
+            detail: {
+              availability: this.availabilityByActionId,
+              version: this.availabilityVersion,
+            },
+          })
+        );
+      })
+      .finally(() => {
+        this.availabilityUpdateRunning = false;
+        if (this.availabilityUpdateQueued) {
+          this.availabilityUpdateQueued = false;
+          this.updateActionAvailability();
+        }
+      });
+  }
+
+  public getActionAvailability(): ActionAvailabilityMap {
+    return this.availabilityByActionId;
+  }
+
+  public isActionAvailable(actionId: string): boolean {
+    return this.availabilityByActionId.get(actionId) ?? false;
   }
 
   private validateAction(action: IAction): void {

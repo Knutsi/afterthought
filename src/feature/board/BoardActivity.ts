@@ -1,7 +1,6 @@
 import { BaseComponent, defineComponent } from "../../gui/core/BaseComponent";
-import { getDefaultServiceLayer } from "../../service/ServiceLayer";
 import { ActivityType, type IActivity } from "../../service/ActivityService";
-import { createUri, parseUri, type Uri, URI_SCHEMES } from "../../core-model/uri";
+import { createUri, type Uri, URI_SCHEMES } from "../../core-model/uri";
 import {
   BOARD_ACTIVITY_TAG,
   BOARD_SERVICE_NAME,
@@ -16,8 +15,8 @@ import {
 } from "./types";
 import { createBoardDiagram } from "./editor/diagram-board/BoardDiagram";
 import { Diagram } from "./editor/diagram-core/Diagram";
-import { BoardSyncAdapter } from "./BoardSyncAdapter";
-import type { BoardService } from "./BoardService";
+import { BoardActivityViewModel } from "./BoardActivityViewModel";
+import type { BoardSyncAdapter } from "./BoardSyncAdapter";
 import type { DiagramElement } from "./editor/diagram-core/types";
 
 export interface IBoardActivityData {
@@ -28,7 +27,7 @@ export class BoardActivity extends BaseComponent implements IActivity {
   private data!: IBoardActivityData;
   private diagram: Diagram | null = null;
   private boardUri: Uri | null = null;
-  private syncAdapter: BoardSyncAdapter | null = null;
+  private viewModel: BoardActivityViewModel | null = null;
 
   static get observedAttributes(): string[] {
     return [];
@@ -52,12 +51,12 @@ export class BoardActivity extends BaseComponent implements IActivity {
   }
 
   getSyncAdapter(): BoardSyncAdapter | null {
-    return this.syncAdapter;
+    return this.viewModel?.getSyncAdapter() ?? null;
   }
 
   onGetContext(): void {
     if (this.boardUri) {
-      const contextService = getDefaultServiceLayer().getContextService();
+      const contextService = this.getServiceLayer().getContextService();
       if (!contextService.hasEntry(this.boardUri)) {
         contextService.addEntry(this.boardUri, BOARD_SERVICE_NAME);
       }
@@ -65,9 +64,6 @@ export class BoardActivity extends BaseComponent implements IActivity {
   }
 
   onDropContext(): void {
-    if (this.boardUri) {
-      getDefaultServiceLayer().getContextService().removeEntry(this.boardUri);
-    }
   }
 
   protected onInit(): void {
@@ -95,10 +91,13 @@ export class BoardActivity extends BaseComponent implements IActivity {
       onSelectionAddRequest: this.handleSelectionAddRequest.bind(this),
       onSelectionRemoveRequest: this.handleSelectionRemoveRequest.bind(this),
       onMoveComplete: this.handleMoveComplete.bind(this),
-    });
+    }, this.getServiceLayer());
 
-    // Initialize sync adapter
-    this.initializeSyncAdapter();
+    // Initialize viewmodel
+    if (this.diagram && this.boardUri) {
+      this.viewModel = new BoardActivityViewModel(this.getServiceLayer(), this.boardUri, this.diagram);
+      this.viewModel.initialize();
+    }
   }
 
   protected render(): void {
@@ -131,14 +130,13 @@ export class BoardActivity extends BaseComponent implements IActivity {
   }
 
   protected onDestroy(): void {
-    // Cleanup sync adapter
-    if (this.syncAdapter) {
-      this.syncAdapter.destroy();
-      this.syncAdapter = null;
+    if (this.viewModel) {
+      this.viewModel.destroy();
+      this.viewModel = null;
     }
 
     // Cleanup selection context entries
-    const contextService = getDefaultServiceLayer().getContextService();
+    const contextService = this.getServiceLayer().getContextService();
     contextService.removeEntriesByFeature(BOARD_SELECTION_FEATURE);
 
     // Remove from context if present
@@ -163,7 +161,7 @@ export class BoardActivity extends BaseComponent implements IActivity {
       stageManager,
       boardUri: this.boardUri,
     };
-    getDefaultServiceLayer().actionService.doAction(SELECTION_SET_ACTION_ID, selectionArgs);
+    this.getServiceLayer().actionService.doAction(SELECTION_SET_ACTION_ID, selectionArgs);
   }
 
   private handleSelectionAddRequest(elements: DiagramElement[]): void {
@@ -177,7 +175,7 @@ export class BoardActivity extends BaseComponent implements IActivity {
       stageManager,
       boardUri: this.boardUri,
     };
-    getDefaultServiceLayer().actionService.doAction(SELECTION_ADD_ACTION_ID, selectionArgs);
+    this.getServiceLayer().actionService.doAction(SELECTION_ADD_ACTION_ID, selectionArgs);
   }
 
   private handleSelectionRemoveRequest(elements: DiagramElement[]): void {
@@ -191,7 +189,7 @@ export class BoardActivity extends BaseComponent implements IActivity {
       stageManager,
       boardUri: this.boardUri,
     };
-    getDefaultServiceLayer().actionService.doAction(SELECTION_REMOVE_ACTION_ID, selectionArgs);
+    this.getServiceLayer().actionService.doAction(SELECTION_REMOVE_ACTION_ID, selectionArgs);
   }
 
   private handleMoveComplete(
@@ -209,30 +207,7 @@ export class BoardActivity extends BaseComponent implements IActivity {
       selectionManager,
       boardUri: this.boardUri,
     };
-    getDefaultServiceLayer().actionService.doAction(MOVE_ELEMENTS_ACTION_ID, moveArgs);
-  }
-
-  private async initializeSyncAdapter(): Promise<void> {
-    if (!this.diagram || !this.boardUri) return;
-
-    const serviceLayer = getDefaultServiceLayer();
-    const boardService = serviceLayer.getFeatureService<BoardService>(BOARD_SERVICE_NAME);
-
-    // Create the sync adapter
-    this.syncAdapter = new BoardSyncAdapter(
-      boardService,
-      this.diagram.getStageManager(),
-      this.boardUri
-    );
-
-    // Load existing board data
-    const parsed = parseUri(this.boardUri);
-    if (parsed) {
-      const boardData = await boardService.getBoardData(parsed.id);
-      if (boardData) {
-        this.syncAdapter.loadFromBoardData(boardData);
-      }
-    }
+    this.getServiceLayer().actionService.doAction(MOVE_ELEMENTS_ACTION_ID, moveArgs);
   }
 
   private ensureTabAttributes(): void {

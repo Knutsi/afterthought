@@ -3,6 +3,7 @@ import { type Uri, getUriScheme } from "../../core-model/uri";
 import {
   type IContext,
   type IContextEntry,
+  type IContextScopeToken,
   ContextEntry,
 } from "./types";
 
@@ -13,6 +14,7 @@ export const ContextEvents = {
 export class ContextService extends EventTarget implements IContext {
   private _entries: Map<Uri, IContextEntry> = new Map();
   private serviceLayer: ServiceLayer;
+  private scopeStack: ContextScopeInternal[] = [];
 
   constructor(serviceLayer: ServiceLayer) {
     super();
@@ -65,6 +67,7 @@ export class ContextService extends EventTarget implements IContext {
   addEntry(uri: Uri, feature: string, parentUri?: Uri): IContextEntry {
     const entry = new ContextEntry(uri, feature, parentUri ?? null);
     this._entries.set(uri, entry);
+    this.recordEntryInScope(uri);
     this.onContextChanged(`Added entry: ${uri}`);
     return entry;
   }
@@ -84,12 +87,7 @@ export class ContextService extends EventTarget implements IContext {
         toRemove.push(entry.uri);
       }
     }
-    for (const uri of toRemove) {
-      this._entries.delete(uri);
-    }
-    if (toRemove.length > 0) {
-      this.onContextChanged(`Removed ${toRemove.length} entries by feature: ${feature}`);
-    }
+    this.removeEntriesInternal(toRemove, `Removed ${toRemove.length} entries by feature: ${feature}`);
   }
 
   clear(): void {
@@ -97,11 +95,47 @@ export class ContextService extends EventTarget implements IContext {
     this.onContextChanged("Cleared all entries");
   }
 
+  public pushScope(id: string): IContextScopeToken {
+    const scope: ContextScopeInternal = { id, entries: new Set() };
+    this.scopeStack.push(scope);
+    return {
+      id,
+      dispose: () => this.disposeScope(scope),
+    };
+  }
+
   // Internal helpers
   private onContextChanged(action: string): void {
     this.dispatchEvent(new CustomEvent(ContextEvents.CONTEXT_CHANGED));
     this.serviceLayer.actionService.updateActionAvailability();
     this.debugDump(action);
+  }
+
+  private recordEntryInScope(uri: Uri): void {
+    const scope = this.scopeStack[this.scopeStack.length - 1];
+    if (scope) {
+      scope.entries.add(uri);
+    }
+  }
+
+  private disposeScope(scope: ContextScopeInternal): void {
+    const index = this.scopeStack.indexOf(scope);
+    if (index !== -1) {
+      this.scopeStack.splice(index, 1);
+    }
+    this.removeEntriesInternal(scope.entries, `Disposed context scope: ${scope.id}`);
+  }
+
+  private removeEntriesInternal(uris: Iterable<Uri>, action: string): void {
+    let removedCount = 0;
+    for (const uri of uris) {
+      if (this._entries.delete(uri)) {
+        removedCount++;
+      }
+    }
+    if (removedCount > 0) {
+      this.onContextChanged(action);
+    }
   }
 
   private debugDump(action: string): void {
@@ -152,4 +186,9 @@ export class ContextService extends EventTarget implements IContext {
       }
     }
   }
+}
+
+interface ContextScopeInternal {
+  id: string;
+  entries: Set<Uri>;
 }

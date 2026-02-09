@@ -3,6 +3,7 @@ export interface IStore {
   name: string;
   createdAt: string;
   modifiedAt: string;
+  schemaVersion?: number;
 }
 
 export interface IObject {
@@ -12,6 +13,7 @@ export interface IObject {
   storeId: string;
   createdAt: string;
   modifiedAt: string;
+  schemaVersion?: number;
 }
 
 export type ObjectEventType = 'created' | 'updated' | 'deleted';

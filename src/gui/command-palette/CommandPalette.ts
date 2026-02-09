@@ -1,7 +1,7 @@
 import { BaseComponent, defineComponent } from "../core/BaseComponent";
 import { EventListeners } from "../core/utilities";
 import { noSelect } from "../styles/cssUtilities";
-import type { IAction } from "../../service/ActionService";
+import type { ActionAvailabilityMap, IAction } from "../../service/ActionService";
 
 interface ScoredAction {
   action: IAction;
@@ -13,6 +13,7 @@ export class CommandPalette extends BaseComponent {
   private allActions: IAction[] = [];
   private filteredActions: IAction[] = [];
   private selectedIndex = 0;
+  private availability: ActionAvailabilityMap = new Map();
 
   public onExecute?: (actionId: string) => void;
   public onCancel?: () => void;
@@ -25,8 +26,9 @@ export class CommandPalette extends BaseComponent {
     this.events.removeAll();
   }
 
-  public configure(actions: IAction[]): void {
-    this.allActions = actions.filter((a) => !a.hideFromMenu);
+  public configure(actions: IAction[], availability: ActionAvailabilityMap): void {
+    this.availability = availability;
+    this.allActions = actions.filter((a) => !a.hideFromMenu && this.isActionAvailable(a.id));
     this.selectedIndex = 0;
     this.filteredActions = this.allActions;
     this.render();
@@ -75,6 +77,10 @@ export class CommandPalette extends BaseComponent {
     }
 
     this.renderResults();
+  }
+
+  private isActionAvailable(actionId: string): boolean {
+    return this.availability.get(actionId) ?? false;
   }
 
   private scoreMatch(name: string, query: string): number {

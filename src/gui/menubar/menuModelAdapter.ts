@@ -1,4 +1,4 @@
-import { UNDO_ACTION_ID, REDO_ACTION_ID, type IAction } from "../../service/ActionService";
+import { UNDO_ACTION_ID, REDO_ACTION_ID, type IAction, type ActionAvailabilityMap } from "../../service/ActionService";
 import type { IContext } from "../../service/context/types";
 import { getDefaultServiceLayer } from "../../service/ServiceLayer";
 import { preferredMenuOrder, preferredMenuGroupOrder } from "./menu-order";
@@ -106,9 +106,9 @@ function getActionLabel(action: IAction): string {
   return action.name;
 }
 
-async function buildMenuItems(actions: IAction[], context: IContext): Promise<IMenuItem[]> {
-  const itemPromises = actions.map(async (action) => {
-    const canDo = await action.canDo(context).catch(() => false);
+async function buildMenuItems(actions: IAction[], _context: IContext, availability: ActionAvailabilityMap): Promise<IMenuItem[]> {
+  return actions.map((action) => {
+    const canDo = availability.get(action.id) ?? false;
     return {
       id: action.id,
       label: getActionLabel(action),
@@ -117,11 +117,9 @@ async function buildMenuItems(actions: IAction[], context: IContext): Promise<IM
       disabled: !canDo,
     } as IMenuItem;
   });
-
-  return Promise.all(itemPromises);
 }
 
-async function buildMenuGroups(actions: IAction[], context: IContext): Promise<IMenuGroup[]> {
+async function buildMenuGroups(actions: IAction[], context: IContext, availability: ActionAvailabilityMap): Promise<IMenuGroup[]> {
   const subgroupMap = groupActionsBySubgroup(actions);
 
   // Sort subgroups by preferred order
@@ -153,7 +151,7 @@ async function buildMenuGroups(actions: IAction[], context: IContext): Promise<I
 
   for (const subgroup of sortedSubgroups) {
     const actionsInSubgroup = subgroupMap.get(subgroup)!;
-    const orderedItems = await buildMenuItems(actionsInSubgroup, context);
+    const orderedItems = await buildMenuItems(actionsInSubgroup, context, availability);
 
     groups.push({
       id: subgroup || "",
@@ -164,7 +162,7 @@ async function buildMenuGroups(actions: IAction[], context: IContext): Promise<I
   return groups;
 }
 
-export async function buildMenuBarModel(actions: IAction[]): Promise<IDynamicMenuBarModel> {
+export async function buildMenuBarModel(actions: IAction[], availability: ActionAvailabilityMap): Promise<IDynamicMenuBarModel> {
   // Get current context from service
   const context = getDefaultServiceLayer().getContextService();
 
@@ -182,7 +180,7 @@ export async function buildMenuBarModel(actions: IAction[]): Promise<IDynamicMen
 
   for (const menuLabel of menuLabels) {
     const actionsInMenu = menuMap.get(menuLabel)!;
-    const orderedGroups = await buildMenuGroups(actionsInMenu, context);
+    const orderedGroups = await buildMenuGroups(actionsInMenu, context, availability);
 
     orderedMenus.push({
       id: `menu-${menuLabel.toLowerCase().replace(/\s+/g, '-')}`,
