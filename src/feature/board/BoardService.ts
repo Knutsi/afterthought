@@ -28,6 +28,7 @@ import {
   DEFAULT_TASK_PLACEMENT_X,
   DEFAULT_TASK_PLACEMENT_Y,
   BOARD_SELECTION_FEATURE,
+  BOARD_CONTENT_FEATURE,
 } from "./types";
 
 const BOARD_STORE_ID = 'board-store';
@@ -132,6 +133,11 @@ export class BoardService extends EventTarget {
       detail: { boardUri, taskUri, placement },
     }));
 
+    const contextPart = this.serviceLayer.getActivityService().getActiveContextPart();
+    if (contextPart) {
+      contextPart.addEntry(taskUri, BOARD_CONTENT_FEATURE, boardUri);
+    }
+
     return { taskUri, taskOnBoardUri, placement };
   }
 
@@ -155,6 +161,15 @@ export class BoardService extends EventTarget {
     this.dispatchEvent(new CustomEvent<TaskRemovedEventDetail>(BoardEvents.TASK_REMOVED, {
       detail: { boardUri, taskUri },
     }));
+
+    const contextPart = this.serviceLayer.getActivityService().getActiveContextPart();
+    if (contextPart) {
+      contextPart.removeEntry(taskUri);
+      const parsedTask = parseUri(taskUri);
+      if (parsedTask) {
+        contextPart.removeEntry(createUri(URI_SCHEMES.SELECTED, parsedTask.id));
+      }
+    }
 
     return true;
   }
@@ -205,7 +220,20 @@ export class BoardService extends EventTarget {
 
     contextPart.removeEntriesByFeature(BOARD_SELECTION_FEATURE);
     for (const taskUri of taskUris) {
-      contextPart.addEntry(taskUri, BOARD_SELECTION_FEATURE, boardUri);
+      const parsed = parseUri(taskUri);
+      if (parsed) {
+        contextPart.addEntry(createUri(URI_SCHEMES.SELECTED, parsed.id), BOARD_SELECTION_FEATURE, boardUri);
+      }
+    }
+  }
+
+  public updateBoardContentContext(boardUri: Uri, taskUris: Uri[]): void {
+    const contextPart = this.serviceLayer.getActivityService().getActiveContextPart();
+    if (!contextPart) return;
+
+    contextPart.removeEntriesByFeature(BOARD_CONTENT_FEATURE);
+    for (const taskUri of taskUris) {
+      contextPart.addEntry(taskUri, BOARD_CONTENT_FEATURE, boardUri);
     }
   }
 

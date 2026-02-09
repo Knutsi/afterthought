@@ -15,13 +15,13 @@ import {
   type SelectionRequestArgs,
 } from "../types";
 
-function getTaskUrisFromElements(elements: DiagramElement[]): Uri[] {
+export function getTaskUrisFromElements(elements: DiagramElement[]): Uri[] {
   return elements
     .filter((e): e is TaskElement => e instanceof TaskElement && e.taskUri !== null)
     .map(e => e.taskUri!);
 }
 
-function getElementsFromIds(stageManager: StageManager, ids: string[]): DiagramElement[] {
+export function getElementsFromIds(stageManager: StageManager, ids: string[]): DiagramElement[] {
   const allElements = stageManager.getAllElements();
   const idSet = new Set(ids);
   return allElements.filter(e => idSet.has(e.id));

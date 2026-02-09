@@ -5,6 +5,7 @@ export const URI_SCHEMES = {
   TASK: "task",
   TASK_ON_BOARD: "task-on-board",
   SETTINGS: "settings",
+  SELECTED: "selected",
 } as const;
 
 export type UriScheme = (typeof URI_SCHEMES)[keyof typeof URI_SCHEMES];

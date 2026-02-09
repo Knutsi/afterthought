@@ -39,8 +39,9 @@ export const SELECTION_ADD_ACTION_ID = "board.selection-add";
 export const SELECTION_REMOVE_ACTION_ID = "board.selection-remove";
 export const MOVE_ELEMENTS_ACTION_ID = "board.move-elements";
 
-// feature identifier for selection context entries
+// feature identifiers for context entries
 export const BOARD_SELECTION_FEATURE = "board-selection";
+export const BOARD_CONTENT_FEATURE = "board-content";
 
 export interface IBoardActivityParams {
   name: string,
