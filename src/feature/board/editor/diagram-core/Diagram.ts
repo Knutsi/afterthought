@@ -6,6 +6,7 @@ import { InputManager } from "./managers/InputManager";
 import { StageManager } from "./managers/StageManager";
 import { GeometryManager } from "./managers/GeometryManager";
 import { SelectionManager } from "./managers/SelectionManager";
+import { ScrollManager } from "./managers/ScrollManager";
 
 export class Diagram implements IDiagram {
   private static instanceCounter = 0;
@@ -21,6 +22,7 @@ export class Diagram implements IDiagram {
   private stageManager!: StageManager;
   private geometryManager!: GeometryManager;
   private selectionManager!: SelectionManager;
+  private scrollManager!: ScrollManager;
   private renderPending = false;
   private getThemeFn: () => ITheme;
   private onSelectionSetRequest?: SelectionRequestCallback;
@@ -47,6 +49,7 @@ export class Diagram implements IDiagram {
     this.geometryManager = new GeometryManager(this.data.layers);
     this.stageManager = new StageManager(this, this.data.layers, this.geometryManager, callbacks?.onElementChange);
     this.selectionManager = new SelectionManager(this, callbacks?.onSelectionChange);
+    this.scrollManager = new ScrollManager(this, this.eventLayer, this.geometryManager);
   }
 
   private createDOMStructure(): void {
@@ -247,6 +250,10 @@ export class Diagram implements IDiagram {
     this.renderBackground(ctx);
     this.renderElements(ctx, theme);
     ctx.restore();
+    this.scrollManager.syncToViewport(
+      this.data.zoom, this.data.offsetX, this.data.offsetY,
+      this.container.clientWidth, this.container.clientHeight,
+    );
     this.updateStatusText();
   }
 
