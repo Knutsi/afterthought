@@ -1,71 +1,43 @@
-import { BaseComponent, defineComponent } from "../../gui/core/BaseComponent";
-import { ActivityType, type IActivity } from "../../service/ActivityService";
-import type { IContextPart } from "../../service/context/types";
+import { defineComponent } from "../../gui/core/BaseComponent";
+import { ActivityType } from "../../service/ActivityService";
+import { ActivityElementBase } from "../../gui/activity/runtime/ActivityElementBase";
+import type { IActivityDefinition } from "../../gui/activity/runtime/types";
 import { HOME_ACTIVITY_TAG } from "./types";
+import { HomeActivityController, type IHomeActivityParams } from "./HomeActivityController";
+import { HomeActivityView } from "./HomeActivityView";
 
-export class HomeActivity extends BaseComponent implements IActivity {
-  static get observedAttributes(): string[] {
-    return [];
-  }
+const HOME_ACTIVITY_DEFINITION: IActivityDefinition<
+  IHomeActivityParams,
+  HomeActivityView,
+  HomeActivityController
+> = {
+  activityType: ActivityType.TAB,
+  parseParams: (_rawParams: string | null): IHomeActivityParams => {
+    return {};
+  },
+  createView: (): HomeActivityView => {
+    return new HomeActivityView();
+  },
+  createController: (): HomeActivityController => {
+    return new HomeActivityController();
+  },
+  getTabMeta: (): { label: string; icon: string; right: boolean; closeable: boolean } => {
+    return {
+      label: "Home",
+      icon: "home",
+      right: true,
+      closeable: false,
+    };
+  },
+};
 
-  // IActivity implementation
-  get activityId(): string {
-    return this.id;
-  }
-
-  get activityType(): ActivityType {
-    return ActivityType.TAB;
-  }
-
-  onGetContext(_contextPart: IContextPart): void {
-    // HomeActivity has no context to manage
-  }
-
-  onDropContext(): void {
-    // HomeActivity has no context to manage
-  }
-
-  protected onInit(): void {
-    this.ensureTabAttributes();
-  }
-
-  protected render(): void {
-    if (!this.shadowRoot) return;
-
-    this.shadowRoot.innerHTML = `
-      <style>
-        :host {
-          display: block;
-          width: 100%;
-          height: 100%;
-        }
-
-        .home-content {
-          padding: 16px;
-          color: var(--theme-color-text, #333);
-          font-size: var(--theme-font-size, 14px);
-        }
-      </style>
-      <div class="home-content">TBD</div>
-    `;
-  }
-
-  private ensureTabAttributes(): void {
-    if (!this.hasAttribute("tab-label")) {
-      this.setAttribute("tab-label", "Home");
-    }
-
-    if (!this.hasAttribute("tab-icon")) {
-      this.setAttribute("tab-icon", "home");
-    }
-
-    if (!this.hasAttribute("tab-right")) {
-      this.setAttribute("tab-right", "");
-    }
-
-    if (this.hasAttribute("closeable")) {
-      this.removeAttribute("closeable");
-    }
+export class HomeActivity extends ActivityElementBase<
+  IHomeActivityParams,
+  HomeActivityView,
+  HomeActivityController
+> {
+  constructor() {
+    super(HOME_ACTIVITY_DEFINITION);
   }
 }
 
