@@ -3,7 +3,6 @@ import { EventListeners, useMutationObserver } from "../core/utilities";
 import { noSelect, flexRow, flexCenter, clickable } from "../styles/cssUtilities";
 import { icons } from "../icons";
 import { ActivityService, ActivityEvents } from "../../service/ActivityService";
-import { getDefaultServiceLayer } from "../../service/ServiceLayer";
 
 export class TabView extends BaseComponent {
   private _activeTabIndex: number = 0;
@@ -18,7 +17,7 @@ export class TabView extends BaseComponent {
 
   protected onInit(): void {
     this.setupMutationObserver();
-    const serviceLayer = getDefaultServiceLayer();
+    const serviceLayer = this.getServiceLayer();
     this.activityService = serviceLayer.getActivityService();
     this.activityService.addEventListener(ActivityEvents.ACTIVITY_SWITCHED, this.handleActivitySwitch);
     this.activityService.addEventListener(ActivityEvents.ACTIVITY_CLOSED, this.handleActivityClosed);

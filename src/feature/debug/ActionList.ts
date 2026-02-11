@@ -1,9 +1,8 @@
 import { BaseComponent, defineComponent } from '../../gui/core/BaseComponent';
-import { getDefaultServiceLayer } from "../../service/ServiceLayer";
-import { ActionEvents, type IAction } from "../../service/ActionService";
+import { ActionEvents, type ActionService, type IAction } from "../../service/ActionService";
 
 export class ActionList extends BaseComponent {
-  private _actionService = getDefaultServiceLayer().actionService;
+  private _actionService: ActionService | null = null;
   private _actionAddedHandler?: (e: Event) => void;
 
   static get observedAttributes(): string[] {
@@ -11,7 +10,9 @@ export class ActionList extends BaseComponent {
   }
 
   protected onInit(): void {
+    this._actionService = this.getServiceLayer().actionService;
     this.addEventListeners();
+    this.render();
   }
 
   protected onDestroy(): void {
@@ -19,7 +20,7 @@ export class ActionList extends BaseComponent {
   }
 
   protected render(): void {
-    const actions = this._actionService.getActions();
+    const actions = this._actionService ? this._actionService.getActions() : [];
 
     const actionsHtml = actions.length > 0
       ? actions.map(action => this.renderAction(action)).join('')
@@ -108,12 +109,16 @@ export class ActionList extends BaseComponent {
     this._actionAddedHandler = () => {
       this.render();
     };
-    this._actionService.addEventListener(ActionEvents.ACTION_ADDED, this._actionAddedHandler);
+    if (this._actionService) {
+      this._actionService.addEventListener(ActionEvents.ACTION_ADDED, this._actionAddedHandler);
+    }
   }
 
   private removeEventListeners(): void {
     if (this._actionAddedHandler) {
-      this._actionService.removeEventListener(ActionEvents.ACTION_ADDED, this._actionAddedHandler);
+      if (this._actionService) {
+        this._actionService.removeEventListener(ActionEvents.ACTION_ADDED, this._actionAddedHandler);
+      }
       this._actionAddedHandler = undefined;
     }
   }

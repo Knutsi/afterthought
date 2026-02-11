@@ -6,6 +6,10 @@ import { MoveMode } from "./MoveMode";
 import { MOUSE_BUTTON_PRIMARY } from "../managers/InputManager";
 
 const DRAG_THRESHOLD = 3;
+const ZOOM_IN_FACTOR = 1.1;
+const ZOOM_OUT_FACTOR = 0.9;
+const ZOOM_MIN = 0.1;
+const ZOOM_MAX = 5.0;
 
 export class IdleMode implements IDiagramMode {
   readonly name: string = "idle";
@@ -89,6 +93,18 @@ export class IdleMode implements IDiagramMode {
 
   onKeyUp(_event: KeyboardEvent): void {
     // No action in idle mode for now
+  }
+
+  onWheel(event: WheelEvent): void {
+    event.preventDefault();
+    if (event.ctrlKey) {
+      const currentZoom = this.diagram.getZoom();
+      const factor = event.deltaY > 0 ? ZOOM_OUT_FACTOR : ZOOM_IN_FACTOR;
+      const newZoom = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, currentZoom * factor));
+      this.diagram.setZoomAtPoint(newZoom, event.clientX, event.clientY);
+    } else {
+      this.diagram.panByCanvas(-event.deltaX, -event.deltaY);
+    }
   }
 
   onDoubleClick(info: DiagramPointerInfo, _event: MouseEvent): void {

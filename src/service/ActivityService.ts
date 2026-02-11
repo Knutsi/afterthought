@@ -1,6 +1,9 @@
 // NOTE:
 //  We currently only support one activity container, but will add support for different types in the future,
 //  e.g. modals and widgets that are slotted into larger customizable workspace pages.
+import type { ServiceLayer } from "./ServiceLayer";
+import type { IContextPart } from "./context/types";
+import type { ContextPart } from "./context/ContextService";
 
 export enum ActivityType {
   TAB = "tab",
@@ -11,7 +14,7 @@ export enum ActivityType {
 export interface IActivity {
   readonly activityId: string;
   readonly activityType: ActivityType;
-  onGetContext(): void;
+  onGetContext(contextPart: IContextPart): void;
   onDropContext(): void;
 }
 
@@ -29,11 +32,18 @@ interface IActivityStackEntry {
   element: HTMLElement;
   activityType: ActivityType;
   isHomeActivity: boolean;
+  contextPart: ContextPart;
 }
 
 export class ActivityService extends EventTarget {
   private activityContainer: HTMLElement | null = null;
   private activityStack: IActivityStackEntry[] = [];
+  private serviceLayer: ServiceLayer;
+
+  constructor(serviceLayer: ServiceLayer) {
+    super();
+    this.serviceLayer = serviceLayer;
+  }
 
   public registerActivityContainer(container: HTMLElement) {
     this.activityContainer = container;
@@ -54,25 +64,36 @@ export class ActivityService extends EventTarget {
       ? activityElement.activityType
       : ActivityType.TAB;
 
+    const contextService = this.serviceLayer.getContextService();
+    const contextPart = contextService.createPart();
+
     // Drop context from previous top activity
     const previousTop = this.activityStack.length > 0
       ? this.activityStack[this.activityStack.length - 1]
       : null;
-    if (previousTop && this.isActivity(previousTop.element)) {
-      previousTop.element.onDropContext();
+    if (previousTop) {
+      if (this.isActivity(previousTop.element)) {
+        previousTop.element.onDropContext();
+      }
     }
 
+    // Install the new part
+    contextService.installPart(contextPart);
+
     // Push to stack
-    this.activityStack.push({
+    const stackEntry: IActivityStackEntry = {
       id: activityElement.id,
       element: activityElement,
       activityType,
       isHomeActivity,
-    });
+      contextPart,
+    };
+
+    this.activityStack.push(stackEntry);
 
     // New activity gets context
     if (this.isActivity(activityElement)) {
-      activityElement.onGetContext();
+      activityElement.onGetContext(contextPart);
     }
 
     return { id: activityElement.id };
@@ -97,9 +118,17 @@ export class ActivityService extends EventTarget {
     this.activityStack.splice(targetIndex, 1);
     this.activityStack.push(target);
 
+    // Swap context parts
+    const contextService = this.serviceLayer.getContextService();
+    if (currentTop) {
+      contextService.swapPart(currentTop.contextPart, target.contextPart);
+    } else {
+      contextService.installPart(target.contextPart);
+    }
+
     // Call onGetContext on new top activity
     if (this.isActivity(target.element)) {
-      target.element.onGetContext();
+      target.element.onGetContext(target.contextPart);
     }
 
     this.dispatchEvent(new CustomEvent(ActivityEvents.ACTIVITY_SWITCHED));
@@ -118,10 +147,14 @@ export class ActivityService extends EventTarget {
     }
 
     const isActiveActivity = targetIndex === this.activityStack.length - 1;
+    const contextService = this.serviceLayer.getContextService();
 
-    // If closing the active activity, call onDropContext
-    if (isActiveActivity && this.isActivity(target.element)) {
-      target.element.onDropContext();
+    // If closing the active activity, call onDropContext and uninstall part
+    if (isActiveActivity) {
+      if (this.isActivity(target.element)) {
+        target.element.onDropContext();
+      }
+      contextService.uninstallPart(target.contextPart);
     }
 
     // Remove from stack
@@ -133,9 +166,9 @@ export class ActivityService extends EventTarget {
     // If we closed the active activity, switch to new top
     if (isActiveActivity && this.activityStack.length > 0) {
       const newTop = this.activityStack[this.activityStack.length - 1];
-      // Call onGetContext on the new top
+      contextService.installPart(newTop.contextPart);
       if (this.isActivity(newTop.element)) {
-        newTop.element.onGetContext();
+        newTop.element.onGetContext(newTop.contextPart);
       }
       this.dispatchEvent(new CustomEvent(ActivityEvents.ACTIVITY_SWITCHED));
     }
@@ -153,6 +186,11 @@ export class ActivityService extends EventTarget {
       return top.element;
     }
     return null;
+  }
+
+  public getActiveContextPart(): IContextPart | null {
+    if (this.activityStack.length === 0) return null;
+    return this.activityStack[this.activityStack.length - 1].contextPart;
   }
 
   public isActivity(element: HTMLElement): element is HTMLElement & IActivity {

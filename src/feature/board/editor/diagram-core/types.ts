@@ -140,11 +140,8 @@ export class DiagramLayer {
 export class DiagramModel {
   layers: DiagramLayer[];
 
-  offsetX: number;      // Scroll offset X (diagram space pixels)
-  offsetY: number;      // Scroll offset Y (diagram space pixels)
-
-  extentWidth: number;  // Scrollable width (diagram space)
-  extentHeight: number; // Scrollable height (diagram space)
+  offsetX: number;      // viewport offset X (world space, unbounded)
+  offsetY: number;      // viewport offset Y (world space, unbounded)
 
   zoom: number;         // Zoom factor (1.0 = 100%, 0.5 = 50%, 2.0 = 200%)
 
@@ -154,8 +151,6 @@ export class DiagramModel {
     this.layers = [];
     this.offsetX = 0;
     this.offsetY = 0;
-    this.extentWidth = 5000;  // Default extent: 5000x5000
-    this.extentHeight = 5000;
     this.zoom = 1.0;          // Default zoom: 100%
     this.modeStack = [];      // Will be initialized by Diagram
   }

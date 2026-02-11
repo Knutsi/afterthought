@@ -49,7 +49,8 @@ function showCommandPalette(serviceLayer: ServiceLayer): void {
   if (!palette) return;
 
   const actions = serviceLayer.actionService.getActions();
-  palette.configure(actions);
+  const availability = serviceLayer.actionService.getActionAvailability();
+  palette.configure(actions, availability);
 
   palette.onExecute = async (actionId: string) => {
     hideCommandPalette();

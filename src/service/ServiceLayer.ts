@@ -4,6 +4,7 @@ import { ObjectService } from "./ObjectService";
 import { ThemeService } from "./ThemeService";
 import { ActivityService } from "./ActivityService";
 import { KeyboardService } from "./KeyboardService";
+import type { FeatureId, IFeatureServiceMap } from "./featureTypes";
 
 export class ServiceLayer {
   actionService: ActionService;
@@ -13,14 +14,14 @@ export class ServiceLayer {
   activityService: ActivityService;
   keyboardService: KeyboardService;
 
-  private featureServices: Record<string, any> = {};
+  private featureServices: Partial<IFeatureServiceMap> = {};
 
   constructor() {
     this.actionService = new ActionService(this);
     this.activeContextService = new ContextService(this);
     this.objectService = new ObjectService(this);
     this.themeService = new ThemeService();
-    this.activityService = new ActivityService();
+    this.activityService = new ActivityService(this);
     this.keyboardService = new KeyboardService(this);
   }
 
@@ -40,12 +41,16 @@ export class ServiceLayer {
     return this.activityService;
   }
 
-  public getFeatureService<T>(featureName: string): T {
-    return this.featureServices[featureName] as T;
+  public getFeatureService<T>(featureName: string): T;
+  public getFeatureService<K extends FeatureId>(featureName: K): IFeatureServiceMap[K];
+  public getFeatureService<K extends FeatureId>(featureName: K | string): IFeatureServiceMap[K] {
+    return this.featureServices[featureName as K] as IFeatureServiceMap[K];
   }
 
-  public registerFeatureService<T>(featureName: string, featureService: T) {
-    this.featureServices[featureName] = featureService;
+  public registerFeatureService<T>(featureName: string, featureService: T): void;
+  public registerFeatureService<K extends FeatureId>(featureName: K, featureService: IFeatureServiceMap[K]): void;
+  public registerFeatureService<K extends FeatureId>(featureName: K | string, featureService: IFeatureServiceMap[K] | unknown): void {
+    this.featureServices[featureName as K] = featureService as IFeatureServiceMap[K];
   }
 
   public getLoggers() {

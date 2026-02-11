@@ -1,9 +1,16 @@
 import type { IObject } from "../../service/ObjectService";
+import type { TaskService } from "./TaskService";
 
 export type TaskID = string;
 
 export const TASK_STORE_ID = 'task-store';
 export const TASK_SERVICE_NAME = 'task-service';
+
+declare module "../../service/featureTypes" {
+  interface IFeatureServiceMap {
+    [TASK_SERVICE_NAME]: TaskService;
+  }
+}
 
 export class TaskModel {
   tasks: Task[] = []
@@ -40,5 +47,4 @@ export interface TaskCreateResult {
   taskUri: string;
   object: IObject;
 }
-
 

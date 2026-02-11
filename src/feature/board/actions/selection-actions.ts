@@ -1,16 +1,11 @@
 import type { IAction, UndoFunction, RedoFunction } from "../../../service/ActionService";
 import type { ServiceLayer } from "../../../service/ServiceLayer";
 import type { IContext } from "../../../service/context/types";
-import { SELECT_ALL_ACTION_ID, SELECT_NONE_ACTION_ID } from "../types";
+import { URI_SCHEMES } from "../../../core-model/uri";
+import { SELECT_ALL_ACTION_ID, SELECT_NONE_ACTION_ID, BOARD_SERVICE_NAME } from "../types";
 import { BoardActivity } from "../BoardActivity";
-
-function makeBoardCanDoFn(serviceLayer: ServiceLayer): (context: IContext) => Promise<boolean> {
-  return async (_context: IContext): Promise<boolean> => {
-    const activityService = serviceLayer.getActivityService();
-    const activeActivity = activityService.getActiveActivity();
-    return activeActivity instanceof BoardActivity;
-  };
-}
+import { BoardService } from "../BoardService";
+import { getTaskUrisFromElements, getElementsFromIds } from "./selection-request-actions";
 
 export function createSelectAllAction(serviceLayer: ServiceLayer): IAction {
   return {
@@ -28,28 +23,44 @@ export function createSelectAllAction(serviceLayer: ServiceLayer): IAction {
       }
 
       const diagram = activeActivity.getDiagram();
-      if (!diagram) return;
+      const boardUri = activeActivity.getBoardUri();
+      if (!diagram || !boardUri) return;
 
+      const boardService = serviceLayer.getFeatureService<BoardService>(BOARD_SERVICE_NAME);
       const selectionManager = diagram.getSelectionManager();
+      const stageManager = diagram.getStageManager();
+
       const previousSelection = selectionManager.getSelection();
+      const previousElements = getElementsFromIds(stageManager, previousSelection);
+      const previousTaskUris = getTaskUrisFromElements(previousElements);
 
       selectionManager.selectAll();
 
-      const makeUndoFn = (prevSelection: string[]): UndoFunction => {
+      const currentSelection = selectionManager.getSelection();
+      const currentElements = getElementsFromIds(stageManager, currentSelection);
+      const currentTaskUris = getTaskUrisFromElements(currentElements);
+      boardService.updateSelectionContext(boardUri, currentTaskUris);
+
+      const makeUndoFn = (prevSelection: string[], prevUris: typeof previousTaskUris, curSelection: string[], curUris: typeof currentTaskUris): UndoFunction => {
         return async (): Promise<RedoFunction | void> => {
           selectionManager.setSelection(prevSelection);
+          boardService.updateSelectionContext(boardUri, prevUris);
 
           return async (): Promise<UndoFunction | void> => {
-            const undoSelection = selectionManager.getSelection();
-            selectionManager.selectAll();
-            return makeUndoFn(undoSelection);
+            selectionManager.setSelection(curSelection);
+            boardService.updateSelectionContext(boardUri, curUris);
+            return makeUndoFn(prevSelection, prevUris, curSelection, curUris);
           };
         };
       };
 
-      return makeUndoFn(previousSelection);
+      return makeUndoFn(previousSelection, previousTaskUris, currentSelection, currentTaskUris);
     },
-    canDo: makeBoardCanDoFn(serviceLayer),
+    canDo: async (context: IContext): Promise<boolean> => {
+      const taskCount = context.getEntriesByScheme(URI_SCHEMES.TASK).length;
+      const selectedCount = context.getEntriesByScheme(URI_SCHEMES.SELECTED).length;
+      return taskCount > selectedCount;
+    },
   };
 }
 
@@ -69,27 +80,40 @@ export function createSelectNoneAction(serviceLayer: ServiceLayer): IAction {
       }
 
       const diagram = activeActivity.getDiagram();
-      if (!diagram) return;
+      const boardUri = activeActivity.getBoardUri();
+      if (!diagram || !boardUri) return;
 
+      const boardService = serviceLayer.getFeatureService<BoardService>(BOARD_SERVICE_NAME);
       const selectionManager = diagram.getSelectionManager();
+      const stageManager = diagram.getStageManager();
+
       const previousSelection = selectionManager.getSelection();
+      const previousElements = getElementsFromIds(stageManager, previousSelection);
+      const previousTaskUris = getTaskUrisFromElements(previousElements);
 
       selectionManager.selectNone();
+      boardService.updateSelectionContext(boardUri, []);
 
-      const makeUndoFn = (prevSelection: string[]): UndoFunction => {
+      const makeUndoFn = (prevSelection: string[], prevUris: typeof previousTaskUris): UndoFunction => {
         return async (): Promise<RedoFunction | void> => {
           selectionManager.setSelection(prevSelection);
+          boardService.updateSelectionContext(boardUri, prevUris);
 
           return async (): Promise<UndoFunction | void> => {
             const undoSelection = selectionManager.getSelection();
+            const undoElements = getElementsFromIds(stageManager, undoSelection);
+            const undoUris = getTaskUrisFromElements(undoElements);
             selectionManager.selectNone();
-            return makeUndoFn(undoSelection);
+            boardService.updateSelectionContext(boardUri, []);
+            return makeUndoFn(undoSelection, undoUris);
           };
         };
       };
 
-      return makeUndoFn(previousSelection);
+      return makeUndoFn(previousSelection, previousTaskUris);
     },
-    canDo: makeBoardCanDoFn(serviceLayer),
+    canDo: async (context: IContext): Promise<boolean> => {
+      return context.getEntriesByScheme(URI_SCHEMES.SELECTED).length > 0;
+    },
   };
 }

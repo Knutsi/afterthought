@@ -1,6 +1,5 @@
 import { BaseComponent, defineComponent } from "../core/BaseComponent";
 import { EventListeners } from "../core/utilities";
-import { getDefaultServiceLayer } from "../../service/ServiceLayer";
 import { ActionEvents } from "../../service/ActionService";
 import { buildMenuBarModel, type IDynamicMenuBarModel, type IMenu } from "./menuModelAdapter";
 
@@ -25,7 +24,7 @@ export class DynamicMenuBar extends BaseComponent {
   }
 
   protected onInit(): void {
-    const actionService = getDefaultServiceLayer().actionService;
+    const actionService = this.getServiceLayer().actionService;
 
     // Listen to action events - trigger rebuild on changes
     actionService.addEventListener(ActionEvents.ACTION_ADDED, () => {
@@ -194,9 +193,10 @@ export class DynamicMenuBar extends BaseComponent {
   }
 
   private async rebuild(): Promise<void> {
-    const actionService = getDefaultServiceLayer().actionService;
+    const actionService = this.getServiceLayer().actionService;
     const actions = actionService.getActions();
-    const model = await buildMenuBarModel(actions);
+    const availability = actionService.getActionAvailability();
+    const model = await buildMenuBarModel(actions, availability);
     this.renderFromModel(model);
   }
 
@@ -315,7 +315,7 @@ export class DynamicMenuBar extends BaseComponent {
   private _handleMenuAction = (actionId: string): void => {
     if (!actionId) return;
 
-    const actionService = getDefaultServiceLayer().actionService;
+    const actionService = this.getServiceLayer().actionService;
     try {
       actionService.doAction(actionId);
     } catch (error) {

@@ -2,9 +2,16 @@ import type { DiagramElement } from "./editor/diagram-core/types";
 import type { SelectionManager } from "./editor/diagram-core/managers/SelectionManager";
 import type { StageManager } from "./editor/diagram-core/managers/StageManager";
 import type { Uri } from "../../core-model/uri";
+import type { BoardService } from "./BoardService";
 
 export const BOARD_ACTIVITY_TAG = "board-activity";
 export const BOARD_SERVICE_NAME = "board-service";
+
+declare module "../../service/featureTypes" {
+  interface IFeatureServiceMap {
+    [BOARD_SERVICE_NAME]: BoardService;
+  }
+}
 
 // Board events emitted by BoardService
 export const BoardEvents = {
@@ -32,8 +39,9 @@ export const SELECTION_ADD_ACTION_ID = "board.selection-add";
 export const SELECTION_REMOVE_ACTION_ID = "board.selection-remove";
 export const MOVE_ELEMENTS_ACTION_ID = "board.move-elements";
 
-// feature identifier for selection context entries
+// feature identifiers for context entries
 export const BOARD_SELECTION_FEATURE = "board-selection";
+export const BOARD_CONTENT_FEATURE = "board-content";
 
 export interface IBoardActivityParams {
   name: string,

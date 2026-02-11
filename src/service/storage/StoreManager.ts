@@ -3,6 +3,9 @@ import { homeDir } from '@tauri-apps/api/path';
 import { StorageProvider } from './StorageProvider';
 import { IStore, IObject, IStoreRegistry } from './types';
 
+const STORE_SCHEMA_VERSION = 1;
+const OBJECT_SCHEMA_VERSION = 1;
+
 export class StoreManager {
   private storageProvider: StorageProvider;
 
@@ -44,6 +47,7 @@ export class StoreManager {
       name,
       createdAt: now,
       modifiedAt: now,
+      schemaVersion: STORE_SCHEMA_VERSION,
     };
 
     await this.storageProvider.ensureStoreDirectoryExists(id);
@@ -82,6 +86,9 @@ export class StoreManager {
 
     store.name = name;
     store.modifiedAt = this.getTimestamp();
+    if (store.schemaVersion === undefined) {
+      store.schemaVersion = STORE_SCHEMA_VERSION;
+    }
 
     await this.storageProvider.writeJson(`stores/${id}/meta.json`, store);
     return store;
@@ -117,6 +124,7 @@ export class StoreManager {
       storeId,
       createdAt: now,
       modifiedAt: now,
+      schemaVersion: OBJECT_SCHEMA_VERSION,
     };
 
     await this.storageProvider.writeJson(`stores/${storeId}/objects/${id}.json`, object);
@@ -165,6 +173,9 @@ export class StoreManager {
     const now = this.getTimestamp();
     object.data = data;
     object.modifiedAt = now;
+    if (object.schemaVersion === undefined) {
+      object.schemaVersion = OBJECT_SCHEMA_VERSION;
+    }
 
     await this.storageProvider.writeJson(`stores/${storeId}/objects/${objectId}.json`, object);
 

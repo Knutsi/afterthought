@@ -2,6 +2,7 @@
 import { getDefaultServiceLayer } from "./service/ServiceLayer.ts";
 
 // Import components directly (they auto-register via defineComponent):
+import "./gui/core/ServiceProvider";
 import "./gui/layout/MainLayout";
 import "./gui/menubar/MenuItem";
 import "./gui/menubar/Menu";
@@ -45,9 +46,15 @@ async function initializeApp(): Promise<void> {
   serviceLayer.getThemeService().registerActions(serviceLayer.actionService);
 
   // register all features:
-  setupHomeFeature(serviceLayer);
-  await setupBoardFeature(serviceLayer);
-  await setupTaskFeature(serviceLayer);
+  const featureSetups = [
+    setupHomeFeature,
+    setupBoardFeature,
+    setupTaskFeature,
+  ];
+
+  for (const setupFeature of featureSetups) {
+    await setupFeature(serviceLayer);
+  }
 
   // Trigger initial action availability check after all initialization is complete
   serviceLayer.actionService.updateActionAvailability();

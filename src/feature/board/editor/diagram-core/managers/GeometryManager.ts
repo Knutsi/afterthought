@@ -62,6 +62,20 @@ export class GeometryManager {
     return result;
   }
 
+  getContentBounds(): { minX: number; minY: number; maxX: number; maxY: number } | null {
+    this.rebuildCacheIfNeeded();
+    if (this.geometryCache.length === 0) return null;
+
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    for (const b of this.geometryCache) {
+      minX = Math.min(minX, b.x);
+      minY = Math.min(minY, b.y);
+      maxX = Math.max(maxX, b.x + b.width);
+      maxY = Math.max(maxY, b.y + b.height);
+    }
+    return { minX, minY, maxX, maxY };
+  }
+
   private rebuildCacheIfNeeded(): void {
     if (!this.dirty) return;
 

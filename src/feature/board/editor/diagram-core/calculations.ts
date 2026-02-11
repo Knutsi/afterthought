@@ -24,25 +24,3 @@ export function screenDeltaToWorldDelta(
     deltaY: screenDeltaY / zoom,
   };
 }
-
-export function worldOffsetToScrollPosition(
-  offsetX: number,
-  offsetY: number,
-  zoom: number
-): { scrollLeft: number; scrollTop: number } {
-  return {
-    scrollLeft: offsetX * zoom,
-    scrollTop: offsetY * zoom,
-  };
-}
-
-export function scrollPositionToWorldOffset(
-  scrollLeft: number,
-  scrollTop: number,
-  zoom: number
-): { offsetX: number; offsetY: number } {
-  return {
-    offsetX: scrollLeft / zoom,
-    offsetY: scrollTop / zoom,
-  };
-}
