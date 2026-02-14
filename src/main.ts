@@ -1,6 +1,11 @@
 // core services and functions:
 import { getDefaultServiceLayer } from "./service/ServiceLayer.ts";
 import { GitStorageProvider } from "./service/storage/GitStorageProvider.ts";
+import { PersonalStore } from "./service/database/PersonalStore.ts";
+import type { IUiState } from "./service/database/PersonalStore.ts";
+import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
+import { getMatches } from "@tauri-apps/plugin-cli";
+import { openDatabaseWindow } from "./feature/git/openDatabaseWindow.ts";
 
 // Import components directly (they auto-register via defineComponent):
 import "./gui/core/ServiceProvider";
@@ -29,12 +34,39 @@ import { setupBoardFeature } from "./feature/board/setupBoardFeature.ts";
 import { setupHomeFeature } from "./feature/home/setupHomeFeature.ts";
 import { setupTaskFeature } from "./feature/task/setupTaskFeature.ts";
 import { setupGitFeature } from "./feature/git/setupGitFeature.ts";
-import { CREATE_BOARD_ACTION_ID } from "./feature/board/types.ts";
 
-async function resolveDatabasePath(serviceLayer: import("./service/ServiceLayer").ServiceLayer): Promise<string> {
+interface ICliFlags {
+  noRestoreDatabases: boolean;
+  noRestoreActivities: boolean;
+}
+
+function isPrimaryWindow(): boolean {
+  const params = new URLSearchParams(window.location.search);
+  return !params.has('database');
+}
+
+async function getCliFlags(): Promise<ICliFlags> {
+  if (!isPrimaryWindow()) {
+    return { noRestoreDatabases: false, noRestoreActivities: false };
+  }
+  try {
+    const matches = await getMatches();
+    return {
+      noRestoreDatabases: !!matches.args['no-restore-databases']?.occurrences,
+      noRestoreActivities: !!matches.args['no-restore-activities']?.occurrences,
+    };
+  } catch {
+    return { noRestoreDatabases: false, noRestoreActivities: false };
+  }
+}
+
+async function resolveDatabasePath(
+  serviceLayer: import("./service/ServiceLayer").ServiceLayer,
+  cliFlags: ICliFlags,
+): Promise<string> {
   const databaseService = serviceLayer.databaseService;
 
-  // check url param first (set when opening from another window)
+  // secondary window: use url param
   const params = new URLSearchParams(window.location.search);
   const paramPath = params.get('database');
   if (paramPath) {
@@ -42,7 +74,27 @@ async function resolveDatabasePath(serviceLayer: import("./service/ServiceLayer"
     return info.path;
   }
 
-  // check last opened database
+  // primary window: try session restore
+  if (!cliFlags.noRestoreDatabases) {
+    const sessionDbs = await serviceLayer.sessionService.getOpenDatabases();
+    if (sessionDbs && sessionDbs.length > 0) {
+      // take first for self, spawn windows for the rest
+      const [first, ...rest] = sessionDbs;
+      for (const dbPath of rest) {
+        const valid = await databaseService.isValidDatabase(dbPath);
+        if (valid) {
+          const name = dbPath.split('/').pop()!;
+          openDatabaseWindow({ name, path: dbPath });
+        }
+      }
+      const valid = await databaseService.isValidDatabase(first);
+      if (valid) {
+        return first;
+      }
+    }
+  }
+
+  // fallback: last opened
   const lastOpened = await databaseService.getLastOpenedDatabase();
   if (lastOpened) {
     return lastOpened;
@@ -55,13 +107,19 @@ async function resolveDatabasePath(serviceLayer: import("./service/ServiceLayer"
 
 async function initializeApp(): Promise<void> {
   const serviceLayer = getDefaultServiceLayer();
+  const cliFlags = await getCliFlags();
 
   // resolve database path
-  const databasePath = await resolveDatabasePath(serviceLayer);
+  const databasePath = await resolveDatabasePath(serviceLayer, cliFlags);
 
   // initialize storage layer
   const storageProvider = new GitStorageProvider(databasePath);
   await serviceLayer.objectService.initialize(storageProvider);
+
+  // initialize personal store
+  const personalStore = new PersonalStore(storageProvider);
+  await personalStore.initialize();
+  serviceLayer.personalStore = personalStore;
 
   // track as recent
   const name = databasePath.split('/').pop()!;
@@ -102,11 +160,34 @@ async function initializeApp(): Promise<void> {
     await setupFeature(serviceLayer);
   }
 
+  // restore activities from previous session
+  if (!cliFlags.noRestoreActivities) {
+    const uiState = await personalStore.getUiState<IUiState>();
+    if (uiState?.activities) {
+      for (const activity of uiState.activities) {
+        // skip home activities, setupHomeFeature already creates one
+        if (activity.isHomeActivity) continue;
+        serviceLayer.activityService.startActivity(
+          activity.elementName,
+          activity.params,
+        );
+      }
+    }
+  }
+
   // Trigger initial action availability check after all initialization is complete
   serviceLayer.actionService.updateActionAvailability();
 
-  // DEBUG:
-  serviceLayer.actionService.doAction(CREATE_BOARD_ACTION_ID);
+  // register close handler to save state
+  const appWindow = getCurrentWebviewWindow();
+  appWindow.onCloseRequested(async () => {
+    // save per-database activity state
+    const entries = serviceLayer.activityService.getActivityEntries();
+    await personalStore.setUiState({ activities: entries } as IUiState);
+
+    // save open databases to session (primary window updates session file)
+    await serviceLayer.sessionService.saveOpenDatabases([databasePath]);
+  });
 }
 
 const showBody = () => requestAnimationFrame(() => document.body.style.visibility = 'visible');

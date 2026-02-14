@@ -13,7 +13,8 @@
       "WebSearch",
       "Bash(git -C /Users/knut/Code/afterthought log --oneline -20)",
       "Bash(npm install:*)",
-      "Bash(npm run tauri:*)"
+      "Bash(npm run tauri:*)",
+      "Bash(xargs:*)"
     ]
   }
 }

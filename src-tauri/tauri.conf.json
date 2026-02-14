@@ -22,6 +22,22 @@
       "csp": null
     }
   },
+  "plugins": {
+    "cli": {
+      "args": [
+        {
+          "name": "no-restore-databases",
+          "takesValue": false,
+          "description": "Skip restoring database windows"
+        },
+        {
+          "name": "no-restore-activities",
+          "takesValue": false,
+          "description": "Skip restoring activities"
+        }
+      ]
+    }
+  },
   "bundle": {
     "active": true,
     "targets": "all",

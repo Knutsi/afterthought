@@ -2,9 +2,14 @@ use std::fs;
 use std::path::PathBuf;
 use std::time::SystemTime;
 
+use tauri::Manager;
+
 #[tauri::command]
 fn quit_app(app: tauri::AppHandle) {
-    app.exit(0);
+    // close windows gracefully so onCloseRequested fires per window
+    for (_, window) in app.webview_windows() {
+        let _ = window.close();
+    }
 }
 
 fn iso_now() -> String {
@@ -68,6 +73,7 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_cli::init())
         .invoke_handler(tauri::generate_handler![quit_app, create_database])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

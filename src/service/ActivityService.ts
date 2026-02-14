@@ -4,6 +4,7 @@
 import type { ServiceLayer } from "./ServiceLayer";
 import type { IContextPart } from "./context/types";
 import type { ContextPart } from "./context/ContextService";
+import type { IActivitySession } from "./database/PersonalStore";
 
 export enum ActivityType {
   TAB = "tab",
@@ -233,5 +234,13 @@ export class ActivityService extends EventTarget {
       typeof (element as IActivity).onGetContext === "function" &&
       typeof (element as IActivity).onDropContext === "function"
     );
+  }
+
+  public getActivityEntries(): IActivitySession[] {
+    return this.activityStack.map((entry) => ({
+      elementName: entry.element.tagName.toLowerCase(),
+      params: JSON.parse(entry.element.getAttribute("data-parameters") || "{}"),
+      isHomeActivity: entry.isHomeActivity,
+    }));
   }
 }
