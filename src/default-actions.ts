@@ -9,35 +9,6 @@ import { WebviewWindow } from '@tauri-apps/api/webviewWindow';
 const UNDO_REDO_SUBGROUP = "undo-redo";
 
 function createDatabaseActions(serviceLayer: ServiceLayer, databaseService: DatabaseService): IAction[] {
-  const newDatabaseAction: IAction = {
-    id: "database.new",
-    name: "New Database",
-    shortcuts: ["Ctrl+N D"],
-    menuGroup: "File",
-    menuSubGroup: "create",
-    do: async (_context: IContext, _args?: Record<string, unknown>) => {
-      const parentDir = await dialogOpen({
-        directory: true,
-        title: "Choose parent directory for new database",
-      });
-      if (!parentDir) return;
-
-      const name = prompt("Database name:");
-      if (!name) return;
-
-      const info = await databaseService.createDatabase(parentDir, name);
-      await databaseService.addRecentDatabase(info);
-
-      new WebviewWindow(`db-${Date.now()}`, {
-        url: `index.html?database=${encodeURIComponent(info.path)}`,
-        title: info.name,
-        width: 800,
-        height: 600,
-      });
-    },
-    canDo: async () => true,
-  };
-
   const openDatabaseAction: IAction = {
     id: "database.open",
     name: "Open Database",
@@ -77,7 +48,7 @@ function createDatabaseActions(serviceLayer: ServiceLayer, databaseService: Data
     canDo: async () => true,
   };
 
-  return [newDatabaseAction, openDatabaseAction, reloadDatabaseAction];
+  return [openDatabaseAction, reloadDatabaseAction];
 }
 
 var quitAction: IAction = {

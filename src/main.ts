@@ -13,6 +13,13 @@ import "./feature/project-browser/ProjectBrowser";
 import "./feature/debug/ActionList";
 import "./feature/home/HomeActivity.ts";
 import "./feature/board/BoardActivity.ts";
+import "./feature/git/NewDatabaseActivity.ts";
+
+// gui toolkit and modal:
+import "./gui/toolkit/Button";
+import "./gui/toolkit/FormField";
+import "./gui/toolkit/Dialog";
+import "./gui/modal/ModalOverlay";
 
 // Import default actions setup:
 import { setupDefaultActions } from "./default-actions.ts";
@@ -21,6 +28,7 @@ import { setupCommandPaletteFeature } from "./feature/command-palette/setupComma
 import { setupBoardFeature } from "./feature/board/setupBoardFeature.ts";
 import { setupHomeFeature } from "./feature/home/setupHomeFeature.ts";
 import { setupTaskFeature } from "./feature/task/setupTaskFeature.ts";
+import { setupGitFeature } from "./feature/git/setupGitFeature.ts";
 import { CREATE_BOARD_ACTION_ID } from "./feature/board/types.ts";
 
 async function resolveDatabasePath(databaseService: DatabaseService): Promise<string> {
@@ -69,6 +77,15 @@ async function initializeApp(): Promise<void> {
   // main container for activities:
   const activityContainer = getActivityContainer();
   serviceLayer.activityService.registerActivityContainer(activityContainer);
+
+  // modal container:
+  const modalContainer = document.getElementById("modal-container");
+  if (modalContainer) {
+    serviceLayer.activityService.registerModalContainer(modalContainer);
+  }
+
+  // setup git feature (before other features, registers database.new action):
+  setupGitFeature(serviceLayer, databaseService);
 
   // theme:
   await serviceLayer.getThemeService().initialize(serviceLayer.objectService);
