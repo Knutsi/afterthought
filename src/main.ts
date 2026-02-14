@@ -4,8 +4,12 @@ import { GitStorageProvider } from "./service/storage/GitStorageProvider.ts";
 import { PersonalStore } from "./service/database/PersonalStore.ts";
 import type { IUiState } from "./service/database/PersonalStore.ts";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
+import { invoke } from "@tauri-apps/api/core";
 import { getMatches } from "@tauri-apps/plugin-cli";
+import { availableMonitors } from "@tauri-apps/api/window";
+import { LogicalPosition, LogicalSize } from "@tauri-apps/api/dpi";
 import { openDatabaseWindow } from "./feature/git/openDatabaseWindow.ts";
+import type { IWindowGeometry } from "./service/session/types.ts";
 
 // Import components directly (they auto-register via defineComponent):
 import "./gui/core/ServiceProvider";
@@ -35,6 +39,13 @@ import { setupHomeFeature } from "./feature/home/setupHomeFeature.ts";
 import { setupTaskFeature } from "./feature/task/setupTaskFeature.ts";
 import { setupGitFeature } from "./feature/git/setupGitFeature.ts";
 
+const CASCADE_ORIGIN_X = 80;
+const CASCADE_ORIGIN_Y = 80;
+const CASCADE_OFFSET = 30;
+const DEFAULT_WIDTH = 800;
+const DEFAULT_HEIGHT = 600;
+const MIN_VISIBLE_PX = 100;
+
 interface ICliFlags {
   noRestoreDatabases: boolean;
   noRestoreActivities: boolean;
@@ -60,6 +71,50 @@ async function getCliFlags(): Promise<ICliFlags> {
   }
 }
 
+async function isGeometryVisible(geo: IWindowGeometry): Promise<boolean> {
+  const monitors = await availableMonitors();
+  for (const monitor of monitors) {
+    const mx = monitor.position.x;
+    const my = monitor.position.y;
+    const mw = monitor.size.width / monitor.scaleFactor;
+    const mh = monitor.size.height / monitor.scaleFactor;
+
+    // check if at least MIN_VISIBLE_PX of the window overlaps this monitor
+    const overlapX = Math.min(geo.x + geo.width, mx + mw) - Math.max(geo.x, mx);
+    const overlapY = Math.min(geo.y + geo.height, my + mh) - Math.max(geo.y, my);
+
+    if (overlapX >= MIN_VISIBLE_PX && overlapY >= MIN_VISIBLE_PX) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function cascadeGeometry(index: number): IWindowGeometry {
+  return {
+    x: CASCADE_ORIGIN_X + index * CASCADE_OFFSET,
+    y: CASCADE_ORIGIN_Y + index * CASCADE_OFFSET,
+    width: DEFAULT_WIDTH,
+    height: DEFAULT_HEIGHT,
+  };
+}
+
+async function resolveGeometry(
+  path: string,
+  index: number,
+  geometryMap?: Record<string, IWindowGeometry> | null,
+): Promise<IWindowGeometry | undefined> {
+  if (!geometryMap) return undefined;
+
+  const saved = geometryMap[path];
+  if (!saved) return undefined;
+
+  const visible = await isGeometryVisible(saved);
+  if (visible) return saved;
+
+  return cascadeGeometry(index);
+}
+
 async function resolveDatabasePath(
   serviceLayer: import("./service/ServiceLayer").ServiceLayer,
   cliFlags: ICliFlags,
@@ -76,19 +131,34 @@ async function resolveDatabasePath(
 
   // primary window: try session restore
   if (!cliFlags.noRestoreDatabases) {
-    const sessionDbs = await serviceLayer.sessionService.getOpenDatabases();
+    const sessionState = await serviceLayer.sessionService.getSessionState();
+    const sessionDbs = sessionState?.openDatabases;
+    const geometryMap = sessionState?.windowGeometry;
+
     if (sessionDbs && sessionDbs.length > 0) {
       // take first for self, spawn windows for the rest
       const [first, ...rest] = sessionDbs;
+
+      let windowIndex = 1;
       for (const dbPath of rest) {
         const valid = await databaseService.isValidDatabase(dbPath);
         if (valid) {
           const name = dbPath.split('/').pop()!;
-          openDatabaseWindow({ name, path: dbPath });
+          const geo = await resolveGeometry(dbPath, windowIndex, geometryMap);
+          await openDatabaseWindow({ name, path: dbPath }, geo);
+          windowIndex++;
         }
       }
+
       const valid = await databaseService.isValidDatabase(first);
       if (valid) {
+        // apply geometry to primary window
+        const geo = await resolveGeometry(first, 0, geometryMap);
+        if (geo) {
+          const appWindow = getCurrentWebviewWindow();
+          await appWindow.setSize(new LogicalSize(geo.width, geo.height));
+          await appWindow.setPosition(new LogicalPosition(geo.x, geo.y));
+        }
         return first;
       }
     }
@@ -121,8 +191,15 @@ async function initializeApp(): Promise<void> {
   await personalStore.initialize();
   serviceLayer.personalStore = personalStore;
 
-  // track as recent
+  // register this window's database in Rust state
+  const appWindow = getCurrentWebviewWindow();
+  await invoke('register_window_database', { label: appWindow.label, path: databasePath });
+
+  // set window title to database name
   const name = databasePath.split('/').pop()!;
+  await appWindow.setTitle(name);
+
+  // track as recent
   await serviceLayer.databaseService.addRecentDatabase({ name, path: databasePath });
 
   // setup default actions:
@@ -179,14 +256,13 @@ async function initializeApp(): Promise<void> {
   serviceLayer.actionService.updateActionAvailability();
 
   // register close handler to save state
-  const appWindow = getCurrentWebviewWindow();
   appWindow.onCloseRequested(async () => {
     // save per-database activity state
     const entries = serviceLayer.activityService.getActivityEntries();
     await personalStore.setUiState({ activities: entries } as IUiState);
 
-    // save open databases to session (primary window updates session file)
-    await serviceLayer.sessionService.saveOpenDatabases([databasePath]);
+    // unregister from Rust state (also writes session.json with remaining windows)
+    await invoke('unregister_window_database', { label: appWindow.label });
   });
 }
 

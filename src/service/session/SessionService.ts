@@ -5,7 +5,7 @@ import {
   exists,
 } from '@tauri-apps/plugin-fs';
 import { appDataDir, join } from '@tauri-apps/api/path';
-import type { ISessionState } from './types';
+import type { ISessionState, IWindowGeometry } from './types';
 
 const SESSION_FILE = 'session.json';
 
@@ -18,7 +18,7 @@ export class SessionService {
     await writeTextFile(filePath, JSON.stringify(state, null, 2));
   }
 
-  async getOpenDatabases(): Promise<string[] | null> {
+  async getSessionState(): Promise<ISessionState | null> {
     const dir = await appDataDir();
     const filePath = await join(dir, SESSION_FILE);
     const fileExists = await exists(filePath);
@@ -28,7 +28,16 @@ export class SessionService {
     }
 
     const content = await readTextFile(filePath);
-    const state = JSON.parse(content) as ISessionState;
-    return state.openDatabases;
+    return JSON.parse(content) as ISessionState;
+  }
+
+  async getOpenDatabases(): Promise<string[] | null> {
+    const state = await this.getSessionState();
+    return state?.openDatabases ?? null;
+  }
+
+  async getWindowGeometry(): Promise<Record<string, IWindowGeometry> | null> {
+    const state = await this.getSessionState();
+    return state?.windowGeometry ?? null;
   }
 }

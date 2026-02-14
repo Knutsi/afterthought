@@ -1,15 +1,128 @@
+use std::collections::HashMap;
 use std::fs;
 use std::path::PathBuf;
+use std::sync::Mutex;
 use std::time::SystemTime;
 
 use tauri::Manager;
 
+struct AppState {
+    open_databases: Mutex<HashMap<String, String>>,
+    is_quitting: Mutex<bool>,
+}
+
+#[derive(serde::Serialize)]
+struct WindowGeometry {
+    x: i32,
+    y: i32,
+    width: u32,
+    height: u32,
+}
+
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+struct SessionState {
+    open_databases: Vec<String>,
+    window_geometry: HashMap<String, WindowGeometry>,
+}
+
+fn collect_geometry(app: &tauri::AppHandle, open_databases: &HashMap<String, String>) -> HashMap<String, WindowGeometry> {
+    let mut geometry = HashMap::new();
+    for (label, path) in open_databases.iter() {
+        if let Some(window) = app.get_webview_window(label) {
+            if let (Ok(pos), Ok(size), Ok(scale)) = (
+                window.outer_position(),
+                window.outer_size(),
+                window.scale_factor(),
+            ) {
+                let logical_size = size.to_logical::<u32>(scale);
+                let logical_pos = pos.to_logical::<i32>(scale);
+                geometry.insert(path.clone(), WindowGeometry {
+                    x: logical_pos.x,
+                    y: logical_pos.y,
+                    width: logical_size.width,
+                    height: logical_size.height,
+                });
+            }
+        }
+    }
+    geometry
+}
+
 #[tauri::command]
-fn quit_app(app: tauri::AppHandle) {
-    // close windows gracefully so onCloseRequested fires per window
+fn register_window_database(
+    label: String,
+    path: String,
+    state: tauri::State<'_, AppState>,
+) {
+    let mut map = state.open_databases.lock().unwrap();
+    map.insert(label, path);
+}
+
+#[tauri::command]
+fn unregister_window_database(
+    label: String,
+    state: tauri::State<'_, AppState>,
+    app: tauri::AppHandle,
+) {
+    let quitting = *state.is_quitting.lock().unwrap();
+    let (paths, geometry) = {
+        let mut map = state.open_databases.lock().unwrap();
+        map.remove(&label);
+        let geo = collect_geometry(&app, &map);
+        let paths: Vec<String> = map.values().cloned().collect();
+        (paths, geo)
+    };
+    if !quitting {
+        write_session_file(&app, &paths, geometry);
+    }
+}
+
+fn write_session_file(app: &tauri::AppHandle, paths: &[String], geometry: HashMap<String, WindowGeometry>) {
+    if let Ok(dir) = app.path().app_data_dir() {
+        let _ = fs::create_dir_all(&dir);
+        let file_path = dir.join("session.json");
+        let state = SessionState {
+            open_databases: paths.to_vec(),
+            window_geometry: geometry,
+        };
+        let _ = fs::write(file_path, serde_json::to_string_pretty(&state).unwrap());
+    }
+}
+
+#[tauri::command]
+fn quit_app(app: tauri::AppHandle, state: tauri::State<'_, AppState>) {
+    *state.is_quitting.lock().unwrap() = true;
+
+    let (paths, geometry) = {
+        let map = state.open_databases.lock().unwrap();
+        let geo = collect_geometry(&app, &map);
+        let paths: Vec<String> = map.values().cloned().collect();
+        (paths, geo)
+    };
+    write_session_file(&app, &paths, geometry);
+
     for (_, window) in app.webview_windows() {
         let _ = window.close();
     }
+}
+
+#[tauri::command]
+fn find_window_for_database(
+    path: String,
+    state: tauri::State<'_, AppState>,
+    app: tauri::AppHandle,
+) -> bool {
+    let map = state.open_databases.lock().unwrap();
+    for (label, db_path) in map.iter() {
+        if db_path == &path {
+            if let Some(window) = app.get_webview_window(label) {
+                let _ = window.set_focus();
+            }
+            return true;
+        }
+    }
+    false
 }
 
 fn iso_now() -> String {
@@ -74,7 +187,17 @@ pub fn run() {
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_cli::init())
-        .invoke_handler(tauri::generate_handler![quit_app, create_database])
+        .manage(AppState {
+            open_databases: Mutex::new(HashMap::new()),
+            is_quitting: Mutex::new(false),
+        })
+        .invoke_handler(tauri::generate_handler![
+            quit_app,
+            create_database,
+            register_window_database,
+            unregister_window_database,
+            find_window_for_database,
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
