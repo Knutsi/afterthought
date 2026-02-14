@@ -16,7 +16,7 @@ export interface IObject {
   schemaVersion?: number;
 }
 
-export type ObjectEventType = 'created' | 'updated' | 'deleted';
+export type ObjectEventType = 'created' | 'updated' | 'deleted' | 'reloaded';
 
 export interface IObjectChangeEvent {
   type: ObjectEventType;

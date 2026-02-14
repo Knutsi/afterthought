@@ -5,18 +5,6 @@ import { invoke } from '@tauri-apps/api/core';
 
 const UNDO_REDO_SUBGROUP = "undo-redo";
 
-var newProjectAction: IAction = {
-  id: "core.newProject",
-  name: "New Project",
-  shortcuts: ["Ctrl+N"],
-  menuGroup: "File",
-  menuSubGroup: "create",
-  do: async (_context: IContext, _args?: Record<string, unknown>) => {
-    console.log("New Project");
-  },
-  canDo: async () => true,
-};
-
 var quitAction: IAction = {
   id: "core.quit",
   name: "Quit",
@@ -134,7 +122,7 @@ var aboutAction: IAction = {
 
 export function setupDefaultActions(serviceLayer: ServiceLayer) {
   const actionService = serviceLayer.actionService;
-  actionService.addAction(newProjectAction);
+
   actionService.addAction(quitAction);
   actionService.addAction(helpAction);
   actionService.addAction(undoAction);

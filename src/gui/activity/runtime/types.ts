@@ -24,7 +24,7 @@ export interface IActivityView {
 
 export interface IActivityController<TParams, TView extends IActivityView> {
   attachView(view: TView): void;
-  initialize(params: TParams): void | Promise<void>;
+  initialize(params: TParams, activityId: string): void | Promise<void>;
   activate(contextPart: IContextPart): void;
   deactivate(): void;
   destroy(): void;

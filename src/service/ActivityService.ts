@@ -25,6 +25,8 @@ export interface IActivityReference {
 export const ActivityEvents = {
   ACTIVITY_SWITCHED: "activitySwitched",
   ACTIVITY_CLOSED: "activityClosed",
+  MODAL_OPENED: "modalOpened",
+  MODAL_CLOSED: "modalClosed",
 };
 
 interface IActivityStackEntry {
@@ -37,7 +39,9 @@ interface IActivityStackEntry {
 
 export class ActivityService extends EventTarget {
   private activityContainer: HTMLElement | null = null;
+  private modalContainer: HTMLElement | null = null;
   private activityStack: IActivityStackEntry[] = [];
+  private modalActivities: Map<string, HTMLElement> = new Map();
   private serviceLayer: ServiceLayer;
 
   constructor(serviceLayer: ServiceLayer) {
@@ -49,20 +53,37 @@ export class ActivityService extends EventTarget {
     this.activityContainer = container;
   }
 
+  public registerModalContainer(container: HTMLElement) {
+    this.modalContainer = container;
+  }
+
   public startActivity<TArgs>(elementName: string, parameters: TArgs, isHomeActivity: boolean = false): IActivityReference {
+    const activityElement = document.createElement(elementName);
+    activityElement.setAttribute("id", crypto.randomUUID().substring(0, 8));
+    activityElement.setAttribute("data-parameters", JSON.stringify(parameters));
+
+    // determine activity type before appending
+    const activityType = this.isActivity(activityElement)
+      ? activityElement.activityType
+      : ActivityType.TAB;
+
+    // modal activities go to the modal container
+    if (activityType === ActivityType.MODAL) {
+      if (!this.modalContainer) {
+        throw new Error("Modal container not registered");
+      }
+      this.modalContainer.appendChild(activityElement);
+      this.modalActivities.set(activityElement.id, activityElement);
+      this.dispatchEvent(new CustomEvent(ActivityEvents.MODAL_OPENED, { detail: { id: activityElement.id } }));
+      return { id: activityElement.id };
+    }
+
+    // tab/widget activities go to the activity container
     if (!this.activityContainer) {
       throw new Error("Activity container not registered");
     }
 
-    const activityElement = document.createElement(elementName);
-    activityElement.setAttribute("id", crypto.randomUUID().substring(0, 8));
-    activityElement.setAttribute("data-parameters", JSON.stringify(parameters));
     this.activityContainer.appendChild(activityElement);
-
-    // Determine activity type from the element if it implements IActivity
-    const activityType = this.isActivity(activityElement)
-      ? activityElement.activityType
-      : ActivityType.TAB;
 
     const contextService = this.serviceLayer.getContextService();
     const contextPart = contextService.createPart();
@@ -135,6 +156,16 @@ export class ActivityService extends EventTarget {
   }
 
   public closeActivity(id: string): void {
+    // check modal activities first
+    const modalElement = this.modalActivities.get(id);
+    if (modalElement) {
+      modalElement.remove();
+      this.modalActivities.delete(id);
+      this.dispatchEvent(new CustomEvent(ActivityEvents.MODAL_CLOSED, { detail: { id } }));
+      this.dispatchEvent(new CustomEvent(ActivityEvents.ACTIVITY_CLOSED, { detail: { id } }));
+      return;
+    }
+
     const targetIndex = this.activityStack.findIndex((entry) => entry.id === id);
     if (targetIndex === -1) return;
 

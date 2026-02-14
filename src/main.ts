@@ -1,5 +1,6 @@
 // core services and functions:
 import { getDefaultServiceLayer } from "./service/ServiceLayer.ts";
+import { GitStorageProvider } from "./service/storage/GitStorageProvider.ts";
 
 // Import components directly (they auto-register via defineComponent):
 import "./gui/core/ServiceProvider";
@@ -12,6 +13,13 @@ import "./feature/project-browser/ProjectBrowser";
 import "./feature/debug/ActionList";
 import "./feature/home/HomeActivity.ts";
 import "./feature/board/BoardActivity.ts";
+import "./feature/git/NewDatabaseActivity.ts";
+
+// gui toolkit and modal:
+import "./gui/toolkit/Button";
+import "./gui/toolkit/FormField";
+import "./gui/toolkit/Dialog";
+import "./gui/modal/ModalOverlay";
 
 // Import default actions setup:
 import { setupDefaultActions } from "./default-actions.ts";
@@ -20,13 +28,44 @@ import { setupCommandPaletteFeature } from "./feature/command-palette/setupComma
 import { setupBoardFeature } from "./feature/board/setupBoardFeature.ts";
 import { setupHomeFeature } from "./feature/home/setupHomeFeature.ts";
 import { setupTaskFeature } from "./feature/task/setupTaskFeature.ts";
+import { setupGitFeature } from "./feature/git/setupGitFeature.ts";
 import { CREATE_BOARD_ACTION_ID } from "./feature/board/types.ts";
+
+async function resolveDatabasePath(serviceLayer: import("./service/ServiceLayer").ServiceLayer): Promise<string> {
+  const databaseService = serviceLayer.databaseService;
+
+  // check url param first (set when opening from another window)
+  const params = new URLSearchParams(window.location.search);
+  const paramPath = params.get('database');
+  if (paramPath) {
+    const info = await databaseService.openDatabase(paramPath);
+    return info.path;
+  }
+
+  // check last opened database
+  const lastOpened = await databaseService.getLastOpenedDatabase();
+  if (lastOpened) {
+    return lastOpened;
+  }
+
+  // first run: create default database
+  const info = await databaseService.ensureDefaultDatabase();
+  return info.path;
+}
 
 async function initializeApp(): Promise<void> {
   const serviceLayer = getDefaultServiceLayer();
 
-  // Initialize storage layer first
-  await serviceLayer.objectService.initialize();
+  // resolve database path
+  const databasePath = await resolveDatabasePath(serviceLayer);
+
+  // initialize storage layer
+  const storageProvider = new GitStorageProvider(databasePath);
+  await serviceLayer.objectService.initialize(storageProvider);
+
+  // track as recent
+  const name = databasePath.split('/').pop()!;
+  await serviceLayer.databaseService.addRecentDatabase({ name, path: databasePath });
 
   // setup default actions:
   setupDefaultActions(serviceLayer);
@@ -41,12 +80,19 @@ async function initializeApp(): Promise<void> {
   const activityContainer = getActivityContainer();
   serviceLayer.activityService.registerActivityContainer(activityContainer);
 
+  // modal container:
+  const modalContainer = document.getElementById("modal-container");
+  if (modalContainer) {
+    serviceLayer.activityService.registerModalContainer(modalContainer);
+  }
+
   // theme:
   await serviceLayer.getThemeService().initialize(serviceLayer.objectService);
   serviceLayer.getThemeService().registerActions(serviceLayer.actionService);
 
   // register all features:
   const featureSetups = [
+    setupGitFeature,
     setupHomeFeature,
     setupBoardFeature,
     setupTaskFeature,
@@ -63,7 +109,8 @@ async function initializeApp(): Promise<void> {
   serviceLayer.actionService.doAction(CREATE_BOARD_ACTION_ID);
 }
 
-initializeApp().catch(console.error);
+const showBody = () => requestAnimationFrame(() => document.body.style.visibility = 'visible');
+initializeApp().then(showBody).catch((e) => { showBody(); console.error(e); });
 
 /* SUPPORTING FUNCTIONS */
 function getActivityContainer(): HTMLElement {
