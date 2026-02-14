@@ -1,14 +1,12 @@
 import type { IContextPart } from "../../service/context/types";
 import type { IActivityController } from "../../gui/activity/runtime/types";
 import type { ServiceLayer } from "../../service/ServiceLayer";
-import type { DatabaseService } from "../../service/database/DatabaseService";
 import { NewDatabaseActivityView } from "./NewDatabaseActivityView";
 import { open as dialogOpen } from "@tauri-apps/plugin-dialog";
 import { join } from "@tauri-apps/api/path";
 import { exists, readDir } from "@tauri-apps/plugin-fs";
 import { getDefaultParentDir } from "./defaultDirectory";
 import { suggestDatabaseName } from "./suggestDatabaseName";
-import { openDatabaseWindow } from "./openDatabaseWindow";
 import type { GitService } from "./GitService";
 import { GIT_SERVICE_NAME } from "./types";
 
@@ -18,7 +16,6 @@ export class NewDatabaseActivityController
   implements IActivityController<INewDatabaseActivityParams, NewDatabaseActivityView>
 {
   private serviceLayer: ServiceLayer;
-  private databaseService: DatabaseService;
   private view: NewDatabaseActivityView | null = null;
   private activityId: string = "";
 
@@ -30,8 +27,6 @@ export class NewDatabaseActivityController
 
   constructor(serviceLayer: ServiceLayer) {
     this.serviceLayer = serviceLayer;
-    const gitService = serviceLayer.getFeatureService<GitService>(GIT_SERVICE_NAME);
-    this.databaseService = gitService.getDatabaseService();
   }
 
   public attachView(view: NewDatabaseActivityView): void {
@@ -136,10 +131,10 @@ export class NewDatabaseActivityController
   private async create(): Promise<void> {
     const fsName = this.getEffectiveName();
     if (!this.parentDir || !fsName || this.targetDirWarning) return;
-    const info = await this.databaseService.createDatabase(this.parentDir, fsName);
-    await this.databaseService.addRecentDatabase(info);
 
-    openDatabaseWindow(info);
+    const info = await this.serviceLayer.databaseService.createDatabase(this.parentDir, fsName);
+    const gitService = this.serviceLayer.getFeatureService<GitService>(GIT_SERVICE_NAME);
+    await gitService.openAndTrackDatabase(info);
 
     this.cancel();
   }

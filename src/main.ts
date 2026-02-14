@@ -1,6 +1,5 @@
 // core services and functions:
 import { getDefaultServiceLayer } from "./service/ServiceLayer.ts";
-import { DatabaseService } from "./service/database/DatabaseService.ts";
 
 // Import components directly (they auto-register via defineComponent):
 import "./gui/core/ServiceProvider";
@@ -31,7 +30,9 @@ import { setupTaskFeature } from "./feature/task/setupTaskFeature.ts";
 import { setupGitFeature } from "./feature/git/setupGitFeature.ts";
 import { CREATE_BOARD_ACTION_ID } from "./feature/board/types.ts";
 
-async function resolveDatabasePath(databaseService: DatabaseService): Promise<string> {
+async function resolveDatabasePath(serviceLayer: import("./service/ServiceLayer").ServiceLayer): Promise<string> {
+  const databaseService = serviceLayer.databaseService;
+
   // check url param first (set when opening from another window)
   const params = new URLSearchParams(window.location.search);
   const paramPath = params.get('database');
@@ -53,17 +54,16 @@ async function resolveDatabasePath(databaseService: DatabaseService): Promise<st
 
 async function initializeApp(): Promise<void> {
   const serviceLayer = getDefaultServiceLayer();
-  const databaseService = new DatabaseService();
 
   // resolve database path
-  const databasePath = await resolveDatabasePath(databaseService);
+  const databasePath = await resolveDatabasePath(serviceLayer);
 
   // initialize storage layer with resolved path
   await serviceLayer.objectService.initialize(databasePath);
 
   // track as recent
   const name = databasePath.split('/').pop()!;
-  await databaseService.addRecentDatabase({ name, path: databasePath });
+  await serviceLayer.databaseService.addRecentDatabase({ name, path: databasePath });
 
   // setup default actions:
   setupDefaultActions(serviceLayer);
@@ -84,15 +84,13 @@ async function initializeApp(): Promise<void> {
     serviceLayer.activityService.registerModalContainer(modalContainer);
   }
 
-  // setup git feature (before other features, registers database.new action):
-  setupGitFeature(serviceLayer, databaseService);
-
   // theme:
   await serviceLayer.getThemeService().initialize(serviceLayer.objectService);
   serviceLayer.getThemeService().registerActions(serviceLayer.actionService);
 
   // register all features:
   const featureSetups = [
+    setupGitFeature,
     setupHomeFeature,
     setupBoardFeature,
     setupTaskFeature,
