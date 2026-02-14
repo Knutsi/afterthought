@@ -45,7 +45,7 @@ export class BoardActivityController implements IActivityController<IBoardActivi
     };
   }
 
-  public initialize(params: IBoardActivityParams): void {
+  public initialize(params: IBoardActivityParams, _activityId: string): void {
     if (!this.view) {
       throw new Error("BoardActivityController view is not attached");
     }

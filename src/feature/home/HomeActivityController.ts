@@ -9,7 +9,7 @@ export class HomeActivityController implements IActivityController<IHomeActivity
   public attachView(_view: HomeActivityView): void {
   }
 
-  public initialize(_params: IHomeActivityParams): void {
+  public initialize(_params: IHomeActivityParams, _activityId: string): void {
   }
 
   public activate(_contextPart: IContextPart): void {

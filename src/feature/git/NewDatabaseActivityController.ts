@@ -9,6 +9,8 @@ import { exists, readDir } from "@tauri-apps/plugin-fs";
 import { getDefaultParentDir } from "./defaultDirectory";
 import { suggestDatabaseName } from "./suggestDatabaseName";
 import { openDatabaseWindow } from "./openDatabaseWindow";
+import type { GitService } from "./GitService";
+import { GIT_SERVICE_NAME } from "./types";
 
 export interface INewDatabaseActivityParams {}
 
@@ -26,13 +28,10 @@ export class NewDatabaseActivityController
   private replaceSpecialSigns: boolean = true;
   private targetDirWarning: string = "";
 
-  constructor(serviceLayer: ServiceLayer, databaseService: DatabaseService) {
+  constructor(serviceLayer: ServiceLayer) {
     this.serviceLayer = serviceLayer;
-    this.databaseService = databaseService;
-  }
-
-  public setActivityId(id: string): void {
-    this.activityId = id;
+    const gitService = serviceLayer.getFeatureService<GitService>(GIT_SERVICE_NAME);
+    this.databaseService = gitService.getDatabaseService();
   }
 
   public attachView(view: NewDatabaseActivityView): void {
@@ -41,10 +40,13 @@ export class NewDatabaseActivityController
       onBrowse: () => this.browseDirectory(),
       onCreate: () => this.create(),
       onCancel: () => this.cancel(),
+      onNameChange: (value) => this.handleNameChange(value),
+      onReplaceSpecialSignsChange: (checked) => this.handleReplaceSpecialSignsChange(checked),
     });
   }
 
-  public initialize(_params: INewDatabaseActivityParams): void {
+  public initialize(_params: INewDatabaseActivityParams, activityId: string): void {
+    this.activityId = activityId;
     this.updateView();
     getDefaultParentDir().then(async (dir) => {
       this.parentDir = dir;
@@ -79,13 +81,13 @@ export class NewDatabaseActivityController
     });
   }
 
-  public handleNameChange(value: string): void {
+  private handleNameChange(value: string): void {
     this.name = value;
     this.nameManuallyEdited = true;
     this.checkTargetDirectory();
   }
 
-  public handleReplaceSpecialSignsChange(checked: boolean): void {
+  private handleReplaceSpecialSignsChange(checked: boolean): void {
     this.replaceSpecialSigns = checked;
     this.checkTargetDirectory();
   }

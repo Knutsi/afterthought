@@ -12,6 +12,8 @@ export interface INewDatabaseViewCallbacks {
   onBrowse(): void;
   onCreate(): void;
   onCancel(): void;
+  onNameChange(value: string): void;
+  onReplaceSpecialSignsChange(checked: boolean): void;
 }
 
 export class NewDatabaseActivityView implements IActivityView {
@@ -293,12 +295,12 @@ export class NewDatabaseActivityView implements IActivityView {
 
     const nameInput = this.shadowRoot.querySelector("#name-input") as HTMLInputElement | null;
     nameInput?.addEventListener("input", () => {
-      this.dispatchNameChange(nameInput.value);
+      this.callbacks!.onNameChange(nameInput.value);
     });
 
     const replaceCheckbox = this.shadowRoot.querySelector("#replace-special-checkbox") as HTMLInputElement | null;
     replaceCheckbox?.addEventListener("change", () => {
-      this.dispatchReplaceSpecialSignsChange(replaceCheckbox.checked);
+      this.callbacks!.onReplaceSpecialSignsChange(replaceCheckbox.checked);
     });
 
     const dialog = this.shadowRoot.querySelector("at-dialog");
@@ -306,18 +308,6 @@ export class NewDatabaseActivityView implements IActivityView {
 
     // auto-focus name input
     nameInput?.focus();
-  }
-
-  private dispatchNameChange(value: string): void {
-    this.shadowRoot?.host.dispatchEvent(
-      new CustomEvent("name-change", { detail: { value }, bubbles: false })
-    );
-  }
-
-  private dispatchReplaceSpecialSignsChange(checked: boolean): void {
-    this.shadowRoot?.host.dispatchEvent(
-      new CustomEvent("replace-special-signs-change", { detail: { checked }, bubbles: false })
-    );
   }
 
   private escapeAttr(s: string): string {

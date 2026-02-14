@@ -52,7 +52,7 @@ export class ActivityRuntime<
     this.controller = this.definition.createController(this.serviceLayer);
     this.controller.attachView(this.view);
 
-    const initializeResult = this.controller.initialize(this.params);
+    const initializeResult = this.controller.initialize(this.params, this.hostElement.id);
     if (initializeResult instanceof Promise) {
       void initializeResult.catch((error: unknown) => {
         console.error("[ActivityRuntime] Controller initialize failed", error);

@@ -1,50 +1,9 @@
 import { IAction } from "./service/ActionService";
 import { getDefaultServiceLayer, ServiceLayer } from "./service/ServiceLayer";
 import type { IContext } from "./service/context/types";
-import type { DatabaseService } from "./service/database/DatabaseService";
 import { invoke } from '@tauri-apps/api/core';
-import { open as dialogOpen } from '@tauri-apps/plugin-dialog';
-import { openDatabaseWindow } from './feature/git/openDatabaseWindow';
 
 const UNDO_REDO_SUBGROUP = "undo-redo";
-
-function createDatabaseActions(serviceLayer: ServiceLayer, databaseService: DatabaseService): IAction[] {
-  const openDatabaseAction: IAction = {
-    id: "database.open",
-    name: "Open Database",
-    shortcuts: ["Ctrl+O"],
-    menuGroup: "File",
-    menuSubGroup: "open",
-    do: async (_context: IContext, _args?: Record<string, unknown>) => {
-      const selectedFile = await dialogOpen({
-        title: "Open database",
-        filters: [{ name: "Afterthought Database", extensions: ["afdb"] }],
-      });
-      if (!selectedFile) return;
-
-      const dbPath = selectedFile.substring(0, selectedFile.lastIndexOf('/'));
-      const info = await databaseService.openDatabase(dbPath);
-      await databaseService.addRecentDatabase(info);
-
-      openDatabaseWindow(info);
-    },
-    canDo: async () => true,
-  };
-
-  const reloadDatabaseAction: IAction = {
-    id: "database.reload",
-    name: "Reload Database",
-    shortcuts: [],
-    menuGroup: "File",
-    menuSubGroup: "open",
-    do: async (_context: IContext, _args?: Record<string, unknown>) => {
-      await serviceLayer.objectService.reload();
-    },
-    canDo: async () => true,
-  };
-
-  return [openDatabaseAction, reloadDatabaseAction];
-}
 
 var quitAction: IAction = {
   id: "core.quit",
@@ -161,13 +120,8 @@ var aboutAction: IAction = {
   canDo: async () => true,
 };
 
-export function setupDefaultActions(serviceLayer: ServiceLayer, databaseService: DatabaseService) {
+export function setupDefaultActions(serviceLayer: ServiceLayer) {
   const actionService = serviceLayer.actionService;
-
-  const databaseActions = createDatabaseActions(serviceLayer, databaseService);
-  for (const action of databaseActions) {
-    actionService.addAction(action);
-  }
 
   actionService.addAction(quitAction);
   actionService.addAction(helpAction);

@@ -66,7 +66,7 @@ async function initializeApp(): Promise<void> {
   await databaseService.addRecentDatabase({ name, path: databasePath });
 
   // setup default actions:
-  setupDefaultActions(serviceLayer, databaseService);
+  setupDefaultActions(serviceLayer);
 
   // setup keyboard shortcuts:
   setupKeyboardFeature(serviceLayer);
