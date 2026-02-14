@@ -1,15 +1,13 @@
-import { readDir } from '@tauri-apps/plugin-fs';
-import { homeDir } from '@tauri-apps/api/path';
-import { StorageProvider } from './StorageProvider';
+import type { IStorageProvider } from './IStorageProvider';
 import { IStore, IObject, IStoreRegistry } from './types';
 
 const STORE_SCHEMA_VERSION = 1;
 const OBJECT_SCHEMA_VERSION = 1;
 
 export class StoreManager {
-  private storageProvider: StorageProvider;
+  private storageProvider: IStorageProvider;
 
-  constructor(storageProvider: StorageProvider) {
+  constructor(storageProvider: IStorageProvider) {
     this.storageProvider = storageProvider;
   }
 
@@ -150,12 +148,11 @@ export class StoreManager {
 
     if (!dirExists) return [];
 
-    const home = await homeDir();
-    const entries = await readDir(`${home}/afterthought/${objectsPath}`);
+    const filenames = await this.storageProvider.listDirectory(objectsPath);
 
-    for (const entry of entries) {
-      if (entry.name && entry.name.endsWith('.json')) {
-        const objectId = entry.name.replace('.json', '');
+    for (const filename of filenames) {
+      if (filename.endsWith('.json')) {
+        const objectId = filename.replace('.json', '');
         const object = await this.getObject(storeId, objectId);
         if (object) {
           objects.push(object);

@@ -1,6 +1,7 @@
 import { ServiceLayer } from "./ServiceLayer";
-import { StorageProvider } from "./storage/StorageProvider";
+import { GitStorageProvider } from "./storage/GitStorageProvider";
 import { StoreManager } from "./storage/StoreManager";
+import type { IStorageProvider } from "./storage/IStorageProvider";
 import {
   IStore,
   IObject,
@@ -14,22 +15,35 @@ import {
 export type { IStore, IObject, ISubscription, IObjectChangeEvent, IStoreChangeEvent };
 
 export class ObjectService {
-  private storageProvider: StorageProvider;
-  private storeManager: StoreManager;
+  private storageProvider!: IStorageProvider;
+  private storeManager!: StoreManager;
   private storeSubscribers: Map<string, Set<ObjectCallback>> = new Map();
   private objectSubscribers: Map<string, Set<ObjectCallback>> = new Map();
   private globalStoreSubscribers: Set<StoreCallback> = new Set();
   private initialized = false;
 
-  constructor(_: ServiceLayer) {
-    this.storageProvider = new StorageProvider();
-    this.storeManager = new StoreManager(this.storageProvider);
-  }
+  constructor(_: ServiceLayer) {}
 
-  async initialize(): Promise<void> {
+  async initialize(basePath: string): Promise<void> {
     if (this.initialized) return;
+
+    this.storageProvider = new GitStorageProvider(basePath);
+    this.storeManager = new StoreManager(this.storageProvider);
     await this.storageProvider.initialize();
     this.initialized = true;
+  }
+
+  async reload(): Promise<void> {
+    // storage is stateless (every read goes to disk), so just notify subscribers
+    for (const [storeId, subscribers] of this.storeSubscribers) {
+      const objects = await this.storeManager.getObjectsByStore(storeId);
+      for (const object of objects) {
+        const event: IObjectChangeEvent = { type: 'reloaded', object, storeId };
+        for (const callback of subscribers) {
+          callback(event);
+        }
+      }
+    }
   }
 
   // Store API

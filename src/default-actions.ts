@@ -1,21 +1,89 @@
 import { IAction } from "./service/ActionService";
 import { getDefaultServiceLayer, ServiceLayer } from "./service/ServiceLayer";
 import type { IContext } from "./service/context/types";
+import type { DatabaseService } from "./service/database/DatabaseService";
 import { invoke } from '@tauri-apps/api/core';
+import { open as dialogOpen } from '@tauri-apps/plugin-dialog';
+import { WebviewWindow } from '@tauri-apps/api/webviewWindow';
 
 const UNDO_REDO_SUBGROUP = "undo-redo";
 
-var newProjectAction: IAction = {
-  id: "core.newProject",
-  name: "New Project",
-  shortcuts: ["Ctrl+N"],
-  menuGroup: "File",
-  menuSubGroup: "create",
-  do: async (_context: IContext, _args?: Record<string, unknown>) => {
-    console.log("New Project");
-  },
-  canDo: async () => true,
-};
+function createDatabaseActions(serviceLayer: ServiceLayer, databaseService: DatabaseService): IAction[] {
+  const newDatabaseAction: IAction = {
+    id: "database.new",
+    name: "New Database",
+    shortcuts: ["Ctrl+N D"],
+    menuGroup: "File",
+    menuSubGroup: "create",
+    do: async (_context: IContext, _args?: Record<string, unknown>) => {
+      const parentDir = await dialogOpen({
+        directory: true,
+        title: "Choose parent directory for new database",
+      });
+      if (!parentDir) return;
+
+      const name = prompt("Database name:");
+      if (!name) return;
+
+      const info = await databaseService.createDatabase(parentDir, name);
+      await databaseService.addRecentDatabase(info);
+
+      new WebviewWindow(`db-${Date.now()}`, {
+        url: `index.html?database=${encodeURIComponent(info.path)}`,
+        title: info.name,
+        width: 800,
+        height: 600,
+      });
+    },
+    canDo: async () => true,
+  };
+
+  const openDatabaseAction: IAction = {
+    id: "database.open",
+    name: "Open Database",
+    shortcuts: ["Ctrl+O"],
+    menuGroup: "File",
+    menuSubGroup: "open",
+    do: async (_context: IContext, _args?: Record<string, unknown>) => {
+      const selectedPath = await dialogOpen({
+        directory: true,
+        title: "Open database directory",
+      });
+      if (!selectedPath) return;
+
+      const valid = await databaseService.isValidDatabase(selectedPath);
+      if (!valid) {
+        console.error("Selected directory is not a valid database (missing .afdb file)");
+        return;
+      }
+
+      const info = await databaseService.openDatabase(selectedPath);
+      await databaseService.addRecentDatabase(info);
+
+      new WebviewWindow(`db-${Date.now()}`, {
+        url: `index.html?database=${encodeURIComponent(info.path)}`,
+        title: info.name,
+        width: 800,
+        height: 600,
+      });
+    },
+    canDo: async () => true,
+  };
+
+  const reloadDatabaseAction: IAction = {
+    id: "database.reload",
+    name: "Reload Database",
+    shortcuts: [],
+    menuGroup: "File",
+    menuSubGroup: "open",
+    do: async (_context: IContext, _args?: Record<string, unknown>) => {
+      await serviceLayer.objectService.reload();
+    },
+    canDo: async () => true,
+  };
+
+  return [newDatabaseAction, openDatabaseAction, reloadDatabaseAction];
+}
 
 var quitAction: IAction = {
   id: "core.quit",
@@ -132,9 +200,14 @@ var aboutAction: IAction = {
   canDo: async () => true,
 };
 
-export function setupDefaultActions(serviceLayer: ServiceLayer) {
+export function setupDefaultActions(serviceLayer: ServiceLayer, databaseService: DatabaseService) {
   const actionService = serviceLayer.actionService;
-  actionService.addAction(newProjectAction);
+
+  const databaseActions = createDatabaseActions(serviceLayer, databaseService);
+  for (const action of databaseActions) {
+    actionService.addAction(action);
+  }
+
   actionService.addAction(quitAction);
   actionService.addAction(helpAction);
   actionService.addAction(undoAction);

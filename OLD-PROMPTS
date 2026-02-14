@@ -1,0 +1,34 @@
+
+## Storage system refactor: 
+
+Good morning Claude. Today we are working on refactoring the storage system. We want to:
+
+In all the following work, think deeply about whether you can make the structure cleaner, less abstract and easier to maintain and change. We favor simple code. If a solution is complex, please review if that complexity is necessary.
+
+- Establish a *.afdb file that marks a directory as a Afterthought database
+- We want the user to be able to create new databases, open old databases
+- A “provider” pattern for how databases are stored. We may want to create new storage providers in the future, such as online storage providers, etc. The first storage provider should be called GitStorageProvider and will work with local git repositories
+- We will implement git support next
+- Data on the drive (or in other ways the provider stores it might change (we will implement Git-branching later), and the activities must handle their data changing, or some events may reload the entire windows (such as chaining gir branches)
+
+Anatomy:
+(user chosen name}/
+	(user chosen name}.afdb. // any project metadata as JSON
+	stores/ (as today?)
+	personal/ui-state.json // persisted personal UI state data.- must not be checked into 
+	personal/preferences.json
+	.gitignore // default gitignore to ignore personal directory
+	.git (we will do this part later)
+
+Example of names:
+- Personal
+- Work
+- “Football association”
+
+
+Please:
+(1) Analyze the plan and see if it looks good based on your experience. Ask any clarifying questions you need,
+(2) Implement storage provider architecture in the solution and ensure the board feature. Review at least three ways to do this, and favor simple code that is easy to read and change
+(3) Implement the GitStorageProvider
+(4) Keep the pattern that we auto-generate the first database when the user opens the program for the first time. It should go it whatever location is natural for the OS, and be called “Afterthrought” by default
+(4) Add menu options New Database [Ctrl-n d], “Open database” [Ctrl-o] - both should open a new main window with the database (so not reload the current one)

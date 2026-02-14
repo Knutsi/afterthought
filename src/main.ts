@@ -1,5 +1,6 @@
 // core services and functions:
 import { getDefaultServiceLayer } from "./service/ServiceLayer.ts";
+import { DatabaseService } from "./service/database/DatabaseService.ts";
 
 // Import components directly (they auto-register via defineComponent):
 import "./gui/core/ServiceProvider";
@@ -22,14 +23,42 @@ import { setupHomeFeature } from "./feature/home/setupHomeFeature.ts";
 import { setupTaskFeature } from "./feature/task/setupTaskFeature.ts";
 import { CREATE_BOARD_ACTION_ID } from "./feature/board/types.ts";
 
+async function resolveDatabasePath(databaseService: DatabaseService): Promise<string> {
+  // check url param first (set when opening from another window)
+  const params = new URLSearchParams(window.location.search);
+  const paramPath = params.get('database');
+  if (paramPath) {
+    const info = await databaseService.openDatabase(paramPath);
+    return info.path;
+  }
+
+  // check last opened database
+  const lastOpened = await databaseService.getLastOpenedDatabase();
+  if (lastOpened) {
+    return lastOpened;
+  }
+
+  // first run: create default database
+  const info = await databaseService.ensureDefaultDatabase();
+  return info.path;
+}
+
 async function initializeApp(): Promise<void> {
   const serviceLayer = getDefaultServiceLayer();
+  const databaseService = new DatabaseService();
 
-  // Initialize storage layer first
-  await serviceLayer.objectService.initialize();
+  // resolve database path
+  const databasePath = await resolveDatabasePath(databaseService);
+
+  // initialize storage layer with resolved path
+  await serviceLayer.objectService.initialize(databasePath);
+
+  // track as recent
+  const name = databasePath.split('/').pop()!;
+  await databaseService.addRecentDatabase({ name, path: databasePath });
 
   // setup default actions:
-  setupDefaultActions(serviceLayer);
+  setupDefaultActions(serviceLayer, databaseService);
 
   // setup keyboard shortcuts:
   setupKeyboardFeature(serviceLayer);

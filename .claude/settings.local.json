@@ -10,7 +10,10 @@
       "Bash(cargo check:*)",
       "Bash(npx tsc:*)",
       "Bash(tree:*)",
-      "WebSearch"
+      "WebSearch",
+      "Bash(git -C /Users/knut/Code/afterthought log --oneline -20)",
+      "Bash(npm install:*)",
+      "Bash(npm run tauri:*)"
     ]
   }
 }
