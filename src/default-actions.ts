@@ -8,7 +8,7 @@ const UNDO_REDO_SUBGROUP = "undo-redo";
 var quitAction: IAction = {
   id: "core.quit",
   name: "Quit",
-  shortcuts: ["Ctrl+Q"],
+  shortcuts: ["Mod+Q"],
   menuGroup: "File",
   menuSubGroup: "exit",
   do: async (_context: IContext, _args?: Record<string, unknown>) => {
@@ -32,7 +32,7 @@ var helpAction: IAction = {
 var undoAction: IAction = {
   id: "core.undo",
   name: "Undo",
-  shortcuts: ["Ctrl+Z", "U"],
+  shortcuts: ["Mod+Z", "U"],
   menuGroup: "Edit",
   menuSubGroup: UNDO_REDO_SUBGROUP,
   repeatable: false,
@@ -45,7 +45,7 @@ var undoAction: IAction = {
 var redoAction: IAction = {
   id: "core.redo",
   name: "Redo",
-  shortcuts: ["Ctrl+Y", "R"],
+  shortcuts: ["Mod+Y", "R"],
   menuGroup: "Edit",
   menuSubGroup: UNDO_REDO_SUBGROUP,
   repeatable: false,
@@ -58,7 +58,7 @@ var redoAction: IAction = {
 var cutAction: IAction = {
   id: "core.cut",
   name: "Cut",
-  shortcuts: ["Ctrl+X"],
+  shortcuts: ["Mod+X"],
   menuGroup: "Edit",
   menuSubGroup: "clipboard",
   do: async (_context: IContext, _args?: Record<string, unknown>) => {
@@ -70,7 +70,7 @@ var cutAction: IAction = {
 var copyAction: IAction = {
   id: "core.copy",
   name: "Copy",
-  shortcuts: ["Ctrl+C"],
+  shortcuts: ["Mod+C"],
   menuGroup: "Edit",
   menuSubGroup: "clipboard",
   do: async (_context: IContext, _args?: Record<string, unknown>) => {
@@ -82,7 +82,7 @@ var copyAction: IAction = {
 var pasteAction: IAction = {
   id: "core.paste",
   name: "Paste",
-  shortcuts: ["Ctrl+V"],
+  shortcuts: ["Mod+V"],
   menuGroup: "Edit",
   menuSubGroup: "clipboard",
   do: async (_context: IContext, _args?: Record<string, unknown>) => {

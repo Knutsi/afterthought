@@ -1,7 +1,7 @@
 import type { ServiceLayer } from "./ServiceLayer";
 import type { IAction } from "./ActionService";
+import { IS_MAC, formatShortcutForDisplay as formatShortcut } from "./platformUtils";
 
-const IS_MAC = navigator.platform.toUpperCase().indexOf("MAC") >= 0;
 
 type ChordState = { type: "idle" } | { type: "awaiting_second"; prefix: string };
 
@@ -229,13 +229,6 @@ export class KeyboardService extends EventTarget {
   }
 
   public formatShortcutForDisplay(shortcut: string): string {
-    if (IS_MAC) {
-      return shortcut
-        .replace(/Mod\+/g, "⌘")
-        .replace(/Ctrl\+/g, "⌃")
-        .replace(/Alt\+/g, "⌥")
-        .replace(/Shift\+/g, "⇧");
-    }
-    return shortcut.replace(/Mod\+/g, "Ctrl+");
+    return formatShortcut(shortcut);
   }
 }

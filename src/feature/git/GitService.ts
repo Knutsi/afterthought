@@ -22,7 +22,7 @@ export class GitService {
     const newDatabaseAction: IAction = {
       id: NEW_DATABASE_ACTION_ID,
       name: "New Database...",
-      shortcuts: ["Ctrl+N D"],
+      shortcuts: ["Mod+N D"],
       menuGroup: "File",
       menuSubGroup: "create",
       do: async (_context: IContext, _args?: Record<string, unknown>) => {
@@ -34,7 +34,7 @@ export class GitService {
     const openDatabaseAction: IAction = {
       id: OPEN_DATABASE_ACTION_ID,
       name: "Open Database...",
-      shortcuts: ["Ctrl+O"],
+      shortcuts: ["Mod+O D"],
       menuGroup: "File",
       menuSubGroup: "open",
       do: async (_context: IContext, _args?: Record<string, unknown>) => {
