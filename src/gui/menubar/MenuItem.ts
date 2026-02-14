@@ -116,6 +116,7 @@ export class MenuItem extends BaseComponent {
             font-family: inherit;
             line-height: 1;
             border-radius: 3px;
+            opacity: 0.8;
             background: color-mix(in srgb, var(--theme-color-text) 10%, transparent);
             border: 1px solid color-mix(in srgb, var(--theme-color-text) 20%, transparent);
             box-shadow: 0 1px 0 color-mix(in srgb, var(--theme-color-text) 15%, transparent);

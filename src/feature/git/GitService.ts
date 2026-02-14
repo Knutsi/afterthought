@@ -4,7 +4,7 @@ import type { IContext } from "../../service/context/types";
 import type { IDatabaseInfo } from "../../service/database/types";
 import { open as dialogOpen } from "@tauri-apps/plugin-dialog";
 import { openDatabaseWindow } from "./openDatabaseWindow";
-import { NEW_DATABASE_ACTION_ID, NEW_DATABASE_ACTIVITY_TAG, OPEN_DATABASE_ACTION_ID, RELOAD_DATABASE_ACTION_ID } from "./types";
+import { NEW_DATABASE_ACTION_ID, NEW_DATABASE_ACTIVITY_TAG, OPEN_DATABASE_ACTION_ID } from "./types";
 
 export class GitService {
   private serviceLayer: ServiceLayer;
@@ -21,7 +21,7 @@ export class GitService {
   public registerActions(): void {
     const newDatabaseAction: IAction = {
       id: NEW_DATABASE_ACTION_ID,
-      name: "New Database",
+      name: "New Database...",
       shortcuts: ["Ctrl+N D"],
       menuGroup: "File",
       menuSubGroup: "create",
@@ -33,7 +33,7 @@ export class GitService {
 
     const openDatabaseAction: IAction = {
       id: OPEN_DATABASE_ACTION_ID,
-      name: "Open Database",
+      name: "Open Database...",
       shortcuts: ["Ctrl+O"],
       menuGroup: "File",
       menuSubGroup: "open",
@@ -43,21 +43,8 @@ export class GitService {
       canDo: async () => true,
     };
 
-    const reloadDatabaseAction: IAction = {
-      id: RELOAD_DATABASE_ACTION_ID,
-      name: "Reload Database",
-      shortcuts: [],
-      menuGroup: "File",
-      menuSubGroup: "open",
-      do: async (_context: IContext, _args?: Record<string, unknown>) => {
-        await this.serviceLayer.objectService.reload();
-      },
-      canDo: async () => true,
-    };
-
     this.serviceLayer.actionService.addAction(newDatabaseAction);
     this.serviceLayer.actionService.addAction(openDatabaseAction);
-    this.serviceLayer.actionService.addAction(reloadDatabaseAction);
   }
 
   private async promptOpenDatabase(): Promise<void> {

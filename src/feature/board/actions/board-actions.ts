@@ -50,7 +50,7 @@ export function createNewBoardAction(serviceLayer: ServiceLayer): IAction {
 export function createOpenBoardAction(serviceLayer: ServiceLayer): IAction {
   return {
     id: OPEN_BOARD_ACTION_ID,
-    name: "Open Board",
+    name: "Open Board...",
     shortcuts: ["Ctrl+O B"],
     menuGroup: "File",
     menuSubGroup: "open",
