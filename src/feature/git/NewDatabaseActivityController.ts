@@ -7,6 +7,7 @@ import { open as dialogOpen } from "@tauri-apps/plugin-dialog";
 import { WebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { join } from "@tauri-apps/api/path";
 import { mkdir, writeTextFile } from "@tauri-apps/plugin-fs";
+import { getDefaultParentDir } from "./defaultDirectory";
 
 export interface INewDatabaseActivityParams {}
 
@@ -42,6 +43,10 @@ export class NewDatabaseActivityController
 
   public initialize(_params: INewDatabaseActivityParams): void {
     this.updateView();
+    getDefaultParentDir().then((dir) => {
+      this.parentDir = dir;
+      this.updateView();
+    });
   }
 
   public activate(_contextPart: IContextPart): void {}
