@@ -45,19 +45,14 @@ function createDatabaseActions(serviceLayer: ServiceLayer, databaseService: Data
     menuGroup: "File",
     menuSubGroup: "open",
     do: async (_context: IContext, _args?: Record<string, unknown>) => {
-      const selectedPath = await dialogOpen({
-        directory: true,
-        title: "Open database directory",
+      const selectedFile = await dialogOpen({
+        title: "Open database",
+        filters: [{ name: "Afterthought Database", extensions: ["afdb"] }],
       });
-      if (!selectedPath) return;
+      if (!selectedFile) return;
 
-      const valid = await databaseService.isValidDatabase(selectedPath);
-      if (!valid) {
-        console.error("Selected directory is not a valid database (missing .afdb file)");
-        return;
-      }
-
-      const info = await databaseService.openDatabase(selectedPath);
+      const dbPath = selectedFile.substring(0, selectedFile.lastIndexOf('/'));
+      const info = await databaseService.openDatabase(dbPath);
       await databaseService.addRecentDatabase(info);
 
       new WebviewWindow(`db-${Date.now()}`, {

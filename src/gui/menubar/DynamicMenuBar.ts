@@ -312,12 +312,12 @@ export class DynamicMenuBar extends BaseComponent {
     }
   }
 
-  private _handleMenuAction = (actionId: string): void => {
+  private _handleMenuAction = async (actionId: string): Promise<void> => {
     if (!actionId) return;
 
     const actionService = this.getServiceLayer().actionService;
     try {
-      actionService.doAction(actionId);
+      await actionService.doAction(actionId);
     } catch (error) {
       console.error(`Failed to execute action ${actionId}:`, error);
     }

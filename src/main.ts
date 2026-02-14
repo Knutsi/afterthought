@@ -92,7 +92,8 @@ async function initializeApp(): Promise<void> {
   serviceLayer.actionService.doAction(CREATE_BOARD_ACTION_ID);
 }
 
-initializeApp().catch(console.error);
+const showBody = () => requestAnimationFrame(() => document.body.style.visibility = 'visible');
+initializeApp().then(showBody).catch((e) => { showBody(); console.error(e); });
 
 /* SUPPORTING FUNCTIONS */
 function getActivityContainer(): HTMLElement {
