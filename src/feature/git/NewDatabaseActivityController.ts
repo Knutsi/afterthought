@@ -4,11 +4,11 @@ import type { ServiceLayer } from "../../service/ServiceLayer";
 import type { DatabaseService } from "../../service/database/DatabaseService";
 import { NewDatabaseActivityView } from "./NewDatabaseActivityView";
 import { open as dialogOpen } from "@tauri-apps/plugin-dialog";
-import { WebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { join } from "@tauri-apps/api/path";
 import { exists, readDir } from "@tauri-apps/plugin-fs";
 import { getDefaultParentDir } from "./defaultDirectory";
 import { suggestDatabaseName } from "./suggestDatabaseName";
+import { openDatabaseWindow } from "./openDatabaseWindow";
 
 export interface INewDatabaseActivityParams {}
 
@@ -137,12 +137,7 @@ export class NewDatabaseActivityController
     const info = await this.databaseService.createDatabase(this.parentDir, fsName);
     await this.databaseService.addRecentDatabase(info);
 
-    new WebviewWindow(`db-${Date.now()}`, {
-      url: `index.html?database=${encodeURIComponent(info.path)}`,
-      title: info.name,
-      width: 800,
-      height: 600,
-    });
+    openDatabaseWindow(info);
 
     this.cancel();
   }

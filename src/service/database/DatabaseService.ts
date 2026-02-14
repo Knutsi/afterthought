@@ -5,11 +5,11 @@ import {
   exists,
 } from '@tauri-apps/plugin-fs';
 import { documentDir, appDataDir, join } from '@tauri-apps/api/path';
-import type { IDatabaseMeta, IDatabaseInfo } from './types';
+import { invoke } from '@tauri-apps/api/core';
+import type { IDatabaseInfo } from './types';
 
 const DATABASE_VERSION = 1;
 const RECENT_DATABASES_FILE = 'recent-databases.json';
-const GITIGNORE_CONTENT = 'personal/\n';
 
 interface IRecentDatabases {
   databases: IDatabaseInfo[];
@@ -18,21 +18,11 @@ interface IRecentDatabases {
 
 export class DatabaseService {
   async createDatabase(parentDir: string, name: string): Promise<IDatabaseInfo> {
-    const dbPath = await join(parentDir, name);
-    const metaFileName = `${name}.afdb`;
-
-    await mkdir(dbPath, { recursive: true });
-    await mkdir(await join(dbPath, 'stores'), { recursive: true });
-    await mkdir(await join(dbPath, 'personal'), { recursive: true });
-
-    const meta: IDatabaseMeta = {
+    const dbPath = await invoke<string>('create_database', {
+      parentDir,
       name,
       version: DATABASE_VERSION,
-      createdAt: new Date().toISOString(),
-    };
-
-    await writeTextFile(await join(dbPath, metaFileName), JSON.stringify(meta, null, 2));
-    await writeTextFile(await join(dbPath, '.gitignore'), GITIGNORE_CONTENT);
+    });
 
     return { name, path: dbPath };
   }

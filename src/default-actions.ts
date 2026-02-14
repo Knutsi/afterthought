@@ -4,7 +4,7 @@ import type { IContext } from "./service/context/types";
 import type { DatabaseService } from "./service/database/DatabaseService";
 import { invoke } from '@tauri-apps/api/core';
 import { open as dialogOpen } from '@tauri-apps/plugin-dialog';
-import { WebviewWindow } from '@tauri-apps/api/webviewWindow';
+import { openDatabaseWindow } from './feature/git/openDatabaseWindow';
 
 const UNDO_REDO_SUBGROUP = "undo-redo";
 
@@ -26,12 +26,7 @@ function createDatabaseActions(serviceLayer: ServiceLayer, databaseService: Data
       const info = await databaseService.openDatabase(dbPath);
       await databaseService.addRecentDatabase(info);
 
-      new WebviewWindow(`db-${Date.now()}`, {
-        url: `index.html?database=${encodeURIComponent(info.path)}`,
-        title: info.name,
-        width: 800,
-        height: 600,
-      });
+      openDatabaseWindow(info);
     },
     canDo: async () => true,
   };
