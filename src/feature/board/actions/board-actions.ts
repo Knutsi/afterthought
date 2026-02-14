@@ -9,6 +9,8 @@ import {
   BOARD_SERVICE_NAME,
 } from "../types";
 import type { BoardService } from "../BoardService";
+import type { SearchPicker, PickerItem } from "../../../gui/picker/SearchPicker";
+import "../../../gui/picker/SearchPicker";
 
 export function createNewBoardAction(serviceLayer: ServiceLayer): IAction {
   return {
@@ -56,12 +58,50 @@ export function createOpenBoardAction(serviceLayer: ServiceLayer): IAction {
     menuSubGroup: "open",
     do: async (_context: IContext, _args?: Record<string, unknown>): Promise<UndoFunction | void> => {
       const boardService = serviceLayer.getFeatureService<BoardService>(BOARD_SERVICE_NAME);
-      const activityService = serviceLayer.getActivityService();
+      const boards = await boardService.listBoards();
 
-      const board = await boardService.newBoard();
-      const activityArgs: IBoardActivityParams = { openBoardId: board.id, name: board.data.name };
-      const activity = activityService.startActivity<IBoardActivityParams>(BOARD_ACTIVITY_TAG, activityArgs);
-      activityService.switchToActivity(activity.id);
+      const container = document.getElementById("activity-container");
+      const openBoardIds = new Map<string, string>();
+      if (container) {
+        for (const child of Array.from(container.children)) {
+          if (child.tagName.toLowerCase() !== BOARD_ACTIVITY_TAG) continue;
+          const params = JSON.parse(child.getAttribute("data-parameters") || "{}");
+          if (params.openBoardId) {
+            openBoardIds.set(params.openBoardId, child.id);
+          }
+        }
+      }
+
+      const items: PickerItem[] = boards.map((b) => {
+        const isOpen = openBoardIds.has(b.id);
+        return {
+          id: b.id,
+          name: b.name,
+          detail: `${b.taskCount} task${b.taskCount !== 1 ? "s" : ""}${isOpen ? " (open)" : ""}`,
+        };
+      });
+
+      const picker = document.getElementById("search-picker") as SearchPicker;
+      picker.configure(items);
+
+      picker.onSelect = (item: PickerItem) => {
+        picker.hide();
+        const activityService = serviceLayer.getActivityService();
+        const existingActivityId = openBoardIds.get(item.id);
+        if (existingActivityId) {
+          activityService.switchToActivity(existingActivityId);
+        } else {
+          const activityArgs: IBoardActivityParams = { openBoardId: item.id, name: item.name };
+          const activity = activityService.startActivity<IBoardActivityParams>(BOARD_ACTIVITY_TAG, activityArgs);
+          activityService.switchToActivity(activity.id);
+        }
+      };
+
+      picker.onCancel = () => {
+        picker.hide();
+      };
+
+      picker.show();
     },
     canDo: async () => true,
   };

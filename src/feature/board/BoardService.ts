@@ -49,6 +49,16 @@ export class BoardService extends EventTarget {
     this.boardCount = existingBoards.length;
   }
 
+  public async listBoards(): Promise<{ id: string; name: string; taskCount: number }[]> {
+    const objectService = this.serviceLayer.getObjectService();
+    const boards = await objectService.getObjectsByStore(BOARD_STORE_ID);
+    return boards.map((b) => ({
+      id: b.id,
+      name: b.data.name ?? "Untitled",
+      taskCount: (b.data.tasks ?? []).length,
+    }));
+  }
+
   public async newBoard(): Promise<IObject> {
     const objectService = this.serviceLayer.getObjectService();
     const name = this.getNextBoardName();
