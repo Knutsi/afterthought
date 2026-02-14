@@ -1,5 +1,6 @@
 // core services and functions:
 import { getDefaultServiceLayer } from "./service/ServiceLayer.ts";
+import { GitStorageProvider } from "./service/storage/GitStorageProvider.ts";
 
 // Import components directly (they auto-register via defineComponent):
 import "./gui/core/ServiceProvider";
@@ -58,8 +59,9 @@ async function initializeApp(): Promise<void> {
   // resolve database path
   const databasePath = await resolveDatabasePath(serviceLayer);
 
-  // initialize storage layer with resolved path
-  await serviceLayer.objectService.initialize(databasePath);
+  // initialize storage layer
+  const storageProvider = new GitStorageProvider(databasePath);
+  await serviceLayer.objectService.initialize(storageProvider);
 
   // track as recent
   const name = databasePath.split('/').pop()!;

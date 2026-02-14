@@ -1,5 +1,4 @@
 import { ServiceLayer } from "./ServiceLayer";
-import { GitStorageProvider } from "./storage/GitStorageProvider";
 import { StoreManager } from "./storage/StoreManager";
 import type { IStorageProvider } from "./storage/IStorageProvider";
 import {
@@ -24,10 +23,10 @@ export class ObjectService {
 
   constructor(_: ServiceLayer) {}
 
-  async initialize(basePath: string): Promise<void> {
+  async initialize(provider: IStorageProvider): Promise<void> {
     if (this.initialized) return;
 
-    this.storageProvider = new GitStorageProvider(basePath);
+    this.storageProvider = provider;
     this.storeManager = new StoreManager(this.storageProvider);
     await this.storageProvider.initialize();
     this.initialized = true;
