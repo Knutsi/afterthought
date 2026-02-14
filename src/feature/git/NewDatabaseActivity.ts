@@ -45,8 +45,8 @@ export class NewDatabaseActivity extends ActivityElementBase<
       this.getActivityController()?.handleNameChange(e.detail.value);
     }) as EventListener);
 
-    this.addEventListener("create-dir-change", ((e: CustomEvent) => {
-      this.getActivityController()?.handleCreateDirChange(e.detail.checked);
+    this.addEventListener("replace-special-signs-change", ((e: CustomEvent) => {
+      this.getActivityController()?.handleReplaceSpecialSignsChange(e.detail.checked);
     }) as EventListener);
 
     // give the controller access to this element's id for closing

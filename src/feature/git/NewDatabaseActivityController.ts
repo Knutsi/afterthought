@@ -6,8 +6,9 @@ import { NewDatabaseActivityView } from "./NewDatabaseActivityView";
 import { open as dialogOpen } from "@tauri-apps/plugin-dialog";
 import { WebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { join } from "@tauri-apps/api/path";
-import { mkdir, writeTextFile } from "@tauri-apps/plugin-fs";
+import { exists, readDir } from "@tauri-apps/plugin-fs";
 import { getDefaultParentDir } from "./defaultDirectory";
+import { suggestDatabaseName } from "./suggestDatabaseName";
 
 export interface INewDatabaseActivityParams {}
 
@@ -21,7 +22,9 @@ export class NewDatabaseActivityController
 
   private parentDir: string = "";
   private name: string = "";
-  private createNewDirectory: boolean = true;
+  private nameManuallyEdited: boolean = false;
+  private replaceSpecialSigns: boolean = true;
+  private targetDirWarning: string = "";
 
   constructor(serviceLayer: ServiceLayer, databaseService: DatabaseService) {
     this.serviceLayer = serviceLayer;
@@ -43,9 +46,10 @@ export class NewDatabaseActivityController
 
   public initialize(_params: INewDatabaseActivityParams): void {
     this.updateView();
-    getDefaultParentDir().then((dir) => {
+    getDefaultParentDir().then(async (dir) => {
       this.parentDir = dir;
-      this.updateView();
+      this.name = await suggestDatabaseName(dir);
+      this.checkTargetDirectory();
     });
   }
 
@@ -56,21 +60,60 @@ export class NewDatabaseActivityController
     this.view = null;
   }
 
+  private sanitizeName(name: string): string {
+    return name.replace(/[^a-zA-Z0-9_-]/g, "_");
+  }
+
+  private getEffectiveName(): string {
+    const trimmed = this.name.trim();
+    return this.replaceSpecialSigns ? this.sanitizeName(trimmed) : trimmed;
+  }
+
   private updateView(): void {
     this.view?.update({
       parentDir: this.parentDir,
       name: this.name,
-      createNewDirectory: this.createNewDirectory,
+      effectiveName: this.getEffectiveName(),
+      replaceSpecialSigns: this.replaceSpecialSigns,
+      targetDirWarning: this.targetDirWarning,
     });
   }
 
   public handleNameChange(value: string): void {
     this.name = value;
-    this.updateView();
+    this.nameManuallyEdited = true;
+    this.checkTargetDirectory();
   }
 
-  public handleCreateDirChange(checked: boolean): void {
-    this.createNewDirectory = checked;
+  public handleReplaceSpecialSignsChange(checked: boolean): void {
+    this.replaceSpecialSigns = checked;
+    this.checkTargetDirectory();
+  }
+
+  private async checkTargetDirectory(): Promise<void> {
+    const effectiveName = this.getEffectiveName();
+    if (!this.parentDir || !effectiveName) {
+      this.targetDirWarning = "";
+      this.updateView();
+      return;
+    }
+
+    try {
+      const targetPath = await join(this.parentDir, effectiveName);
+      const dirExists = await exists(targetPath);
+      if (dirExists) {
+        const entries = await readDir(targetPath);
+        if (entries.length > 0) {
+          this.targetDirWarning = "This directory already exists and is not empty. Please choose an empty or new directory.";
+          this.updateView();
+          return;
+        }
+      }
+    } catch {
+      // ignore fs errors
+    }
+
+    this.targetDirWarning = "";
     this.updateView();
   }
 
@@ -82,28 +125,16 @@ export class NewDatabaseActivityController
     if (!selected) return;
 
     this.parentDir = selected;
-    this.updateView();
+    if (!this.nameManuallyEdited) {
+      this.name = await suggestDatabaseName(selected);
+    }
+    this.checkTargetDirectory();
   }
 
   private async create(): Promise<void> {
-    if (!this.parentDir || !this.name) return;
-
-    let info;
-    if (this.createNewDirectory) {
-      // creates parentDir/name/ with name.afdb inside
-      info = await this.databaseService.createDatabase(this.parentDir, this.name);
-    } else {
-      // place database files directly in parentDir (no extra subdirectory)
-      const dbPath = this.parentDir;
-      const metaFileName = `${this.name}.afdb`;
-      await mkdir(await join(dbPath, "stores"), { recursive: true });
-      await mkdir(await join(dbPath, "personal"), { recursive: true });
-      const meta = { name: this.name, version: 1, createdAt: new Date().toISOString() };
-      await writeTextFile(await join(dbPath, metaFileName), JSON.stringify(meta, null, 2));
-      await writeTextFile(await join(dbPath, ".gitignore"), "personal/\n");
-      info = { name: this.name, path: dbPath };
-    }
-
+    const fsName = this.getEffectiveName();
+    if (!this.parentDir || !fsName || this.targetDirWarning) return;
+    const info = await this.databaseService.createDatabase(this.parentDir, fsName);
     await this.databaseService.addRecentDatabase(info);
 
     new WebviewWindow(`db-${Date.now()}`, {

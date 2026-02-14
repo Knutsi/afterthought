@@ -1,5 +1,13 @@
 import type { IActivityView } from "../../gui/activity/runtime/types";
 
+export interface INewDatabaseViewState {
+  parentDir: string;
+  name: string;
+  effectiveName: string;
+  replaceSpecialSigns: boolean;
+  targetDirWarning: string;
+}
+
 export interface INewDatabaseViewCallbacks {
   onBrowse(): void;
   onCreate(): void;
@@ -24,7 +32,7 @@ export class NewDatabaseActivityView implements IActivityView {
     // initial render handled by update
   }
 
-  public update(state: { parentDir: string; name: string; createNewDirectory: boolean }): void {
+  public update(state: INewDatabaseViewState): void {
     if (!this.shadowRoot) return;
 
     if (!this.rendered) {
@@ -35,11 +43,11 @@ export class NewDatabaseActivityView implements IActivityView {
     }
   }
 
-  private renderInitial(state: { parentDir: string; name: string; createNewDirectory: boolean }): void {
+  private renderInitial(state: INewDatabaseViewState): void {
     if (!this.shadowRoot) return;
 
-    const { parentDir, name, createNewDirectory } = state;
-    const { previewDir, previewFile } = this.computePreview(state);
+    const { parentDir, name, replaceSpecialSigns, targetDirWarning } = state;
+    const preview = this.computePreview(state);
 
     this.shadowRoot.innerHTML = `
       <style>
@@ -112,6 +120,7 @@ export class NewDatabaseActivityView implements IActivityView {
           padding: 12px;
           display: grid;
           gap: 6px;
+          overflow: hidden;
         }
 
         .preview-label {
@@ -123,20 +132,21 @@ export class NewDatabaseActivityView implements IActivityView {
           margin-bottom: 2px;
         }
 
-        .preview-row {
-          display: flex;
+        .preview-items {
+          display: grid;
+          grid-template-columns: auto 1fr;
+          gap: 4px 6px;
           align-items: center;
-          gap: 6px;
           font-size: 12px;
           color: var(--theme-color-text, #1e293b);
         }
 
-        .preview-row .icon {
-          flex-shrink: 0;
+        .preview-items .icon {
           opacity: 0.6;
+          text-align: center;
         }
 
-        .preview-row .path {
+        .preview-items .path {
           font-family: ui-monospace, monospace;
           font-size: 11px;
           white-space: nowrap;
@@ -144,13 +154,26 @@ export class NewDatabaseActivityView implements IActivityView {
           text-overflow: ellipsis;
           direction: rtl;
           text-align: left;
+          min-width: 0;
         }
 
-        .preview-row .type-label {
-          flex-shrink: 0;
+        .preview-items .path-ltr {
+          font-family: ui-monospace, monospace;
           font-size: 11px;
-          color: var(--theme-color-secondary, #64748b);
-          min-width: 28px;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          min-width: 0;
+        }
+
+        .warning {
+          background: color-mix(in srgb, #f59e0b 15%, transparent);
+          border: 1px solid color-mix(in srgb, #f59e0b 40%, transparent);
+          border-radius: var(--theme-spacing-border-radius, 5px);
+          padding: 8px 12px;
+          font-family: var(--theme-font-family, system-ui, -apple-system, sans-serif);
+          font-size: var(--theme-font-size, 13px);
+          color: var(--theme-color-text, #1e293b);
         }
       </style>
       <at-dialog dialog-title="New Database">
@@ -167,28 +190,23 @@ export class NewDatabaseActivityView implements IActivityView {
           </at-form-field>
 
           <label class="checkbox-row">
-            <input type="checkbox" id="create-dir-checkbox" ${createNewDirectory ? "checked" : ""} />
-            Create new directory
+            <input type="checkbox" id="replace-special-checkbox" ${replaceSpecialSigns ? "checked" : ""} />
+            Replace special signs
           </label>
+
+          ${targetDirWarning ? `<div class="warning" id="target-warning">${this.escapeHtml(targetDirWarning)}</div>` : '<div class="warning" id="target-warning" style="display:none"></div>'}
 
           <div class="preview">
             <div class="preview-label">Will create</div>
-            <div class="preview-row">
-              <span class="type-label">Dir</span>
-              <span class="icon">&#128193;</span>
-              <span class="path" id="preview-dir">${previewDir}</span>
-            </div>
-            <div class="preview-row">
-              <span class="type-label">File</span>
-              <span class="icon">&#128196;</span>
-              <span class="path" id="preview-file">${previewFile}</span>
+            <div class="preview-items" id="preview-content">
+              ${this.renderPreviewContent(preview)}
             </div>
           </div>
         </div>
 
         <div slot="actions">
           <at-button variant="secondary" id="cancel-btn">Cancel</at-button>
-          <at-button variant="primary" id="create-btn" ${!parentDir || !name ? "disabled" : ""}>Create</at-button>
+          <at-button variant="primary" id="create-btn" ${!parentDir || !state.effectiveName || targetDirWarning ? "disabled" : ""}>Create</at-button>
         </div>
       </at-dialog>
     `;
@@ -196,48 +214,69 @@ export class NewDatabaseActivityView implements IActivityView {
     this.bindEvents();
   }
 
-  private updateDynamic(state: { parentDir: string; name: string; createNewDirectory: boolean }): void {
+  private updateDynamic(state: INewDatabaseViewState): void {
     if (!this.shadowRoot) return;
 
-    const { parentDir, name, createNewDirectory } = state;
-    const { previewDir, previewFile } = this.computePreview(state);
+    const { parentDir, name, replaceSpecialSigns, targetDirWarning } = state;
+    const preview = this.computePreview(state);
+
+    const nameInput = this.shadowRoot.querySelector("#name-input") as HTMLInputElement | null;
+    if (nameInput && nameInput.value !== name) {
+      nameInput.value = name;
+    }
 
     const pathDisplay = this.shadowRoot.querySelector(".path-display");
     if (pathDisplay) pathDisplay.textContent = parentDir || "No directory selected";
 
-    const previewDirEl = this.shadowRoot.querySelector("#preview-dir");
-    if (previewDirEl) previewDirEl.textContent = previewDir;
+    const previewContent = this.shadowRoot.querySelector("#preview-content");
+    if (previewContent) previewContent.innerHTML = this.renderPreviewContent(preview);
 
-    const previewFileEl = this.shadowRoot.querySelector("#preview-file");
-    if (previewFileEl) previewFileEl.textContent = previewFile;
+    const warningEl = this.shadowRoot.querySelector("#target-warning") as HTMLElement | null;
+    if (warningEl) {
+      if (targetDirWarning) {
+        warningEl.textContent = targetDirWarning;
+        warningEl.style.display = "";
+      } else {
+        warningEl.textContent = "";
+        warningEl.style.display = "none";
+      }
+    }
 
     const createBtn = this.shadowRoot.querySelector("#create-btn") as HTMLElement | null;
     if (createBtn) {
-      if (!parentDir || !name) {
+      const { effectiveName } = state;
+      if (!parentDir || !effectiveName || targetDirWarning) {
         createBtn.setAttribute("disabled", "");
       } else {
         createBtn.removeAttribute("disabled");
       }
     }
 
-    const checkbox = this.shadowRoot.querySelector("#create-dir-checkbox") as HTMLInputElement | null;
-    if (checkbox && checkbox.checked !== createNewDirectory) {
-      checkbox.checked = createNewDirectory;
+    const replaceCheckbox = this.shadowRoot.querySelector("#replace-special-checkbox") as HTMLInputElement | null;
+    if (replaceCheckbox && replaceCheckbox.checked !== replaceSpecialSigns) {
+      replaceCheckbox.checked = replaceSpecialSigns;
     }
   }
 
-  private computePreview(state: { parentDir: string; name: string; createNewDirectory: boolean }): { previewDir: string; previewFile: string } {
-    const { parentDir, name, createNewDirectory } = state;
-    if (createNewDirectory) {
-      return {
-        previewDir: parentDir && name ? `${parentDir}/${name}` : parentDir || "...",
-        previewFile: parentDir && name ? `${parentDir}/${name}/${name}.afdb` : "...",
-      };
+  private computePreview(state: INewDatabaseViewState): { basePath: string; dbFile: string } | null {
+    const { parentDir, name, effectiveName } = state;
+    if (!parentDir || !name) return null;
+    const basePath = `${parentDir}/${effectiveName}`;
+    return { basePath, dbFile: `${basePath}/${effectiveName}.afdb` };
+  }
+
+  private renderPreviewContent(preview: { basePath: string; dbFile: string } | null): string {
+    if (!preview) {
+      return `<span class="icon">&#128193;</span><span class="path">...</span>`;
     }
-    return {
-      previewDir: parentDir || "...",
-      previewFile: parentDir && name ? `${parentDir}/${name}.afdb` : "...",
-    };
+    return `
+      <span class="icon">&#128193;</span>
+      <span class="path">${this.escapeHtml(preview.basePath)}</span>
+      <span class="icon">&#128196;</span>
+      <span class="path">${this.escapeHtml(preview.dbFile)}</span>
+      <span class="icon">&#9729;</span>
+      <span class="path-ltr">${this.escapeHtml(preview.basePath)} will be checked into git</span>
+    `;
   }
 
   private bindEvents(): void {
@@ -257,9 +296,9 @@ export class NewDatabaseActivityView implements IActivityView {
       this.dispatchNameChange(nameInput.value);
     });
 
-    const checkbox = this.shadowRoot.querySelector("#create-dir-checkbox") as HTMLInputElement | null;
-    checkbox?.addEventListener("change", () => {
-      this.dispatchCheckboxChange(checkbox.checked);
+    const replaceCheckbox = this.shadowRoot.querySelector("#replace-special-checkbox") as HTMLInputElement | null;
+    replaceCheckbox?.addEventListener("change", () => {
+      this.dispatchReplaceSpecialSignsChange(replaceCheckbox.checked);
     });
 
     const dialog = this.shadowRoot.querySelector("at-dialog");
@@ -275,14 +314,18 @@ export class NewDatabaseActivityView implements IActivityView {
     );
   }
 
-  private dispatchCheckboxChange(checked: boolean): void {
+  private dispatchReplaceSpecialSignsChange(checked: boolean): void {
     this.shadowRoot?.host.dispatchEvent(
-      new CustomEvent("create-dir-change", { detail: { checked }, bubbles: false })
+      new CustomEvent("replace-special-signs-change", { detail: { checked }, bubbles: false })
     );
   }
 
   private escapeAttr(s: string): string {
     return s.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  }
+
+  private escapeHtml(s: string): string {
+    return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   }
 
   public destroy(): void {

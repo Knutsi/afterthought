@@ -214,6 +214,9 @@ export class InputManager {
   };
 
   private handleKeyDown = (event: KeyboardEvent): void => {
+    const target = (event.composedPath()[0] || event.target) as HTMLElement;
+    const tag = target?.tagName?.toLowerCase();
+    if (tag === "input" || tag === "textarea" || target?.isContentEditable) return;
     this.diagram.getCurrentMode().onKeyDown(event);
   };
 
