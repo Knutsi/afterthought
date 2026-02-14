@@ -5,6 +5,8 @@ import { ThemeService } from "./ThemeService";
 import { ActivityService } from "./ActivityService";
 import { KeyboardService } from "./KeyboardService";
 import { DatabaseService } from "./database/DatabaseService";
+import { SessionService } from "./session/SessionService";
+import type { PersonalStore } from "./database/PersonalStore";
 import type { FeatureId, IFeatureServiceMap } from "./featureTypes";
 
 export class ServiceLayer {
@@ -15,6 +17,8 @@ export class ServiceLayer {
   activityService: ActivityService;
   keyboardService: KeyboardService;
   databaseService: DatabaseService;
+  sessionService: SessionService;
+  personalStore: PersonalStore | null = null;
 
   private featureServices: Partial<IFeatureServiceMap> = {};
 
@@ -26,6 +30,7 @@ export class ServiceLayer {
     this.activityService = new ActivityService(this);
     this.keyboardService = new KeyboardService(this);
     this.databaseService = new DatabaseService();
+    this.sessionService = new SessionService();
   }
 
   public getContextService(): ContextService {

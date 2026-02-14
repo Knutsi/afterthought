@@ -15,7 +15,7 @@ export class GitService {
 
   public async openAndTrackDatabase(info: IDatabaseInfo): Promise<void> {
     await this.serviceLayer.databaseService.addRecentDatabase(info);
-    openDatabaseWindow(info);
+    await openDatabaseWindow(info);
   }
 
   public registerActions(): void {

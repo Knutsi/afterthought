@@ -1,5 +1,15 @@
 import type { IStorageProvider } from '../storage/IStorageProvider';
 
+export interface IActivitySession {
+  elementName: string;
+  params: Record<string, unknown>;
+  isHomeActivity: boolean;
+}
+
+export interface IUiState {
+  activities: IActivitySession[];
+}
+
 const UI_STATE_PATH = 'personal/ui-state.json';
 const PREFERENCES_PATH = 'personal/preferences.json';
 
