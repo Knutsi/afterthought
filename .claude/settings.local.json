@@ -14,7 +14,10 @@
       "Bash(git -C /Users/knut/Code/afterthought log --oneline -20)",
       "Bash(npm install:*)",
       "Bash(npm run tauri:*)",
-      "Bash(xargs:*)"
+      "Bash(xargs:*)",
+      "Bash(wc:*)",
+      "Bash(ls:*)",
+      "Bash(done)"
     ]
   }
 }

@@ -328,7 +328,7 @@ export class TabView extends BaseComponent {
       },
       {
         childList: true,
-        subtree: false,
+        subtree: true,
         attributes: true,
         attributeFilter: ["tab-label", "closeable", "tab-icon", "tab-right"],
       },

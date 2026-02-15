@@ -8,6 +8,7 @@ export interface IActivitySession {
 
 export interface IUiState {
   activities: IActivitySession[];
+  activeActivityIndex?: number;
 }
 
 const UI_STATE_PATH = 'personal/ui-state.json';

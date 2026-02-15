@@ -1,7 +1,7 @@
 import type { ServiceLayer } from "./ServiceLayer";
 import type { IAction } from "./ActionService";
+import { IS_MAC, formatShortcutForDisplay as formatShortcut } from "./platformUtils";
 
-const IS_MAC = navigator.platform.toUpperCase().indexOf("MAC") >= 0;
 
 type ChordState = { type: "idle" } | { type: "awaiting_second"; prefix: string };
 
@@ -170,10 +170,25 @@ export class KeyboardService extends EventTarget {
 
     const parts: string[] = [];
 
-    const hasPrimaryMod = IS_MAC ? e.metaKey : e.ctrlKey;
-    if (hasPrimaryMod) parts.push("Mod");
-    if (e.altKey) parts.push("Alt");
-    if (e.shiftKey) parts.push("Shift");
+    if (IS_MAC) {
+      if (e.metaKey && e.altKey) {
+        parts.push("Mod2");
+      } else if (e.metaKey) {
+        parts.push("Mod");
+      }
+    } else {
+      if (e.ctrlKey && e.altKey) {
+        parts.push("Mod");
+        parts.push("Mod2");
+      } else if (e.ctrlKey) {
+        parts.push("Mod");
+      } else if (e.altKey) {
+        parts.push("Mod2");
+      }
+    }
+    // only add Shift for letter keys — symbol keys already encode shift in e.key
+    const isLetter = e.key.length === 1 && /[a-zA-Z]/.test(e.key);
+    if (e.shiftKey && isLetter) parts.push("Shift");
 
     const key = e.key.length === 1 ? e.key.toUpperCase() : e.key;
     parts.push(key);
@@ -187,6 +202,11 @@ export class KeyboardService extends EventTarget {
       .replace(/Cmd\+/g, "Mod+")
       .replace(/⌘/g, "Mod+")
       .toUpperCase()
+      .replace(/ARROWLEFT/g, "ArrowLeft")
+      .replace(/ARROWRIGHT/g, "ArrowRight")
+      .replace(/ARROWUP/g, "ArrowUp")
+      .replace(/ARROWDOWN/g, "ArrowDown")
+      .replace(/MOD2/g, "Mod2")
       .replace(/MOD/g, "Mod")
       .replace(/ALT/g, "Alt")
       .replace(/SHIFT/g, "Shift");
@@ -229,13 +249,6 @@ export class KeyboardService extends EventTarget {
   }
 
   public formatShortcutForDisplay(shortcut: string): string {
-    if (IS_MAC) {
-      return shortcut
-        .replace(/Mod\+/g, "⌘")
-        .replace(/Ctrl\+/g, "⌃")
-        .replace(/Alt\+/g, "⌥")
-        .replace(/Shift\+/g, "⇧");
-    }
-    return shortcut.replace(/Mod\+/g, "Ctrl+");
+    return formatShortcut(shortcut);
   }
 }

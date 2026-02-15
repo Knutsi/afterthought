@@ -2,6 +2,7 @@ import { UNDO_ACTION_ID, REDO_ACTION_ID, type IAction, type ActionAvailabilityMa
 import type { IContext } from "../../service/context/types";
 import { getDefaultServiceLayer } from "../../service/ServiceLayer";
 import { preferredMenuOrder, preferredMenuGroupOrder } from "./menu-order";
+import { formatShortcutForDisplay } from "../../service/platformUtils";
 
 export interface IDynamicMenuBarModel {
   orderedMenus: IMenu[];
@@ -112,7 +113,7 @@ async function buildMenuItems(actions: IAction[], _context: IContext, availabili
     return {
       id: action.id,
       label: getActionLabel(action),
-      shortcut: action.shortcuts.join(" / "),
+      shortcut: action.shortcuts.map(s => formatShortcutForDisplay(s)).join(" / "),
       actionId: action.id,
       disabled: !canDo,
     } as IMenuItem;

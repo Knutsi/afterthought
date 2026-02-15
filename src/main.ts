@@ -23,6 +23,7 @@ import "./feature/debug/ActionList";
 import "./feature/home/HomeActivity.ts";
 import "./feature/board/BoardActivity.ts";
 import "./feature/git/NewDatabaseActivity.ts";
+import "./gui/prompt/TextPromptActivity";
 
 // gui toolkit and modal:
 import "./gui/toolkit/Button";
@@ -32,6 +33,7 @@ import "./gui/modal/ModalOverlay";
 
 // Import default actions setup:
 import { setupDefaultActions } from "./default-actions.ts";
+import { setupActivityActions } from "./activity-actions.ts";
 import { setupKeyboardFeature } from "./feature/keyboard/setupKeyboardFeature.ts";
 import { setupCommandPaletteFeature } from "./feature/command-palette/setupCommandPaletteFeature.ts";
 import { setupBoardFeature } from "./feature/board/setupBoardFeature.ts";
@@ -204,6 +206,7 @@ async function initializeApp(): Promise<void> {
 
   // setup default actions:
   setupDefaultActions(serviceLayer);
+  setupActivityActions(serviceLayer);
 
   // setup keyboard shortcuts:
   setupKeyboardFeature(serviceLayer);
@@ -241,13 +244,31 @@ async function initializeApp(): Promise<void> {
   if (!cliFlags.noRestoreActivities) {
     const uiState = await personalStore.getUiState<IUiState>();
     if (uiState?.activities) {
-      for (const activity of uiState.activities) {
+      const refs: { id: string; index: number }[] = [];
+      for (let i = 0; i < uiState.activities.length; i++) {
+        const activity = uiState.activities[i];
         // skip home activities, setupHomeFeature already creates one
         if (activity.isHomeActivity) continue;
-        serviceLayer.activityService.startActivity(
+        const ref = serviceLayer.activityService.startActivity(
           activity.elementName,
           activity.params,
         );
+        refs.push({ id: ref.id, index: i });
+      }
+
+      // restore the previously active tab
+      if (uiState.activeActivityIndex != null) {
+        const savedActivity = uiState.activities[uiState.activeActivityIndex];
+        if (savedActivity?.isHomeActivity) {
+          // home activity was created by setupHomeFeature, find its runtime id
+          const homeId = serviceLayer.activityService.getHomeActivityId();
+          if (homeId) serviceLayer.activityService.switchToActivity(homeId);
+        } else {
+          const target = refs.find((r) => r.index === uiState.activeActivityIndex);
+          if (target) {
+            serviceLayer.activityService.switchToActivity(target.id);
+          }
+        }
       }
     }
   }
@@ -257,9 +278,16 @@ async function initializeApp(): Promise<void> {
 
   // register close handler to save state
   appWindow.onCloseRequested(async () => {
-    // save per-database activity state
-    const entries = serviceLayer.activityService.getActivityEntries();
-    await personalStore.setUiState({ activities: entries } as IUiState);
+    // save per-database activity state (in DOM/tab order)
+    const entries = serviceLayer.activityService.collectActivitySessions();
+    const activeId = serviceLayer.activityService.getActiveActivityId();
+    const container = document.getElementById("activity-container");
+    const domChildren = container ? Array.from(container.children) : [];
+    const activeActivityIndex = domChildren.findIndex((el) => el.id === activeId);
+    await personalStore.setUiState({
+      activities: entries,
+      activeActivityIndex: activeActivityIndex >= 0 ? activeActivityIndex : undefined,
+    } as IUiState);
 
     // unregister from Rust state (also writes session.json with remaining windows)
     await invoke('unregister_window_database', { label: appWindow.label });

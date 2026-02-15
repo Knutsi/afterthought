@@ -12,7 +12,7 @@ const COMMAND_PALETTE_ACTION_ID = "core.commandPalette";
 export function setupCommandPaletteFeature(serviceLayer: ServiceLayer): void {
   const commandPaletteAction: IAction = {
     id: COMMAND_PALETTE_ACTION_ID,
-    name: "Command Palette",
+    name: "All Actions...",
     shortcuts: ["Mod+P"],
     menuGroup: "View",
     menuSubGroup: "command-palette",

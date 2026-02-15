@@ -12,9 +12,15 @@ import {
   createSelectionAddAction,
   createSelectionRemoveAction,
   createMoveElementsAction,
+  createRenameBoardAction,
+  createZoomInAction,
+  createZoomOutAction,
+  createResetZoomAction,
 } from "./actions";
 import { TaskService } from "../task/TaskService";
 import { TASK_SERVICE_NAME } from "../task/types";
+import type { SearchPicker, PickerItem } from "../../gui/picker/SearchPicker";
+import "../../gui/picker/SearchPicker";
 import {
   BoardTaskPlacement,
   BoardData,
@@ -29,6 +35,8 @@ import {
   DEFAULT_TASK_PLACEMENT_Y,
   BOARD_SELECTION_FEATURE,
   BOARD_CONTENT_FEATURE,
+  BOARD_ACTIVITY_TAG,
+  IBoardActivityParams,
 } from "./types";
 
 const BOARD_STORE_ID = 'board-store';
@@ -47,6 +55,16 @@ export class BoardService extends EventTarget {
     await objectService.getOrCreateStore(BOARD_STORE_ID, 'boards');
     const existingBoards = await objectService.getObjectsByStore(BOARD_STORE_ID);
     this.boardCount = existingBoards.length;
+  }
+
+  public async listBoards(): Promise<{ id: string; name: string; taskCount: number }[]> {
+    const objectService = this.serviceLayer.getObjectService();
+    const boards = await objectService.getObjectsByStore(BOARD_STORE_ID);
+    return boards.map((b) => ({
+      id: b.id,
+      name: b.data.name ?? "Untitled",
+      taskCount: (b.data.tasks ?? []).length,
+    }));
   }
 
   public async newBoard(): Promise<IObject> {
@@ -237,6 +255,88 @@ export class BoardService extends EventTarget {
     }
   }
 
+  public async createBoardWithActivity(): Promise<{ boardId: string; activityId: string; board: IObject }> {
+    const activityService = this.serviceLayer.getActivityService();
+    const board = await this.newBoard();
+    const activityArgs: IBoardActivityParams = { openBoardId: board.id, name: board.data.name };
+    const activity = activityService.startActivity<IBoardActivityParams>(BOARD_ACTIVITY_TAG, activityArgs);
+    activityService.switchToActivity(activity.id);
+    return { boardId: board.id, activityId: activity.id, board };
+  }
+
+  public async deleteBoardAndCloseActivity(boardId: string, activityId: string): Promise<void> {
+    const activityService = this.serviceLayer.getActivityService();
+    activityService.closeActivity(activityId);
+    await this.deleteBoard(boardId);
+  }
+
+  public async openBoardPicker(): Promise<void> {
+    const activityService = this.serviceLayer.getActivityService();
+    const boards = await this.listBoards();
+
+    const openActivities = activityService.findActivitiesByTag(BOARD_ACTIVITY_TAG);
+    const openBoardIds = new Map<string, string>();
+    for (const a of openActivities) {
+      const boardId = a.params.openBoardId as string;
+      if (boardId) openBoardIds.set(boardId, a.id);
+    }
+
+    const items: PickerItem[] = boards.map((b) => {
+      const isOpen = openBoardIds.has(b.id);
+      return {
+        id: b.id,
+        name: b.name,
+        detail: `${b.taskCount} task${b.taskCount !== 1 ? "s" : ""}${isOpen ? " (open)" : ""}`,
+      };
+    });
+
+    const picker = document.getElementById("search-picker") as SearchPicker;
+    picker.configure(items);
+
+    picker.onSelect = (item: PickerItem) => {
+      picker.hide();
+      const existingActivityId = openBoardIds.get(item.id);
+      if (existingActivityId) {
+        activityService.switchToActivity(existingActivityId);
+      } else {
+        const activityArgs: IBoardActivityParams = { openBoardId: item.id, name: item.name };
+        const activity = activityService.startActivity<IBoardActivityParams>(BOARD_ACTIVITY_TAG, activityArgs);
+        activityService.switchToActivity(activity.id);
+      }
+    };
+
+    picker.onCancel = () => {
+      picker.hide();
+    };
+
+    picker.show();
+  }
+
+  public async renameBoard(boardId: string, newName: string): Promise<string> {
+    const boardData = await this.getBoardData(boardId);
+    const oldName = boardData?.name ?? "Untitled";
+
+    await this.updateBoardData(boardId, { name: newName });
+
+    // update tab label on open board activities
+    const activityService = this.serviceLayer.getActivityService();
+    const openActivities = activityService.findActivitiesByTag(BOARD_ACTIVITY_TAG);
+    for (const a of openActivities) {
+      if (a.params.openBoardId === boardId) {
+        const el = document.getElementById(a.id);
+        if (el) {
+          el.setAttribute("tab-label", newName);
+          // sync data-parameters so session persistence picks up the new name
+          const params = JSON.parse(el.getAttribute("data-parameters") || "{}");
+          params.name = newName;
+          el.setAttribute("data-parameters", JSON.stringify(params));
+        }
+      }
+    }
+
+    return oldName;
+  }
+
   public registerActions(): void {
     const actionService = this.serviceLayer.actionService;
     actionService.addAction(createNewBoardAction(this.serviceLayer));
@@ -248,6 +348,10 @@ export class BoardService extends EventTarget {
     actionService.addAction(createSelectionAddAction(this.serviceLayer));
     actionService.addAction(createSelectionRemoveAction(this.serviceLayer));
     actionService.addAction(createMoveElementsAction(this.serviceLayer));
+    actionService.addAction(createRenameBoardAction(this.serviceLayer));
+    actionService.addAction(createZoomInAction(this.serviceLayer));
+    actionService.addAction(createZoomOutAction(this.serviceLayer));
+    actionService.addAction(createResetZoomAction(this.serviceLayer));
   }
 
 

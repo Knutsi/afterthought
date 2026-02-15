@@ -14,14 +14,17 @@ export const preferredMenuOrder = [
 
 export const preferredMenuGroupOrder = [
   "command-palette",
+  "activity",
   "undo-redo",
   "clipboard",
   "selection",
   "create",
   "open",
+  "close",
   "exit",
   "edit",
   "view",
+  "zoom",
   "project",
   "task",
   "tools",

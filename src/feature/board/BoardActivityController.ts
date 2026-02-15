@@ -52,6 +52,14 @@ export class BoardActivityController implements IActivityController<IBoardActivi
 
     this.boardUri = createUri(URI_SCHEMES.BOARD, params.openBoardId ?? crypto.randomUUID());
     this.diagram = this.view.createDiagram(this.buildDiagramOptions(), this.serviceLayer);
+
+    if (params.initialOffsetX != null && params.initialOffsetY != null) {
+      this.diagram.setOffset(params.initialOffsetX, params.initialOffsetY);
+    }
+    if (params.initialZoom != null) {
+      this.diagram.setZoom(params.initialZoom);
+    }
+
     this.viewModel = new BoardActivityViewModel(this.serviceLayer, this.boardUri, this.diagram);
     this.viewModel.initialize();
   }
@@ -115,16 +123,11 @@ export class BoardActivityController implements IActivityController<IBoardActivi
   }
 
   private handleSelectionRequest(actionId: string, elements: DiagramElement[]): void {
-    const selectionManager = this.diagram?.getSelectionManager();
-    const stageManager = this.diagram?.getStageManager();
-    if (!selectionManager || !stageManager || !this.boardUri) {
-      return;
-    }
+    if (!this.diagram || !this.boardUri) return;
 
     const selectionArgs: SelectionRequestArgs = {
       elements,
-      selectionManager,
-      stageManager,
+      diagram: this.diagram,
       boardUri: this.boardUri,
     };
 
@@ -132,16 +135,13 @@ export class BoardActivityController implements IActivityController<IBoardActivi
   }
 
   private handleMoveComplete(elements: DiagramElement[], deltaX: number, deltaY: number): void {
-    const selectionManager = this.diagram?.getSelectionManager();
-    if (!selectionManager || !this.boardUri) {
-      return;
-    }
+    if (!this.diagram || !this.boardUri) return;
 
     const moveArgs: MoveElementsArgs = {
       elements,
       deltaX,
       deltaY,
-      selectionManager,
+      diagram: this.diagram,
       boardUri: this.boardUri,
     };
 
