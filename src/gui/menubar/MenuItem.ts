@@ -163,13 +163,30 @@ export class MenuItem extends BaseComponent {
       // split by space to get chord strokes (e.g., "Ctrl+N B" -> ["Ctrl+N", "B"])
       const strokes = alt.split(' ').filter(s => s);
       const formattedStrokes = strokes.map(stroke => {
-        // split each stroke by "+" to get individual keys
-        return stroke.split('+').map(key => `<kbd>${key.trim()}</kbd>`).join('');
+        // split each stroke into modifier+key parts, handling "+" as a literal key
+        const keys = this.parseStrokeKeys(stroke);
+        return keys.map(key => `<kbd>${key}</kbd>`).join('');
       }).join('<span class="chord-sep">+</span>');
 
       const separator = i < alternatives.length - 1 ? '<span class="separator">/</span>' : '';
       return formattedStrokes + separator;
     }).join('');
+  }
+
+  private parseStrokeKeys(stroke: string): string[] {
+    const keys: string[] = [];
+    let rest = stroke;
+    // consume modifier prefixes (e.g. "Mod+", "Shift+")
+    const modPattern = /^(Mod2|Mod|Shift|Alt|Ctrl|⌘\u2009?|⌥\u2009?|⇧\u2009?|⌃\u2009?)\+/;
+    let match = modPattern.exec(rest);
+    while (match) {
+      keys.push(match[1]);
+      rest = rest.slice(match[0].length);
+      match = modPattern.exec(rest);
+    }
+    // whatever remains is the key itself (could be "+", "-", "=", "A", etc.)
+    if (rest) keys.push(rest.trim());
+    return keys;
   }
 
   private _handleClick = (e: Event): void => {

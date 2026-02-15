@@ -24,6 +24,7 @@ export const preferredMenuGroupOrder = [
   "exit",
   "edit",
   "view",
+  "zoom",
   "project",
   "task",
   "tools",

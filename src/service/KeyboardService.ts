@@ -186,7 +186,9 @@ export class KeyboardService extends EventTarget {
         parts.push("Mod2");
       }
     }
-    if (e.shiftKey) parts.push("Shift");
+    // only add Shift for letter keys — symbol keys already encode shift in e.key
+    const isLetter = e.key.length === 1 && /[a-zA-Z]/.test(e.key);
+    if (e.shiftKey && isLetter) parts.push("Shift");
 
     const key = e.key.length === 1 ? e.key.toUpperCase() : e.key;
     parts.push(key);

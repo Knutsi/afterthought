@@ -13,6 +13,9 @@ import {
   createSelectionRemoveAction,
   createMoveElementsAction,
   createRenameBoardAction,
+  createZoomInAction,
+  createZoomOutAction,
+  createResetZoomAction,
 } from "./actions";
 import { TaskService } from "../task/TaskService";
 import { TASK_SERVICE_NAME } from "../task/types";
@@ -346,6 +349,9 @@ export class BoardService extends EventTarget {
     actionService.addAction(createSelectionRemoveAction(this.serviceLayer));
     actionService.addAction(createMoveElementsAction(this.serviceLayer));
     actionService.addAction(createRenameBoardAction(this.serviceLayer));
+    actionService.addAction(createZoomInAction(this.serviceLayer));
+    actionService.addAction(createZoomOutAction(this.serviceLayer));
+    actionService.addAction(createResetZoomAction(this.serviceLayer));
   }
 
 
