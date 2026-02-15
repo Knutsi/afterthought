@@ -52,6 +52,14 @@ export class BoardActivityController implements IActivityController<IBoardActivi
 
     this.boardUri = createUri(URI_SCHEMES.BOARD, params.openBoardId ?? crypto.randomUUID());
     this.diagram = this.view.createDiagram(this.buildDiagramOptions(), this.serviceLayer);
+
+    if (params.initialOffsetX != null && params.initialOffsetY != null) {
+      this.diagram.setOffset(params.initialOffsetX, params.initialOffsetY);
+    }
+    if (params.initialZoom != null) {
+      this.diagram.setZoom(params.initialZoom);
+    }
+
     this.viewModel = new BoardActivityViewModel(this.serviceLayer, this.boardUri, this.diagram);
     this.viewModel.initialize();
   }

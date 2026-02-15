@@ -46,6 +46,9 @@ export const BOARD_CONTENT_FEATURE = "board-content";
 export interface IBoardActivityParams {
   name: string,
   openBoardId: string | null /* new if null */
+  initialOffsetX?: number;
+  initialOffsetY?: number;
+  initialZoom?: number;
 }
 
 export interface BoardTaskPlacement {

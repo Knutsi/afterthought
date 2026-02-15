@@ -258,7 +258,7 @@ async function initializeApp(): Promise<void> {
   // register close handler to save state
   appWindow.onCloseRequested(async () => {
     // save per-database activity state
-    const entries = serviceLayer.activityService.getActivityEntries();
+    const entries = serviceLayer.activityService.collectActivitySessions();
     await personalStore.setUiState({ activities: entries } as IUiState);
 
     // unregister from Rust state (also writes session.json with remaining windows)

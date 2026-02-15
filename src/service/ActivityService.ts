@@ -17,6 +17,7 @@ export interface IActivity {
   readonly activityType: ActivityType;
   onGetContext(contextPart: IContextPart): void;
   onDropContext(): void;
+  onPersistSession?(): Record<string, unknown>;
 }
 
 export interface IActivityReference {
@@ -245,11 +246,17 @@ export class ActivityService extends EventTarget {
       }));
   }
 
-  public getActivityEntries(): IActivitySession[] {
-    return this.activityStack.map((entry) => ({
-      elementName: entry.element.tagName.toLowerCase(),
-      params: JSON.parse(entry.element.getAttribute("data-parameters") || "{}"),
-      isHomeActivity: entry.isHomeActivity,
-    }));
+  public collectActivitySessions(): IActivitySession[] {
+    return this.activityStack.map((entry) => {
+      const params = JSON.parse(entry.element.getAttribute("data-parameters") || "{}");
+      if (this.isActivity(entry.element) && entry.element.onPersistSession) {
+        Object.assign(params, entry.element.onPersistSession());
+      }
+      return {
+        elementName: entry.element.tagName.toLowerCase(),
+        params,
+        isHomeActivity: entry.isHomeActivity,
+      };
+    });
   }
 }

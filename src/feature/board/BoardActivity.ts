@@ -36,6 +36,9 @@ const BOARD_ACTIVITY_DEFINITION: IActivityDefinition<
     return {
       name: parsed.name,
       openBoardId,
+      initialOffsetX: typeof parsed.initialOffsetX === "number" ? parsed.initialOffsetX : undefined,
+      initialOffsetY: typeof parsed.initialOffsetY === "number" ? parsed.initialOffsetY : undefined,
+      initialZoom: typeof parsed.initialZoom === "number" ? parsed.initialZoom : undefined,
     };
   },
   createView: (): BoardActivityView => {
@@ -75,6 +78,17 @@ export class BoardActivity extends ActivityElementBase<
 
   getSyncAdapter(): BoardSyncAdapter | null {
     return this.getActivityController()?.getSyncAdapter() ?? null;
+  }
+
+  onPersistSession(): Record<string, unknown> {
+    const diagram = this.getDiagram();
+    if (!diagram) return {};
+    const offset = diagram.getOffset();
+    return {
+      initialOffsetX: offset.x,
+      initialOffsetY: offset.y,
+      initialZoom: diagram.getZoom(),
+    };
   }
 }
 
