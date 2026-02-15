@@ -5,6 +5,7 @@ import type { ServiceLayer } from "./ServiceLayer";
 import type { IContextPart } from "./context/types";
 import type { ContextPart } from "./context/ContextService";
 import type { IActivitySession } from "./database/PersonalStore";
+import type { SearchPicker, PickerItem } from "../gui/picker/SearchPicker";
 
 export enum ActivityType {
   TAB = "tab",
@@ -249,6 +250,70 @@ export class ActivityService extends EventTarget {
         id: entry.id,
         params: JSON.parse(entry.element.getAttribute("data-parameters") || "{}"),
       }));
+  }
+
+  public getTabActivities(): { id: string; label: string; isHomeActivity: boolean }[] {
+    if (!this.activityContainer) return [];
+
+    const result: { id: string; label: string; isHomeActivity: boolean }[] = [];
+    for (const child of Array.from(this.activityContainer.children)) {
+      const entry = this.activityStack.find((e) => e.id === child.id);
+      if (!entry) continue;
+      const label = child.getAttribute("tab-label") || "Untitled";
+      result.push({ id: entry.id, label, isHomeActivity: entry.isHomeActivity });
+    }
+    return result;
+  }
+
+  public switchToNextActivity(): void {
+    if (!this.activityContainer) return;
+    const children = Array.from(this.activityContainer.children);
+    if (children.length <= 1) return;
+
+    const activeId = this.getActiveActivityId();
+    const currentIndex = children.findIndex((el) => el.id === activeId);
+    if (currentIndex === -1) return;
+
+    const nextIndex = (currentIndex + 1) % children.length;
+    this.switchToActivity(children[nextIndex].id);
+  }
+
+  public switchToPreviousActivity(): void {
+    if (!this.activityContainer) return;
+    const children = Array.from(this.activityContainer.children);
+    if (children.length <= 1) return;
+
+    const activeId = this.getActiveActivityId();
+    const currentIndex = children.findIndex((el) => el.id === activeId);
+    if (currentIndex === -1) return;
+
+    const prevIndex = (currentIndex - 1 + children.length) % children.length;
+    this.switchToActivity(children[prevIndex].id);
+  }
+
+  public openActivitySwitcher(): void {
+    const tabs = this.getTabActivities();
+    const activeId = this.getActiveActivityId();
+
+    const items: PickerItem[] = tabs.map((tab) => ({
+      id: tab.id,
+      name: tab.label,
+      detail: tab.id === activeId ? "(active)" : undefined,
+    }));
+
+    const picker = document.getElementById("search-picker") as SearchPicker;
+    picker.configure(items);
+
+    picker.onSelect = (item: PickerItem) => {
+      picker.hide();
+      this.switchToActivity(item.id);
+    };
+
+    picker.onCancel = () => {
+      picker.hide();
+    };
+
+    picker.show();
   }
 
   public collectActivitySessions(): IActivitySession[] {

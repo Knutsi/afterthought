@@ -33,6 +33,7 @@ import "./gui/modal/ModalOverlay";
 
 // Import default actions setup:
 import { setupDefaultActions } from "./default-actions.ts";
+import { setupActivityActions } from "./activity-actions.ts";
 import { setupKeyboardFeature } from "./feature/keyboard/setupKeyboardFeature.ts";
 import { setupCommandPaletteFeature } from "./feature/command-palette/setupCommandPaletteFeature.ts";
 import { setupBoardFeature } from "./feature/board/setupBoardFeature.ts";
@@ -205,6 +206,7 @@ async function initializeApp(): Promise<void> {
 
   // setup default actions:
   setupDefaultActions(serviceLayer);
+  setupActivityActions(serviceLayer);
 
   // setup keyboard shortcuts:
   setupKeyboardFeature(serviceLayer);
