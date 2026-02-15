@@ -236,6 +236,15 @@ export class ActivityService extends EventTarget {
     );
   }
 
+  public findActivitiesByTag(tag: string): { id: string; params: Record<string, unknown> }[] {
+    return this.activityStack
+      .filter((entry) => entry.element.tagName.toLowerCase() === tag)
+      .map((entry) => ({
+        id: entry.id,
+        params: JSON.parse(entry.element.getAttribute("data-parameters") || "{}"),
+      }));
+  }
+
   public getActivityEntries(): IActivitySession[] {
     return this.activityStack.map((entry) => ({
       elementName: entry.element.tagName.toLowerCase(),

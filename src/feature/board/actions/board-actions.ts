@@ -58,18 +58,14 @@ export function createOpenBoardAction(serviceLayer: ServiceLayer): IAction {
     menuSubGroup: "open",
     do: async (_context: IContext, _args?: Record<string, unknown>): Promise<UndoFunction | void> => {
       const boardService = serviceLayer.getFeatureService<BoardService>(BOARD_SERVICE_NAME);
+      const activityService = serviceLayer.getActivityService();
       const boards = await boardService.listBoards();
 
-      const container = document.getElementById("activity-container");
+      const openActivities = activityService.findActivitiesByTag(BOARD_ACTIVITY_TAG);
       const openBoardIds = new Map<string, string>();
-      if (container) {
-        for (const child of Array.from(container.children)) {
-          if (child.tagName.toLowerCase() !== BOARD_ACTIVITY_TAG) continue;
-          const params = JSON.parse(child.getAttribute("data-parameters") || "{}");
-          if (params.openBoardId) {
-            openBoardIds.set(params.openBoardId, child.id);
-          }
-        }
+      for (const a of openActivities) {
+        const boardId = a.params.openBoardId as string;
+        if (boardId) openBoardIds.set(boardId, a.id);
       }
 
       const items: PickerItem[] = boards.map((b) => {
@@ -86,7 +82,6 @@ export function createOpenBoardAction(serviceLayer: ServiceLayer): IAction {
 
       picker.onSelect = (item: PickerItem) => {
         picker.hide();
-        const activityService = serviceLayer.getActivityService();
         const existingActivityId = openBoardIds.get(item.id);
         if (existingActivityId) {
           activityService.switchToActivity(existingActivityId);

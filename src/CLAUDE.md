@@ -27,9 +27,11 @@ We also have a dynamic menubar and more UI elements (right click) that filters a
 So never:
 - Let activities (UI layer) edit data or handle service task
 - Let activities register actions (only services register actions at setup time)
+- Search the DOM directly from actions or services when a service method can provide the data (go through the relevant service instead)
 
 Always:
-- Use IAction entries to enable edits (exception MAY exist, but ask developer about this always) 
+- Use IAction entries to enable edits (exception MAY exist, but ask developer about this always)
+- Keep actions as thin orchestration — actions should call service methods, not implement business logic themselves
 
 ## Component Registration Pattern
 
