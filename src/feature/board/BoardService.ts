@@ -15,6 +15,8 @@ import {
 } from "./actions";
 import { TaskService } from "../task/TaskService";
 import { TASK_SERVICE_NAME } from "../task/types";
+import type { SearchPicker, PickerItem } from "../../gui/picker/SearchPicker";
+import "../../gui/picker/SearchPicker";
 import {
   BoardTaskPlacement,
   BoardData,
@@ -29,6 +31,8 @@ import {
   DEFAULT_TASK_PLACEMENT_Y,
   BOARD_SELECTION_FEATURE,
   BOARD_CONTENT_FEATURE,
+  BOARD_ACTIVITY_TAG,
+  IBoardActivityParams,
 } from "./types";
 
 const BOARD_STORE_ID = 'board-store';
@@ -245,6 +249,63 @@ export class BoardService extends EventTarget {
     for (const taskUri of taskUris) {
       contextPart.addEntry(taskUri, BOARD_CONTENT_FEATURE, boardUri);
     }
+  }
+
+  public async createBoardWithActivity(): Promise<{ boardId: string; activityId: string; board: IObject }> {
+    const activityService = this.serviceLayer.getActivityService();
+    const board = await this.newBoard();
+    const activityArgs: IBoardActivityParams = { openBoardId: board.id, name: board.data.name };
+    const activity = activityService.startActivity<IBoardActivityParams>(BOARD_ACTIVITY_TAG, activityArgs);
+    activityService.switchToActivity(activity.id);
+    return { boardId: board.id, activityId: activity.id, board };
+  }
+
+  public async deleteBoardAndCloseActivity(boardId: string, activityId: string): Promise<void> {
+    const activityService = this.serviceLayer.getActivityService();
+    activityService.closeActivity(activityId);
+    await this.deleteBoard(boardId);
+  }
+
+  public async openBoardPicker(): Promise<void> {
+    const activityService = this.serviceLayer.getActivityService();
+    const boards = await this.listBoards();
+
+    const openActivities = activityService.findActivitiesByTag(BOARD_ACTIVITY_TAG);
+    const openBoardIds = new Map<string, string>();
+    for (const a of openActivities) {
+      const boardId = a.params.openBoardId as string;
+      if (boardId) openBoardIds.set(boardId, a.id);
+    }
+
+    const items: PickerItem[] = boards.map((b) => {
+      const isOpen = openBoardIds.has(b.id);
+      return {
+        id: b.id,
+        name: b.name,
+        detail: `${b.taskCount} task${b.taskCount !== 1 ? "s" : ""}${isOpen ? " (open)" : ""}`,
+      };
+    });
+
+    const picker = document.getElementById("search-picker") as SearchPicker;
+    picker.configure(items);
+
+    picker.onSelect = (item: PickerItem) => {
+      picker.hide();
+      const existingActivityId = openBoardIds.get(item.id);
+      if (existingActivityId) {
+        activityService.switchToActivity(existingActivityId);
+      } else {
+        const activityArgs: IBoardActivityParams = { openBoardId: item.id, name: item.name };
+        const activity = activityService.startActivity<IBoardActivityParams>(BOARD_ACTIVITY_TAG, activityArgs);
+        activityService.switchToActivity(activity.id);
+      }
+    };
+
+    picker.onCancel = () => {
+      picker.hide();
+    };
+
+    picker.show();
   }
 
   public registerActions(): void {

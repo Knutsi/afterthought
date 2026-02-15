@@ -1,16 +1,8 @@
 import type { IAction, UndoFunction, RedoFunction } from "../../../service/ActionService";
 import type { ServiceLayer } from "../../../service/ServiceLayer";
 import type { IContext } from "../../../service/context/types";
-import {
-  BOARD_ACTIVITY_TAG,
-  CREATE_BOARD_ACTION_ID,
-  OPEN_BOARD_ACTION_ID,
-  IBoardActivityParams,
-  BOARD_SERVICE_NAME,
-} from "../types";
+import { CREATE_BOARD_ACTION_ID, OPEN_BOARD_ACTION_ID, BOARD_SERVICE_NAME } from "../types";
 import type { BoardService } from "../BoardService";
-import type { SearchPicker, PickerItem } from "../../../gui/picker/SearchPicker";
-import "../../../gui/picker/SearchPicker";
 
 export function createNewBoardAction(serviceLayer: ServiceLayer): IAction {
   return {
@@ -21,29 +13,19 @@ export function createNewBoardAction(serviceLayer: ServiceLayer): IAction {
     menuSubGroup: "create",
     do: async (_context: IContext, _args?: Record<string, unknown>): Promise<UndoFunction | void> => {
       const boardService = serviceLayer.getFeatureService<BoardService>(BOARD_SERVICE_NAME);
-      const activityService = serviceLayer.getActivityService();
+      const { boardId, activityId } = await boardService.createBoardWithActivity();
 
-      const board = await boardService.newBoard();
-      const activityArgs: IBoardActivityParams = { openBoardId: board.id, name: board.data.name };
-      const activity = activityService.startActivity<IBoardActivityParams>(BOARD_ACTIVITY_TAG, activityArgs);
-      activityService.switchToActivity(activity.id);
-
-      const makeUndoFn = (boardId: string, activityId: string): UndoFunction => {
+      const makeUndoFn = (bId: string, aId: string): UndoFunction => {
         return async (): Promise<RedoFunction | void> => {
-          activityService.closeActivity(activityId);
-          await boardService.deleteBoard(boardId);
-
+          await boardService.deleteBoardAndCloseActivity(bId, aId);
           return async (): Promise<UndoFunction | void> => {
-            const newBoard = await boardService.newBoard();
-            const newArgs: IBoardActivityParams = { openBoardId: newBoard.id, name: newBoard.data.name };
-            const newActivity = activityService.startActivity<IBoardActivityParams>(BOARD_ACTIVITY_TAG, newArgs);
-            activityService.switchToActivity(newActivity.id);
-            return makeUndoFn(newBoard.id, newActivity.id);
+            const result = await boardService.createBoardWithActivity();
+            return makeUndoFn(result.boardId, result.activityId);
           };
         };
       };
 
-      return makeUndoFn(board.id, activity.id);
+      return makeUndoFn(boardId, activityId);
     },
     canDo: async () => true,
   };
@@ -58,45 +40,7 @@ export function createOpenBoardAction(serviceLayer: ServiceLayer): IAction {
     menuSubGroup: "open",
     do: async (_context: IContext, _args?: Record<string, unknown>): Promise<UndoFunction | void> => {
       const boardService = serviceLayer.getFeatureService<BoardService>(BOARD_SERVICE_NAME);
-      const activityService = serviceLayer.getActivityService();
-      const boards = await boardService.listBoards();
-
-      const openActivities = activityService.findActivitiesByTag(BOARD_ACTIVITY_TAG);
-      const openBoardIds = new Map<string, string>();
-      for (const a of openActivities) {
-        const boardId = a.params.openBoardId as string;
-        if (boardId) openBoardIds.set(boardId, a.id);
-      }
-
-      const items: PickerItem[] = boards.map((b) => {
-        const isOpen = openBoardIds.has(b.id);
-        return {
-          id: b.id,
-          name: b.name,
-          detail: `${b.taskCount} task${b.taskCount !== 1 ? "s" : ""}${isOpen ? " (open)" : ""}`,
-        };
-      });
-
-      const picker = document.getElementById("search-picker") as SearchPicker;
-      picker.configure(items);
-
-      picker.onSelect = (item: PickerItem) => {
-        picker.hide();
-        const existingActivityId = openBoardIds.get(item.id);
-        if (existingActivityId) {
-          activityService.switchToActivity(existingActivityId);
-        } else {
-          const activityArgs: IBoardActivityParams = { openBoardId: item.id, name: item.name };
-          const activity = activityService.startActivity<IBoardActivityParams>(BOARD_ACTIVITY_TAG, activityArgs);
-          activityService.switchToActivity(activity.id);
-        }
-      };
-
-      picker.onCancel = () => {
-        picker.hide();
-      };
-
-      picker.show();
+      await boardService.openBoardPicker();
     },
     canDo: async () => true,
   };

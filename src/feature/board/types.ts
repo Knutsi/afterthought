@@ -1,15 +1,20 @@
 import type { DiagramElement } from "./editor/diagram-core/types";
-import type { SelectionManager } from "./editor/diagram-core/managers/SelectionManager";
-import type { StageManager } from "./editor/diagram-core/managers/StageManager";
+import type { Diagram } from "./editor/diagram-core/Diagram";
 import type { Uri } from "../../core-model/uri";
 import type { BoardService } from "./BoardService";
+import type { BoardSelectionService } from "./service/BoardSelectionService";
+import type { BoardMovementService } from "./service/BoardMovementService";
 
 export const BOARD_ACTIVITY_TAG = "board-activity";
 export const BOARD_SERVICE_NAME = "board-service";
+export const BOARD_SELECTION_SERVICE_NAME = "board-selection-service";
+export const BOARD_MOVEMENT_SERVICE_NAME = "board-movement-service";
 
 declare module "../../service/featureTypes" {
   interface IFeatureServiceMap {
     [BOARD_SERVICE_NAME]: BoardService;
+    [BOARD_SELECTION_SERVICE_NAME]: BoardSelectionService;
+    [BOARD_MOVEMENT_SERVICE_NAME]: BoardMovementService;
   }
 }
 
@@ -91,8 +96,7 @@ export interface TaskRemovedEventDetail {
 
 export interface SelectionRequestArgs extends Record<string, unknown> {
   elements: DiagramElement[];
-  selectionManager: SelectionManager;
-  stageManager: StageManager;
+  diagram: Diagram;
   boardUri: Uri;
 }
 
@@ -100,6 +104,6 @@ export interface MoveElementsArgs extends Record<string, unknown> {
   elements: DiagramElement[];
   deltaX: number;
   deltaY: number;
-  selectionManager: SelectionManager;
+  diagram: Diagram;
   boardUri: Uri;
 }

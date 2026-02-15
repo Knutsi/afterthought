@@ -123,16 +123,11 @@ export class BoardActivityController implements IActivityController<IBoardActivi
   }
 
   private handleSelectionRequest(actionId: string, elements: DiagramElement[]): void {
-    const selectionManager = this.diagram?.getSelectionManager();
-    const stageManager = this.diagram?.getStageManager();
-    if (!selectionManager || !stageManager || !this.boardUri) {
-      return;
-    }
+    if (!this.diagram || !this.boardUri) return;
 
     const selectionArgs: SelectionRequestArgs = {
       elements,
-      selectionManager,
-      stageManager,
+      diagram: this.diagram,
       boardUri: this.boardUri,
     };
 
@@ -140,16 +135,13 @@ export class BoardActivityController implements IActivityController<IBoardActivi
   }
 
   private handleMoveComplete(elements: DiagramElement[], deltaX: number, deltaY: number): void {
-    const selectionManager = this.diagram?.getSelectionManager();
-    if (!selectionManager || !this.boardUri) {
-      return;
-    }
+    if (!this.diagram || !this.boardUri) return;
 
     const moveArgs: MoveElementsArgs = {
       elements,
       deltaX,
       deltaY,
-      selectionManager,
+      diagram: this.diagram,
       boardUri: this.boardUri,
     };
 
