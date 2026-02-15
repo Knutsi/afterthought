@@ -170,9 +170,22 @@ export class KeyboardService extends EventTarget {
 
     const parts: string[] = [];
 
-    const hasPrimaryMod = IS_MAC ? e.metaKey : e.ctrlKey;
-    if (hasPrimaryMod) parts.push("Mod");
-    if (e.altKey) parts.push("Alt");
+    if (IS_MAC) {
+      if (e.metaKey && e.altKey) {
+        parts.push("Mod2");
+      } else if (e.metaKey) {
+        parts.push("Mod");
+      }
+    } else {
+      if (e.ctrlKey && e.altKey) {
+        parts.push("Mod");
+        parts.push("Mod2");
+      } else if (e.ctrlKey) {
+        parts.push("Mod");
+      } else if (e.altKey) {
+        parts.push("Mod2");
+      }
+    }
     if (e.shiftKey) parts.push("Shift");
 
     const key = e.key.length === 1 ? e.key.toUpperCase() : e.key;
@@ -187,6 +200,11 @@ export class KeyboardService extends EventTarget {
       .replace(/Cmd\+/g, "Mod+")
       .replace(/⌘/g, "Mod+")
       .toUpperCase()
+      .replace(/ARROWLEFT/g, "ArrowLeft")
+      .replace(/ARROWRIGHT/g, "ArrowRight")
+      .replace(/ARROWUP/g, "ArrowUp")
+      .replace(/ARROWDOWN/g, "ArrowDown")
+      .replace(/MOD2/g, "Mod2")
       .replace(/MOD/g, "Mod")
       .replace(/ALT/g, "Alt")
       .replace(/SHIFT/g, "Shift");

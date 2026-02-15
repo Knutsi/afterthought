@@ -5,7 +5,7 @@ import type { IContext } from "./service/context/types";
 var closeActivityAction: IAction = {
   id: "core.closeActivity",
   name: "Close",
-  shortcuts: ["Alt+W"],
+  shortcuts: ["Mod2+W"],
   menuGroup: "File",
   menuSubGroup: "close",
   repeatable: false,
@@ -40,7 +40,7 @@ var switchActivityAction: IAction = {
 var nextActivityAction: IAction = {
   id: "core.nextActivity",
   name: "Next Activity",
-  shortcuts: ["Alt+L"],
+  shortcuts: ["Mod2+ArrowRight"],
   menuGroup: "View",
   menuSubGroup: "activity",
   do: async (_context: IContext, _args?: Record<string, unknown>) => {
@@ -53,7 +53,7 @@ var nextActivityAction: IAction = {
 var previousActivityAction: IAction = {
   id: "core.previousActivity",
   name: "Previous Activity",
-  shortcuts: ["Alt+H"],
+  shortcuts: ["Mod2+ArrowLeft"],
   menuGroup: "View",
   menuSubGroup: "activity",
   do: async (_context: IContext, _args?: Record<string, unknown>) => {
