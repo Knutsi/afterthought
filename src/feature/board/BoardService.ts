@@ -321,7 +321,13 @@ export class BoardService extends EventTarget {
     for (const a of openActivities) {
       if (a.params.openBoardId === boardId) {
         const el = document.getElementById(a.id);
-        if (el) el.setAttribute("tab-label", newName);
+        if (el) {
+          el.setAttribute("tab-label", newName);
+          // sync data-parameters so session persistence picks up the new name
+          const params = JSON.parse(el.getAttribute("data-parameters") || "{}");
+          params.name = newName;
+          el.setAttribute("data-parameters", JSON.stringify(params));
+        }
       }
     }
 
