@@ -1,7 +1,9 @@
 import type { IAction, UndoFunction, RedoFunction } from "../../../service/ActionService";
 import type { ServiceLayer } from "../../../service/ServiceLayer";
 import type { IContext } from "../../../service/context/types";
-import { CREATE_BOARD_ACTION_ID, OPEN_BOARD_ACTION_ID, BOARD_SERVICE_NAME } from "../types";
+import { URI_SCHEMES, parseUri } from "../../../core-model/uri";
+import { showTextPrompt } from "../../../gui/prompt/showTextPrompt";
+import { CREATE_BOARD_ACTION_ID, OPEN_BOARD_ACTION_ID, RENAME_BOARD_ACTION_ID, BOARD_SERVICE_NAME } from "../types";
 import type { BoardService } from "../BoardService";
 
 export function createNewBoardAction(serviceLayer: ServiceLayer): IAction {
@@ -43,5 +45,48 @@ export function createOpenBoardAction(serviceLayer: ServiceLayer): IAction {
       await boardService.openBoardPicker();
     },
     canDo: async () => true,
+  };
+}
+
+export function createRenameBoardAction(serviceLayer: ServiceLayer): IAction {
+  return {
+    id: RENAME_BOARD_ACTION_ID,
+    name: "Rename Board...",
+    shortcuts: ["F2"],
+    menuGroup: "Board",
+    menuSubGroup: "edit",
+    do: async (context: IContext, _args?: Record<string, unknown>): Promise<UndoFunction | void> => {
+      const boardEntries = context.getEntriesByScheme(URI_SCHEMES.BOARD);
+      if (boardEntries.length === 0) return;
+
+      const boardUri = boardEntries[0].uri;
+      const parsed = parseUri(boardUri);
+      if (!parsed) return;
+      const boardId = parsed.id;
+
+      const boardService = serviceLayer.getFeatureService<BoardService>(BOARD_SERVICE_NAME);
+      const boardData = await boardService.getBoardData(boardId);
+      if (!boardData) return;
+
+      const currentName = boardData.name;
+      const newName = await showTextPrompt(serviceLayer, {
+        title: "Rename Board",
+        defaultValue: currentName,
+      });
+
+      if (newName == null || newName === currentName) return;
+
+      const oldName = await boardService.renameBoard(boardId, newName);
+
+      return async (): Promise<RedoFunction | void> => {
+        await boardService.renameBoard(boardId, oldName);
+        return async (): Promise<UndoFunction | void> => {
+          await boardService.renameBoard(boardId, newName);
+        };
+      };
+    },
+    canDo: async (context: IContext): Promise<boolean> => {
+      return context.hasScheme(URI_SCHEMES.BOARD);
+    },
   };
 }

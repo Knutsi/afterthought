@@ -23,6 +23,7 @@ import "./feature/debug/ActionList";
 import "./feature/home/HomeActivity.ts";
 import "./feature/board/BoardActivity.ts";
 import "./feature/git/NewDatabaseActivity.ts";
+import "./gui/prompt/TextPromptActivity";
 
 // gui toolkit and modal:
 import "./gui/toolkit/Button";

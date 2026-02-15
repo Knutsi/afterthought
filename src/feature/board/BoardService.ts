@@ -12,6 +12,7 @@ import {
   createSelectionAddAction,
   createSelectionRemoveAction,
   createMoveElementsAction,
+  createRenameBoardAction,
 } from "./actions";
 import { TaskService } from "../task/TaskService";
 import { TASK_SERVICE_NAME } from "../task/types";
@@ -308,6 +309,25 @@ export class BoardService extends EventTarget {
     picker.show();
   }
 
+  public async renameBoard(boardId: string, newName: string): Promise<string> {
+    const boardData = await this.getBoardData(boardId);
+    const oldName = boardData?.name ?? "Untitled";
+
+    await this.updateBoardData(boardId, { name: newName });
+
+    // update tab label on open board activities
+    const activityService = this.serviceLayer.getActivityService();
+    const openActivities = activityService.findActivitiesByTag(BOARD_ACTIVITY_TAG);
+    for (const a of openActivities) {
+      if (a.params.openBoardId === boardId) {
+        const el = document.getElementById(a.id);
+        if (el) el.setAttribute("tab-label", newName);
+      }
+    }
+
+    return oldName;
+  }
+
   public registerActions(): void {
     const actionService = this.serviceLayer.actionService;
     actionService.addAction(createNewBoardAction(this.serviceLayer));
@@ -319,6 +339,7 @@ export class BoardService extends EventTarget {
     actionService.addAction(createSelectionAddAction(this.serviceLayer));
     actionService.addAction(createSelectionRemoveAction(this.serviceLayer));
     actionService.addAction(createMoveElementsAction(this.serviceLayer));
+    actionService.addAction(createRenameBoardAction(this.serviceLayer));
   }
 
 
