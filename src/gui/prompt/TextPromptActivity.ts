@@ -22,6 +22,7 @@ const TEXT_PROMPT_DEFINITION: IActivityDefinition<
       defaultValue: parsed.defaultValue,
       placeholder: parsed.placeholder,
       confirmLabel: parsed.confirmLabel,
+      selectText: parsed.selectText,
     };
   },
   createView: (): TextPromptView => {

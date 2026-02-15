@@ -5,6 +5,7 @@ export interface ITextPromptViewState {
   value: string;
   placeholder: string;
   confirmLabel: string;
+  selectText: boolean;
 }
 
 export interface ITextPromptViewCallbacks {
@@ -17,6 +18,7 @@ export class TextPromptView implements IActivityView {
   private shadowRoot: ShadowRoot | null = null;
   private callbacks: ITextPromptViewCallbacks | null = null;
   private rendered = false;
+  private selectText = false;
 
   public setCallbacks(callbacks: ITextPromptViewCallbacks): void {
     this.callbacks = callbacks;
@@ -34,6 +36,7 @@ export class TextPromptView implements IActivityView {
     if (!this.shadowRoot) return;
 
     if (!this.rendered) {
+      this.selectText = state.selectText;
       this.renderInitial(state);
       this.rendered = true;
     } else {
@@ -115,8 +118,10 @@ export class TextPromptView implements IActivityView {
     const dialog = this.shadowRoot.querySelector("at-dialog");
     dialog?.addEventListener("close", () => this.callbacks!.onCancel());
 
-    input?.focus();
-    input?.select();
+    requestAnimationFrame(() => {
+      input?.focus();
+      if (this.selectText) input?.select();
+    });
   }
 
   private escapeAttr(s: string): string {

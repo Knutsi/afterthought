@@ -72,6 +72,7 @@ export function createRenameBoardAction(serviceLayer: ServiceLayer): IAction {
       const newName = await showTextPrompt(serviceLayer, {
         title: "Rename Board",
         defaultValue: currentName,
+        selectText: true,
       });
 
       if (newName == null || newName === currentName) return;

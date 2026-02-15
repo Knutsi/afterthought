@@ -5,4 +5,5 @@ export interface TextPromptOptions {
   defaultValue?: string;
   placeholder?: string;
   confirmLabel?: string;
+  selectText?: boolean;
 }

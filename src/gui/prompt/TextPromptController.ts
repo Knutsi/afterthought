@@ -10,6 +10,7 @@ export interface ITextPromptParams {
   defaultValue?: string;
   placeholder?: string;
   confirmLabel?: string;
+  selectText?: boolean;
 }
 
 export class TextPromptController
@@ -23,6 +24,7 @@ export class TextPromptController
   private title: string = "Prompt";
   private placeholder: string = "";
   private confirmLabel: string = "OK";
+  private selectText: boolean = false;
 
   constructor(serviceLayer: ServiceLayer) {
     this.serviceLayer = serviceLayer;
@@ -46,6 +48,7 @@ export class TextPromptController
     this.value = params.defaultValue ?? "";
     this.placeholder = params.placeholder ?? "";
     this.confirmLabel = params.confirmLabel ?? "OK";
+    this.selectText = params.selectText ?? false;
     this.updateView();
   }
 
@@ -72,6 +75,7 @@ export class TextPromptController
       value: this.value,
       placeholder: this.placeholder,
       confirmLabel: this.confirmLabel,
+      selectText: this.selectText,
     });
   }
 }
