@@ -237,6 +237,11 @@ export class ActivityService extends EventTarget {
     );
   }
 
+  public getHomeActivityId(): string | null {
+    const entry = this.activityStack.find((e) => e.isHomeActivity);
+    return entry ? entry.id : null;
+  }
+
   public findActivitiesByTag(tag: string): { id: string; params: Record<string, unknown> }[] {
     return this.activityStack
       .filter((entry) => entry.element.tagName.toLowerCase() === tag)
@@ -247,16 +252,23 @@ export class ActivityService extends EventTarget {
   }
 
   public collectActivitySessions(): IActivitySession[] {
-    return this.activityStack.map((entry) => {
+    if (!this.activityContainer) return [];
+
+    const sessions: IActivitySession[] = [];
+    for (const child of Array.from(this.activityContainer.children)) {
+      const entry = this.activityStack.find((e) => e.id === child.id);
+      if (!entry) continue;
+
       const params = JSON.parse(entry.element.getAttribute("data-parameters") || "{}");
       if (this.isActivity(entry.element) && entry.element.onPersistSession) {
         Object.assign(params, entry.element.onPersistSession());
       }
-      return {
+      sessions.push({
         elementName: entry.element.tagName.toLowerCase(),
         params,
         isHomeActivity: entry.isHomeActivity,
-      };
-    });
+      });
+    }
+    return sessions;
   }
 }
