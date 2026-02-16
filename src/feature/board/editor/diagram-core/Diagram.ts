@@ -122,7 +122,7 @@ export class Diagram implements IDiagram {
     this.canvas.width = cssWidth * dpr;
     this.canvas.height = cssHeight * dpr;
 
-    this.requestRender();
+    this.performRender();  // sync render — no gap after canvas clear
   }
 
   private initializeModeStack(): void {
