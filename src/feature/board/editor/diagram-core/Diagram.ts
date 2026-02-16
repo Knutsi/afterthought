@@ -17,7 +17,6 @@ export class Diagram implements IDiagram {
   private canvas!: HTMLCanvasElement;
   private context: CanvasRenderingContext2D | null = null;
   private resizeObserver?: ResizeObserver;
-  private statusDiv!: HTMLDivElement;
   private inputManager!: InputManager;
   private stageManager!: StageManager;
   private geometryManager!: GeometryManager;
@@ -101,28 +100,8 @@ export class Diagram implements IDiagram {
       throw new Error("Failed to get 2D context from canvas");
     }
 
-    this.statusDiv = document.createElement("div");
-    this.statusDiv.id = `diagram-status-${this.instanceId}`;
-    this.statusDiv.className = "diagram-status";
-    this.statusDiv.style.cssText = `
-      position: absolute;
-      bottom: 8px;
-      left: 8px;
-      padding: 8px 12px;
-      background: rgba(0, 0, 0, 0.7);
-      color: #fff;
-      font-family: monospace;
-      font-size: 12px;
-      line-height: 1.5;
-      border-radius: 4px;
-      pointer-events: none;
-      z-index: 2;
-      white-space: pre;
-    `;
-
     root.appendChild(this.canvas);
     root.appendChild(this.eventLayer);
-    root.appendChild(this.statusDiv);
     this.container.appendChild(root);
   }
 
@@ -143,7 +122,7 @@ export class Diagram implements IDiagram {
     this.canvas.width = cssWidth * dpr;
     this.canvas.height = cssHeight * dpr;
 
-    this.requestRender();
+    this.performRender();  // sync render — no gap after canvas clear
   }
 
   private initializeModeStack(): void {
@@ -217,15 +196,6 @@ export class Diagram implements IDiagram {
     }
   }
 
-  private updateStatusText(): void {
-    const dpr = window.devicePixelRatio || 1;
-    this.statusDiv.textContent =
-      `Mode: ${this.getCurrentMode().name}\n` +
-      `Offset: (${this.data.offsetX.toFixed(1)}, ${this.data.offsetY.toFixed(1)})\n` +
-      `Zoom: ${(this.data.zoom * 100).toFixed(0)}%\n` +
-      `DPI: ${dpr.toFixed(2)}x`;
-  }
-
   public requestRender(): void {
     if (this.renderPending) return;
     this.renderPending = true;
@@ -254,7 +224,6 @@ export class Diagram implements IDiagram {
       this.data.zoom, this.data.offsetX, this.data.offsetY,
       this.container.clientWidth, this.container.clientHeight,
     );
-    this.updateStatusText();
   }
 
   public setZoom(zoom: number): void {

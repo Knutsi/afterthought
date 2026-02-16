@@ -21,7 +21,6 @@ export interface ITheme {
   sizes: {
     menubarHeight: string;
     toolbarHeight: string;
-    statusbarHeight: string;
   };
   spacing: {
     padding: string;
@@ -52,7 +51,6 @@ const defaultTheme: ITheme = {
   sizes: {
     menubarHeight: "30px",
     toolbarHeight: "32px",
-    statusbarHeight: "30px",
   },
   spacing: {
     padding: "8px",
@@ -82,7 +80,6 @@ const defaultDarkTheme: ITheme = {
   sizes: {
     menubarHeight: "28px",
     toolbarHeight: "40px",
-    statusbarHeight: "24px",
   },
   spacing: {
     padding: "8px",
@@ -168,7 +165,6 @@ export class ThemeService extends EventTarget {
 
     root.style.setProperty("--theme-size-menubar-height", theme.sizes.menubarHeight);
     root.style.setProperty("--theme-size-toolbar-height", theme.sizes.toolbarHeight);
-    root.style.setProperty("--theme-size-statusbar-height", theme.sizes.statusbarHeight);
 
     root.style.setProperty("--theme-spacing-padding", theme.spacing.padding);
     root.style.setProperty("--theme-spacing-border-radius", theme.spacing.borderRadius);
