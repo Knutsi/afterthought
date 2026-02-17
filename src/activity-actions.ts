@@ -73,11 +73,11 @@ function createSwitchToTabAction(n: number): IAction {
     repeatable: false,
     do: async (_context: IContext, _args?: Record<string, unknown>) => {
       const activityService = getDefaultServiceLayer().activityService;
-      activityService.switchToActivityByVisibleIndex(n - 1);
+      activityService.switchToActivityByVisibleIndex(n);
     },
     canDo: async () => {
       const activityService = getDefaultServiceLayer().activityService;
-      return activityService.getTabActivities().length >= n;
+      return activityService.getTabActivities().length > n;
     },
   };
 }
@@ -90,7 +90,7 @@ export function setupActivityActions(serviceLayer: ServiceLayer) {
   actionService.addAction(nextActivityAction);
   actionService.addAction(previousActivityAction);
 
-  for (let i = 1; i <= 9; i++) {
+  for (let i = 0; i <= 9; i++) {
     actionService.addAction(createSwitchToTabAction(i));
   }
 }

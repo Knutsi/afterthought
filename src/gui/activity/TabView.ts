@@ -55,12 +55,12 @@ export class TabView extends BaseComponent {
 
   private handleMod2Held = (): void => {
     this.showingTabNumbers = true;
-    this.updateTabNumberOverlay();
+    this.shadowRoot?.querySelector(".tab-bar")?.classList.add("showing-hints");
   };
 
   private handleMod2Released = (): void => {
     this.showingTabNumbers = false;
-    this.updateTabNumberOverlay();
+    this.shadowRoot?.querySelector(".tab-bar")?.classList.remove("showing-hints");
   };
 
   private handleActivitySwitch = (): void => {
@@ -70,7 +70,6 @@ export class TabView extends BaseComponent {
     this.discoverChildren();
 
     const activeActivityId = this.activityService.getActiveActivityId();
-    console.log("handleActivitySwitch: Active activity id", activeActivityId);
     const targetIndex = this._visibleChildren.findIndex((child) => child.id === activeActivityId);
 
     if (targetIndex !== -1 && targetIndex !== this._activeTabIndex) {
@@ -177,7 +176,10 @@ export class TabView extends BaseComponent {
           opacity: 1;
         }
 
-        .close-button.tab-number-hint {
+        .tab-number-hint {
+          display: none;
+          width: 18px;
+          height: 18px;
           font-size: 11px;
           font-family: inherit;
           line-height: 1;
@@ -185,10 +187,15 @@ export class TabView extends BaseComponent {
           pointer-events: none;
           border-radius: 3px;
           box-sizing: border-box;
+          align-items: center;
+          justify-content: center;
           background: color-mix(in srgb, var(--theme-color-text) 10%, transparent);
           border: 1px solid color-mix(in srgb, var(--theme-color-text) 20%, transparent);
           box-shadow: 0 1px 0 color-mix(in srgb, var(--theme-color-text) 15%, transparent);
         }
+
+        .tab-bar.showing-hints .close-button { display: none; }
+        .tab-bar.showing-hints .tab-number-hint { display: flex; }
 
         .tab-icon {
           display: inline-flex;
@@ -218,7 +225,7 @@ export class TabView extends BaseComponent {
           background: var(--theme-color-background, #fff);
         }
       </style>
-      <div class="tab-bar">${tabButtons}</div>
+      <div class="tab-bar${this.showingTabNumbers ? ' showing-hints' : ''}">${tabButtons}</div>
       <div class="content-area">
         <slot></slot>
       </div>
@@ -228,10 +235,6 @@ export class TabView extends BaseComponent {
     this.events.addToShadow(this.shadowRoot, ".tab-bar", "click", this._handleTabClick);
 
     this.updateTabVisibility();
-
-    if (this.showingTabNumbers) {
-      this.updateTabNumberOverlay();
-    }
   }
 
   private discoverChildren(): void {
@@ -275,6 +278,7 @@ export class TabView extends BaseComponent {
       const iconSvg = iconName && icons[iconName] ? `<span class="tab-icon">${icons[iconName]}</span>` : "";
 
       const closeButton = closeable ? `<span class="close-button" data-tab-index="${index}">×</span>` : "";
+      const hintSpan = index <= 9 ? `<span class="tab-number-hint">${index}</span>` : "";
 
       const tabHtml = `
         <div class="${tabClasses}"
@@ -282,6 +286,7 @@ export class TabView extends BaseComponent {
           ${iconSvg}
           <span class="${labelClass}">${displayLabel}</span>
           ${closeButton}
+          ${hintSpan}
         </div>
       `;
 
@@ -350,21 +355,6 @@ export class TabView extends BaseComponent {
     if (this.activityService) {
       this.activityService.closeActivity(child.id);
     }
-  }
-
-  private updateTabNumberOverlay(): void {
-    if (!this.shadowRoot) return;
-    const closeButtons = this.shadowRoot.querySelectorAll(".close-button");
-    closeButtons.forEach((btn, index) => {
-      const el = btn as HTMLElement;
-      if (this.showingTabNumbers && index + 1 <= 9) {
-        el.textContent = String(index + 1);
-        el.classList.add("tab-number-hint");
-      } else {
-        el.textContent = "×";
-        el.classList.remove("tab-number-hint");
-      }
-    });
   }
 
   private setupMutationObserver(): void {
