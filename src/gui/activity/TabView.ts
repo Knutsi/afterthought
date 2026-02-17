@@ -3,6 +3,7 @@ import { EventListeners, useMutationObserver } from "../core/utilities";
 import { noSelect, flexRow, flexCenter, clickable } from "../styles/cssUtilities";
 import { icons } from "../icons";
 import { ActivityService, ActivityEvents } from "../../service/ActivityService";
+import { KeyboardEvents } from "../../service/KeyboardService";
 
 export class TabView extends BaseComponent {
   private _activeTabIndex: number = 0;
@@ -10,6 +11,7 @@ export class TabView extends BaseComponent {
   private events = new EventListeners();
   private cleanupMutationObserver: (() => void) | null = null;
   private activityService: ActivityService | null = null;
+  private showingTabNumbers = false;
 
   static get observedAttributes(): string[] {
     return [];
@@ -21,6 +23,8 @@ export class TabView extends BaseComponent {
     this.activityService = serviceLayer.getActivityService();
     this.activityService.addEventListener(ActivityEvents.ACTIVITY_SWITCHED, this.handleActivitySwitch);
     this.activityService.addEventListener(ActivityEvents.ACTIVITY_CLOSED, this.handleActivityClosed);
+    serviceLayer.keyboardService.addEventListener(KeyboardEvents.MOD2_HELD, this.handleMod2Held);
+    serviceLayer.keyboardService.addEventListener(KeyboardEvents.MOD2_RELEASED, this.handleMod2Released);
   }
 
   protected onDestroy(): void {
@@ -33,6 +37,9 @@ export class TabView extends BaseComponent {
       this.activityService.removeEventListener(ActivityEvents.ACTIVITY_SWITCHED, this.handleActivitySwitch);
       this.activityService.removeEventListener(ActivityEvents.ACTIVITY_CLOSED, this.handleActivityClosed);
     }
+    const serviceLayer = this.getServiceLayer();
+    serviceLayer.keyboardService.removeEventListener(KeyboardEvents.MOD2_HELD, this.handleMod2Held);
+    serviceLayer.keyboardService.removeEventListener(KeyboardEvents.MOD2_RELEASED, this.handleMod2Released);
   }
 
   private handleActivityClosed = (e: Event): void => {
@@ -44,6 +51,16 @@ export class TabView extends BaseComponent {
       this.discoverChildren();
       this.render();
     }
+  };
+
+  private handleMod2Held = (): void => {
+    this.showingTabNumbers = true;
+    this.updateTabNumberOverlay();
+  };
+
+  private handleMod2Released = (): void => {
+    this.showingTabNumbers = false;
+    this.updateTabNumberOverlay();
   };
 
   private handleActivitySwitch = (): void => {
@@ -160,6 +177,19 @@ export class TabView extends BaseComponent {
           opacity: 1;
         }
 
+        .close-button.tab-number-hint {
+          font-size: 11px;
+          font-family: inherit;
+          line-height: 1;
+          opacity: 0.8;
+          pointer-events: none;
+          border-radius: 3px;
+          box-sizing: border-box;
+          background: color-mix(in srgb, var(--theme-color-text) 10%, transparent);
+          border: 1px solid color-mix(in srgb, var(--theme-color-text) 20%, transparent);
+          box-shadow: 0 1px 0 color-mix(in srgb, var(--theme-color-text) 15%, transparent);
+        }
+
         .tab-icon {
           display: inline-flex;
           align-items: center;
@@ -198,6 +228,10 @@ export class TabView extends BaseComponent {
     this.events.addToShadow(this.shadowRoot, ".tab-bar", "click", this._handleTabClick);
 
     this.updateTabVisibility();
+
+    if (this.showingTabNumbers) {
+      this.updateTabNumberOverlay();
+    }
   }
 
   private discoverChildren(): void {
@@ -316,6 +350,21 @@ export class TabView extends BaseComponent {
     if (this.activityService) {
       this.activityService.closeActivity(child.id);
     }
+  }
+
+  private updateTabNumberOverlay(): void {
+    if (!this.shadowRoot) return;
+    const closeButtons = this.shadowRoot.querySelectorAll(".close-button");
+    closeButtons.forEach((btn, index) => {
+      const el = btn as HTMLElement;
+      if (this.showingTabNumbers && index + 1 <= 9) {
+        el.textContent = String(index + 1);
+        el.classList.add("tab-number-hint");
+      } else {
+        el.textContent = "×";
+        el.classList.remove("tab-number-hint");
+      }
+    });
   }
 
   private setupMutationObserver(): void {

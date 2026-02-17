@@ -265,6 +265,12 @@ export class ActivityService extends EventTarget {
     return result;
   }
 
+  public switchToActivityByVisibleIndex(index: number): void {
+    const tabs = this.getTabActivities();
+    if (index < 0 || index >= tabs.length) return;
+    this.switchToActivity(tabs[index].id);
+  }
+
   public switchToNextActivity(): void {
     if (!this.activityContainer) return;
     const children = Array.from(this.activityContainer.children);
