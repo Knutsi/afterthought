@@ -1,7 +1,5 @@
 import { invoke } from '@tauri-apps/api/core';
-import { homeDir, join } from '@tauri-apps/api/path';
-
-const APP_DIR_NAME = '.afterthought';
+import { appDataDir, join } from '@tauri-apps/api/path';
 
 export async function exists(path: string): Promise<boolean> {
   return invoke<boolean>('fs_exists', { path });
@@ -32,13 +30,11 @@ export async function removeDir(path: string): Promise<void> {
 }
 
 export async function appDataPath(filename: string): Promise<string> {
-  const home = await homeDir();
-  const dir = await join(home, APP_DIR_NAME);
+  const dir = await appDataDir();
   return join(dir, filename);
 }
 
 export async function ensureAppDataDir(): Promise<void> {
-  const home = await homeDir();
-  const dir = await join(home, APP_DIR_NAME);
+  const dir = await appDataDir();
   await mkdir(dir);
 }

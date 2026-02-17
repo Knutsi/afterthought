@@ -79,8 +79,7 @@ fn unregister_window_database(
 }
 
 fn write_session_file(app: &tauri::AppHandle, paths: &[String], geometry: HashMap<String, WindowGeometry>) {
-    if let Ok(home) = app.path().home_dir() {
-        let dir = home.join(".afterthought");
+    if let Ok(dir) = app.path().app_data_dir() {
         let _ = fs::create_dir_all(&dir);
         let file_path = dir.join("session.json");
         let state = SessionState {
