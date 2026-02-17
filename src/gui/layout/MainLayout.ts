@@ -73,6 +73,7 @@ export class MainLayout extends BaseComponent {
           grid-row: ${mainRow};
           overflow: auto;
           background-color: var(--theme-color-background);
+          z-index: 0;
         }
 
         .focus-mode {
