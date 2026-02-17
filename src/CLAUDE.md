@@ -33,6 +33,12 @@ Always:
 - Use IAction entries to enable edits (exception MAY exist, but ask developer about this always)
 - Keep actions as thin orchestration — actions should call service methods, not implement business logic themselves
 
+### Action pattern tiers
+
+1. **Feature actions** (e.g. board, task): MUST consume IContext in both `canDo` and `do`. Get identifiers (URIs) from context, pass to feature services. Never reach through the activity layer (`getActiveActivity()`, `instanceof`) to find state.
+2. **Programmatic/internal actions** (hidden, `canDo: true`): May receive data via `args` when triggered by UI controller callbacks. These are the command-pattern bridge from diagram events.
+3. **Core actions** (undo, quit, activity navigation): May use core services directly without context, since they operate on the application itself rather than feature data.
+
 ## Component Registration Pattern
 
 All components extend `BaseComponent` and use `defineComponent()` for registration:

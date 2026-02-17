@@ -10,6 +10,7 @@ import type { IActivityController, IContextEntrySpec } from "../../gui/activity/
 import type { IContextPart } from "../../service/context/types";
 import type { IBoardActivityParams } from "./types";
 import { BOARD_SERVICE_NAME } from "./types";
+import type { BoardService } from "./BoardService";
 import type { BoardActivityView } from "./BoardActivityView";
 import {
   MOVE_ELEMENTS_ACTION_ID,
@@ -60,17 +61,27 @@ export class BoardActivityController implements IActivityController<IBoardActivi
       this.diagram.setZoom(params.initialZoom);
     }
 
+    const boardService = this.serviceLayer.getFeatureService<BoardService>(BOARD_SERVICE_NAME);
+    boardService.registerDiagram(this.boardUri, this.diagram);
+
     this.viewModel = new BoardActivityViewModel(this.serviceLayer, this.boardUri, this.diagram);
     this.viewModel.initialize();
   }
 
   public activate(_contextPart: IContextPart): void {
+    if (!this.boardUri || !this.viewModel) return;
+    const boardService = this.serviceLayer.getFeatureService<BoardService>(BOARD_SERVICE_NAME);
+    boardService.updateBoardContentContext(this.boardUri, this.viewModel.getTaskUris());
   }
 
   public deactivate(): void {
   }
 
   public destroy(): void {
+    if (this.boardUri) {
+      const boardService = this.serviceLayer.getFeatureService<BoardService>(BOARD_SERVICE_NAME);
+      boardService.unregisterDiagram(this.boardUri);
+    }
     if (this.viewModel) {
       this.viewModel.destroy();
       this.viewModel = null;
