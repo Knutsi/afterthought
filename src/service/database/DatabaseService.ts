@@ -1,11 +1,6 @@
-import {
-  readTextFile,
-  writeTextFile,
-  mkdir,
-  exists,
-} from '@tauri-apps/plugin-fs';
-import { documentDir, appDataDir, join } from '@tauri-apps/api/path';
+import { documentDir, join } from '@tauri-apps/api/path';
 import { invoke } from '@tauri-apps/api/core';
+import { readTextFile, writeTextFile, exists, ensureAppDataDir, appDataPath } from '../fs';
 import type { IDatabaseInfo } from './types';
 
 const DATABASE_VERSION = 1;
@@ -85,11 +80,10 @@ export class DatabaseService {
   }
 
   private async readRecentData(): Promise<IRecentDatabases> {
-    const dir = await appDataDir();
-    const filePath = await join(dir, RECENT_DATABASES_FILE);
-    const fileExists = await exists(filePath);
+    const filePath = await appDataPath(RECENT_DATABASES_FILE);
+    const recentExists = await exists(filePath);
 
-    if (!fileExists) {
+    if (!recentExists) {
       return { databases: [], lastOpened: null };
     }
 
@@ -98,9 +92,8 @@ export class DatabaseService {
   }
 
   private async writeRecentData(data: IRecentDatabases): Promise<void> {
-    const dir = await appDataDir();
-    await mkdir(dir, { recursive: true });
-    const filePath = await join(dir, RECENT_DATABASES_FILE);
+    await ensureAppDataDir();
+    const filePath = await appDataPath(RECENT_DATABASES_FILE);
     await writeTextFile(filePath, JSON.stringify(data, null, 2));
   }
 }

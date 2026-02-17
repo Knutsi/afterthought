@@ -1,4 +1,4 @@
-import { readDir } from "@tauri-apps/plugin-fs";
+import { readDir } from "../../service/fs";
 
 const SUGGESTIONS = ["Personal", "Work", "Untitled"];
 

@@ -4,7 +4,7 @@ import type { ServiceLayer } from "../../service/ServiceLayer";
 import { NewDatabaseActivityView } from "./NewDatabaseActivityView";
 import { open as dialogOpen } from "@tauri-apps/plugin-dialog";
 import { join } from "@tauri-apps/api/path";
-import { exists, readDir } from "@tauri-apps/plugin-fs";
+import { exists, readDir } from "../../service/fs";
 import { getDefaultParentDir } from "./defaultDirectory";
 import { suggestDatabaseName } from "./suggestDatabaseName";
 import type { GitService } from "./GitService";
