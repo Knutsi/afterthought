@@ -265,30 +265,34 @@ export class ActivityService extends EventTarget {
     return result;
   }
 
+  public switchToActivityByVisibleIndex(index: number): void {
+    const tabs = this.getTabActivities();
+    if (index < 0 || index >= tabs.length) return;
+    this.switchToActivity(tabs[index].id);
+  }
+
   public switchToNextActivity(): void {
-    if (!this.activityContainer) return;
-    const children = Array.from(this.activityContainer.children);
-    if (children.length <= 1) return;
+    const tabs = this.getTabActivities();
+    if (tabs.length <= 1) return;
 
     const activeId = this.getActiveActivityId();
-    const currentIndex = children.findIndex((el) => el.id === activeId);
+    const currentIndex = tabs.findIndex((t) => t.id === activeId);
     if (currentIndex === -1) return;
 
-    const nextIndex = (currentIndex + 1) % children.length;
-    this.switchToActivity(children[nextIndex].id);
+    const nextIndex = (currentIndex + 1) % tabs.length;
+    this.switchToActivity(tabs[nextIndex].id);
   }
 
   public switchToPreviousActivity(): void {
-    if (!this.activityContainer) return;
-    const children = Array.from(this.activityContainer.children);
-    if (children.length <= 1) return;
+    const tabs = this.getTabActivities();
+    if (tabs.length <= 1) return;
 
     const activeId = this.getActiveActivityId();
-    const currentIndex = children.findIndex((el) => el.id === activeId);
+    const currentIndex = tabs.findIndex((t) => t.id === activeId);
     if (currentIndex === -1) return;
 
-    const prevIndex = (currentIndex - 1 + children.length) % children.length;
-    this.switchToActivity(children[prevIndex].id);
+    const prevIndex = (currentIndex - 1 + tabs.length) % tabs.length;
+    this.switchToActivity(tabs[prevIndex].id);
   }
 
   public openActivitySwitcher(): void {

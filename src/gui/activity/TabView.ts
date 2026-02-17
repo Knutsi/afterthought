@@ -3,6 +3,7 @@ import { EventListeners, useMutationObserver } from "../core/utilities";
 import { noSelect, flexRow, flexCenter, clickable } from "../styles/cssUtilities";
 import { icons } from "../icons";
 import { ActivityService, ActivityEvents } from "../../service/ActivityService";
+import { KeyboardEvents } from "../../service/KeyboardService";
 
 export class TabView extends BaseComponent {
   private _activeTabIndex: number = 0;
@@ -10,6 +11,7 @@ export class TabView extends BaseComponent {
   private events = new EventListeners();
   private cleanupMutationObserver: (() => void) | null = null;
   private activityService: ActivityService | null = null;
+  private showingTabNumbers = false;
 
   static get observedAttributes(): string[] {
     return [];
@@ -21,6 +23,8 @@ export class TabView extends BaseComponent {
     this.activityService = serviceLayer.getActivityService();
     this.activityService.addEventListener(ActivityEvents.ACTIVITY_SWITCHED, this.handleActivitySwitch);
     this.activityService.addEventListener(ActivityEvents.ACTIVITY_CLOSED, this.handleActivityClosed);
+    serviceLayer.keyboardService.addEventListener(KeyboardEvents.MOD2_HELD, this.handleMod2Held);
+    serviceLayer.keyboardService.addEventListener(KeyboardEvents.MOD2_RELEASED, this.handleMod2Released);
   }
 
   protected onDestroy(): void {
@@ -33,6 +37,9 @@ export class TabView extends BaseComponent {
       this.activityService.removeEventListener(ActivityEvents.ACTIVITY_SWITCHED, this.handleActivitySwitch);
       this.activityService.removeEventListener(ActivityEvents.ACTIVITY_CLOSED, this.handleActivityClosed);
     }
+    const serviceLayer = this.getServiceLayer();
+    serviceLayer.keyboardService.removeEventListener(KeyboardEvents.MOD2_HELD, this.handleMod2Held);
+    serviceLayer.keyboardService.removeEventListener(KeyboardEvents.MOD2_RELEASED, this.handleMod2Released);
   }
 
   private handleActivityClosed = (e: Event): void => {
@@ -46,6 +53,16 @@ export class TabView extends BaseComponent {
     }
   };
 
+  private handleMod2Held = (): void => {
+    this.showingTabNumbers = true;
+    this.shadowRoot?.querySelector(".tab-bar")?.classList.add("showing-hints");
+  };
+
+  private handleMod2Released = (): void => {
+    this.showingTabNumbers = false;
+    this.shadowRoot?.querySelector(".tab-bar")?.classList.remove("showing-hints");
+  };
+
   private handleActivitySwitch = (): void => {
     if (!this.activityService) return;
 
@@ -53,7 +70,6 @@ export class TabView extends BaseComponent {
     this.discoverChildren();
 
     const activeActivityId = this.activityService.getActiveActivityId();
-    console.log("handleActivitySwitch: Active activity id", activeActivityId);
     const targetIndex = this._visibleChildren.findIndex((child) => child.id === activeActivityId);
 
     if (targetIndex !== -1 && targetIndex !== this._activeTabIndex) {
@@ -160,6 +176,27 @@ export class TabView extends BaseComponent {
           opacity: 1;
         }
 
+        .tab-number-hint {
+          display: none;
+          width: 18px;
+          height: 18px;
+          font-size: 11px;
+          font-family: inherit;
+          line-height: 1;
+          opacity: 0.8;
+          pointer-events: none;
+          border-radius: 3px;
+          box-sizing: border-box;
+          align-items: center;
+          justify-content: center;
+          background: color-mix(in srgb, var(--theme-color-text) 10%, transparent);
+          border: 1px solid color-mix(in srgb, var(--theme-color-text) 20%, transparent);
+          box-shadow: 0 1px 0 color-mix(in srgb, var(--theme-color-text) 15%, transparent);
+        }
+
+        .tab-bar.showing-hints .close-button { display: none; }
+        .tab-bar.showing-hints .tab-number-hint { display: flex; }
+
         .tab-icon {
           display: inline-flex;
           align-items: center;
@@ -188,7 +225,7 @@ export class TabView extends BaseComponent {
           background: var(--theme-color-background, #fff);
         }
       </style>
-      <div class="tab-bar">${tabButtons}</div>
+      <div class="tab-bar${this.showingTabNumbers ? ' showing-hints' : ''}">${tabButtons}</div>
       <div class="content-area">
         <slot></slot>
       </div>
@@ -241,6 +278,7 @@ export class TabView extends BaseComponent {
       const iconSvg = iconName && icons[iconName] ? `<span class="tab-icon">${icons[iconName]}</span>` : "";
 
       const closeButton = closeable ? `<span class="close-button" data-tab-index="${index}">×</span>` : "";
+      const hintSpan = index <= 9 ? `<span class="tab-number-hint">${index}</span>` : "";
 
       const tabHtml = `
         <div class="${tabClasses}"
@@ -248,6 +286,7 @@ export class TabView extends BaseComponent {
           ${iconSvg}
           <span class="${labelClass}">${displayLabel}</span>
           ${closeButton}
+          ${hintSpan}
         </div>
       `;
 

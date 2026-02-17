@@ -16,6 +16,8 @@ export const KeyboardEvents = {
   CHORD_CANCELLED: "chordCancelled",
   CHORD_COMPLETED: "chordCompleted",
   SHIFT_SHIFT: "shiftShift",
+  MOD2_HELD: "mod2Held",
+  MOD2_RELEASED: "mod2Released",
 };
 
 const SHIFT_SHIFT_TIMEOUT_MS = 400;
@@ -25,24 +27,29 @@ export class KeyboardService extends EventTarget {
   private chordState: ChordState = { type: "idle" };
   private boundHandleKeydown: (e: KeyboardEvent) => void;
   private boundHandleKeyup: (e: KeyboardEvent) => void;
+  private boundHandleBlur: () => void;
   private lastShiftKeyupTimestamp = 0;
   private shiftWasUsedWithOtherKey = false;
+  private mod2Held = false;
 
   constructor(serviceLayer: ServiceLayer) {
     super();
     this.serviceLayer = serviceLayer;
     this.boundHandleKeydown = this.handleKeydown.bind(this);
     this.boundHandleKeyup = this.handleKeyup.bind(this);
+    this.boundHandleBlur = this.handleBlur.bind(this);
   }
 
   public initialize(): void {
     window.addEventListener("keydown", this.boundHandleKeydown, true);
     window.addEventListener("keyup", this.boundHandleKeyup, true);
+    window.addEventListener("blur", this.boundHandleBlur);
   }
 
   public destroy(): void {
     window.removeEventListener("keydown", this.boundHandleKeydown, true);
     window.removeEventListener("keyup", this.boundHandleKeyup, true);
+    window.removeEventListener("blur", this.boundHandleBlur);
     this.cancelChord();
   }
 
@@ -95,9 +102,26 @@ export class KeyboardService extends EventTarget {
       }
       this.shiftWasUsedWithOtherKey = false;
     }
+
+    if (e.key === "Alt" && this.mod2Held) {
+      this.mod2Held = false;
+      this.dispatchEvent(new Event(KeyboardEvents.MOD2_RELEASED));
+    }
+  }
+
+  private handleBlur(): void {
+    if (this.mod2Held) {
+      this.mod2Held = false;
+      this.dispatchEvent(new Event(KeyboardEvents.MOD2_RELEASED));
+    }
   }
 
   private handleKeydown(e: KeyboardEvent): void {
+    if (e.key === "Alt" && !this.mod2Held) {
+      this.mod2Held = true;
+      this.dispatchEvent(new Event(KeyboardEvents.MOD2_HELD));
+    }
+
     if (e.key === "Shift" && this.chordState.type === "idle") {
       if (!this.shiftWasUsedWithOtherKey) {
         const now = Date.now();

@@ -63,6 +63,25 @@ var previousActivityAction: IAction = {
   canDo: async () => true,
 };
 
+function createSwitchToTabAction(n: number): IAction {
+  return {
+    id: `core.switchToTab${n}`,
+    name: `Switch to Tab ${n}`,
+    shortcuts: [`Mod2+${n}`],
+    menuGroup: "View",
+    hideFromMenu: true,
+    repeatable: false,
+    do: async (_context: IContext, _args?: Record<string, unknown>) => {
+      const activityService = getDefaultServiceLayer().activityService;
+      activityService.switchToActivityByVisibleIndex(n);
+    },
+    canDo: async () => {
+      const activityService = getDefaultServiceLayer().activityService;
+      return activityService.getTabActivities().length > n;
+    },
+  };
+}
+
 export function setupActivityActions(serviceLayer: ServiceLayer) {
   const actionService = serviceLayer.actionService;
 
@@ -70,4 +89,8 @@ export function setupActivityActions(serviceLayer: ServiceLayer) {
   actionService.addAction(switchActivityAction);
   actionService.addAction(nextActivityAction);
   actionService.addAction(previousActivityAction);
+
+  for (let i = 0; i <= 9; i++) {
+    actionService.addAction(createSwitchToTabAction(i));
+  }
 }
