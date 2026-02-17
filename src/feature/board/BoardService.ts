@@ -19,6 +19,7 @@ import {
 } from "./actions";
 import { TaskService } from "../task/TaskService";
 import { TASK_SERVICE_NAME } from "../task/types";
+import type { Diagram } from "./editor/diagram-core/Diagram";
 import type { SearchPicker, PickerItem } from "../../gui/picker/SearchPicker";
 import "../../gui/picker/SearchPicker";
 import {
@@ -44,6 +45,7 @@ const BOARD_STORE_ID = 'board-store';
 export class BoardService extends EventTarget {
   private serviceLayer: ServiceLayer;
   private boardCount = 0;
+  private diagrams = new Map<Uri, Diagram>();
 
   constructor(serviceLayer: ServiceLayer) {
     super();
@@ -55,6 +57,18 @@ export class BoardService extends EventTarget {
     await objectService.getOrCreateStore(BOARD_STORE_ID, 'boards');
     const existingBoards = await objectService.getObjectsByStore(BOARD_STORE_ID);
     this.boardCount = existingBoards.length;
+  }
+
+  public registerDiagram(boardUri: Uri, diagram: Diagram): void {
+    this.diagrams.set(boardUri, diagram);
+  }
+
+  public unregisterDiagram(boardUri: Uri): void {
+    this.diagrams.delete(boardUri);
+  }
+
+  public getDiagram(boardUri: Uri): Diagram | undefined {
+    return this.diagrams.get(boardUri);
   }
 
   public async listBoards(): Promise<{ id: string; name: string; taskCount: number }[]> {

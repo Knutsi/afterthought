@@ -2,8 +2,8 @@ import type { IAction } from "../../../service/ActionService";
 import type { ServiceLayer } from "../../../service/ServiceLayer";
 import type { IContext } from "../../../service/context/types";
 import { URI_SCHEMES } from "../../../core-model/uri";
-import { BoardActivity } from "../BoardActivity";
-import { ZOOM_IN_ACTION_ID, ZOOM_OUT_ACTION_ID, RESET_ZOOM_ACTION_ID } from "../types";
+import type { BoardService } from "../BoardService";
+import { BOARD_SERVICE_NAME, ZOOM_IN_ACTION_ID, ZOOM_OUT_ACTION_ID, RESET_ZOOM_ACTION_ID } from "../types";
 
 const ZOOM_IN_FACTOR = 1.1;
 const ZOOM_OUT_FACTOR = 0.9;
@@ -18,10 +18,13 @@ export function createZoomInAction(serviceLayer: ServiceLayer): IAction {
     shortcuts: ["+"],
     menuGroup: "View",
     menuSubGroup: "zoom",
-    do: async () => {
-      const activeActivity = serviceLayer.getActivityService().getActiveActivity();
-      if (!(activeActivity instanceof BoardActivity)) return;
-      const diagram = activeActivity.getDiagram();
+    do: async (context: IContext) => {
+      const boardEntries = context.getEntriesByScheme(URI_SCHEMES.BOARD);
+      if (boardEntries.length === 0) return;
+      const boardUri = boardEntries[0].uri;
+
+      const boardService = serviceLayer.getFeatureService<BoardService>(BOARD_SERVICE_NAME);
+      const diagram = boardService.getDiagram(boardUri);
       if (!diagram) return;
 
       const currentZoom = diagram.getZoom();
@@ -41,10 +44,13 @@ export function createZoomOutAction(serviceLayer: ServiceLayer): IAction {
     shortcuts: ["-"],
     menuGroup: "View",
     menuSubGroup: "zoom",
-    do: async () => {
-      const activeActivity = serviceLayer.getActivityService().getActiveActivity();
-      if (!(activeActivity instanceof BoardActivity)) return;
-      const diagram = activeActivity.getDiagram();
+    do: async (context: IContext) => {
+      const boardEntries = context.getEntriesByScheme(URI_SCHEMES.BOARD);
+      if (boardEntries.length === 0) return;
+      const boardUri = boardEntries[0].uri;
+
+      const boardService = serviceLayer.getFeatureService<BoardService>(BOARD_SERVICE_NAME);
+      const diagram = boardService.getDiagram(boardUri);
       if (!diagram) return;
 
       const currentZoom = diagram.getZoom();
@@ -64,10 +70,13 @@ export function createResetZoomAction(serviceLayer: ServiceLayer): IAction {
     shortcuts: ["="],
     menuGroup: "View",
     menuSubGroup: "zoom",
-    do: async () => {
-      const activeActivity = serviceLayer.getActivityService().getActiveActivity();
-      if (!(activeActivity instanceof BoardActivity)) return;
-      const diagram = activeActivity.getDiagram();
+    do: async (context: IContext) => {
+      const boardEntries = context.getEntriesByScheme(URI_SCHEMES.BOARD);
+      if (boardEntries.length === 0) return;
+      const boardUri = boardEntries[0].uri;
+
+      const boardService = serviceLayer.getFeatureService<BoardService>(BOARD_SERVICE_NAME);
+      const diagram = boardService.getDiagram(boardUri);
       if (!diagram) return;
 
       diagram.setZoomAtPoint(ZOOM_DEFAULT);

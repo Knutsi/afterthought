@@ -46,6 +46,10 @@ export class BoardActivityViewModel implements IViewModel {
     }
   }
 
+  public getTaskUris(): Uri[] {
+    return this.syncAdapter?.getTaskUris() ?? [];
+  }
+
   public getSyncAdapter(): BoardSyncAdapter | null {
     return this.syncAdapter;
   }

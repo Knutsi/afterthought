@@ -4,8 +4,8 @@ import type { IContext } from "../../../service/context/types";
 import type { Uri } from "../../../core-model/uri";
 import { URI_SCHEMES } from "../../../core-model/uri";
 import type { Diagram } from "../editor/diagram-core/Diagram";
-import { SELECT_ALL_ACTION_ID, SELECT_NONE_ACTION_ID, BOARD_SELECTION_SERVICE_NAME } from "../types";
-import { BoardActivity } from "../BoardActivity";
+import type { BoardService } from "../BoardService";
+import { SELECT_ALL_ACTION_ID, SELECT_NONE_ACTION_ID, BOARD_SERVICE_NAME, BOARD_SELECTION_SERVICE_NAME } from "../types";
 import type { BoardSelectionService, SelectionSnapshot } from "../service/BoardSelectionService";
 
 function makeSelectionUndoFn(
@@ -31,13 +31,14 @@ export function createSelectAllAction(serviceLayer: ServiceLayer): IAction {
     shortcuts: ["Mod+A"],
     menuGroup: "Edit",
     menuSubGroup: "selection",
-    do: async (_context: IContext, _args?: Record<string, unknown>): Promise<UndoFunction | void> => {
-      const activeActivity = serviceLayer.getActivityService().getActiveActivity();
-      if (!(activeActivity instanceof BoardActivity)) return;
+    do: async (context: IContext, _args?: Record<string, unknown>): Promise<UndoFunction | void> => {
+      const boardEntries = context.getEntriesByScheme(URI_SCHEMES.BOARD);
+      if (boardEntries.length === 0) return;
+      const boardUri = boardEntries[0].uri;
 
-      const diagram = activeActivity.getDiagram();
-      const boardUri = activeActivity.getBoardUri();
-      if (!diagram || !boardUri) return;
+      const boardService = serviceLayer.getFeatureService<BoardService>(BOARD_SERVICE_NAME);
+      const diagram = boardService.getDiagram(boardUri);
+      if (!diagram) return;
 
       const selectionService = serviceLayer.getFeatureService<BoardSelectionService>(BOARD_SELECTION_SERVICE_NAME);
       const { previous, current } = selectionService.selectAll(boardUri, diagram);
@@ -59,13 +60,14 @@ export function createSelectNoneAction(serviceLayer: ServiceLayer): IAction {
     shortcuts: ["Escape", "Mod+Shift+A"],
     menuGroup: "Edit",
     menuSubGroup: "selection",
-    do: async (_context: IContext, _args?: Record<string, unknown>): Promise<UndoFunction | void> => {
-      const activeActivity = serviceLayer.getActivityService().getActiveActivity();
-      if (!(activeActivity instanceof BoardActivity)) return;
+    do: async (context: IContext, _args?: Record<string, unknown>): Promise<UndoFunction | void> => {
+      const boardEntries = context.getEntriesByScheme(URI_SCHEMES.BOARD);
+      if (boardEntries.length === 0) return;
+      const boardUri = boardEntries[0].uri;
 
-      const diagram = activeActivity.getDiagram();
-      const boardUri = activeActivity.getBoardUri();
-      if (!diagram || !boardUri) return;
+      const boardService = serviceLayer.getFeatureService<BoardService>(BOARD_SERVICE_NAME);
+      const diagram = boardService.getDiagram(boardUri);
+      if (!diagram) return;
 
       const selectionService = serviceLayer.getFeatureService<BoardSelectionService>(BOARD_SELECTION_SERVICE_NAME);
       const { previous } = selectionService.selectNone(boardUri, diagram);

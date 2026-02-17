@@ -81,6 +81,10 @@ export class BoardSyncAdapter {
     return undefined;
   }
 
+  public getTaskUris(): string[] {
+    return Array.from(this.taskUriToElementId.keys());
+  }
+
   private ensureLayer(): string {
     if (this.layerId) return this.layerId;
 
