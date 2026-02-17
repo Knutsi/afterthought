@@ -79,7 +79,8 @@ fn unregister_window_database(
 }
 
 fn write_session_file(app: &tauri::AppHandle, paths: &[String], geometry: HashMap<String, WindowGeometry>) {
-    if let Ok(dir) = app.path().app_data_dir() {
+    if let Ok(home) = app.path().home_dir() {
+        let dir = home.join(".afterthought");
         let _ = fs::create_dir_all(&dir);
         let file_path = dir.join("session.json");
         let state = SessionState {
@@ -180,11 +181,59 @@ fn create_database(parent_dir: String, name: String, version: u32) -> Result<Str
     Ok(db_path.to_string_lossy().into_owned())
 }
 
+#[derive(serde::Serialize)]
+struct FsDirEntry {
+    name: String,
+}
+
+#[tauri::command]
+fn fs_exists(path: String) -> bool {
+    PathBuf::from(&path).exists()
+}
+
+#[tauri::command]
+fn fs_read_text_file(path: String) -> Result<String, String> {
+    fs::read_to_string(&path).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn fs_write_text_file(path: String, contents: String) -> Result<(), String> {
+    fs::write(&path, contents).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn fs_mkdir(path: String) -> Result<(), String> {
+    fs::create_dir_all(&path).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn fs_read_dir(path: String) -> Result<Vec<FsDirEntry>, String> {
+    let entries = fs::read_dir(&path).map_err(|e| e.to_string())?;
+    let mut result = Vec::new();
+    for entry in entries {
+        let entry = entry.map_err(|e| e.to_string())?;
+        if let Some(name) = entry.file_name().to_str() {
+            result.push(FsDirEntry { name: name.to_owned() });
+        }
+    }
+    Ok(result)
+}
+
+#[tauri::command]
+fn fs_remove_file(path: String) -> Result<(), String> {
+    fs::remove_file(&path).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn fs_remove_dir(path: String) -> Result<(), String> {
+    fs::remove_dir_all(&path).map_err(|e| e.to_string())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
-        .plugin(tauri_plugin_fs::init())
+
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_cli::init())
         .manage(AppState {
@@ -197,6 +246,13 @@ pub fn run() {
             register_window_database,
             unregister_window_database,
             find_window_for_database,
+            fs_exists,
+            fs_read_text_file,
+            fs_write_text_file,
+            fs_mkdir,
+            fs_read_dir,
+            fs_remove_file,
+            fs_remove_dir,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

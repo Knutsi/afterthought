@@ -1,11 +1,4 @@
-import {
-  readTextFile,
-  writeTextFile,
-  readDir,
-  mkdir,
-  remove,
-  exists,
-} from '@tauri-apps/plugin-fs';
+import { readTextFile, writeTextFile, readDir, mkdir, removeFile, removeDir, exists } from '../fs';
 import type { IStorageProvider } from './IStorageProvider';
 
 export class GitStorageProvider implements IStorageProvider {
@@ -28,7 +21,7 @@ export class GitStorageProvider implements IStorageProvider {
     const fullPath = `${this.basePath}/${path}`;
     const dirExists = await exists(fullPath);
     if (!dirExists) {
-      await mkdir(fullPath, { recursive: true });
+      await mkdir(fullPath);
     }
   }
 
@@ -61,7 +54,7 @@ export class GitStorageProvider implements IStorageProvider {
     const fullPath = `${this.basePath}/${path}`;
     const fileExists = await exists(fullPath);
     if (fileExists) {
-      await remove(fullPath);
+      await removeFile(fullPath);
     }
   }
 
@@ -69,7 +62,7 @@ export class GitStorageProvider implements IStorageProvider {
     const fullPath = `${this.basePath}/${path}`;
     const dirExists = await exists(fullPath);
     if (dirExists) {
-      await remove(fullPath, { recursive: true });
+      await removeDir(fullPath);
     }
   }
 

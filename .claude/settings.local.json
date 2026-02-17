@@ -17,7 +17,9 @@
       "Bash(xargs:*)",
       "Bash(wc:*)",
       "Bash(ls:*)",
-      "Bash(done)"
+      "Bash(done)",
+      "Bash(python3:*)",
+      "WebFetch(domain:)"
     ]
   }
 }
