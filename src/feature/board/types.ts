@@ -43,6 +43,7 @@ export const SELECTION_SET_ACTION_ID = "board.selection-set";
 export const SELECTION_ADD_ACTION_ID = "board.selection-add";
 export const SELECTION_REMOVE_ACTION_ID = "board.selection-remove";
 export const MOVE_ELEMENTS_ACTION_ID = "board.move-elements";
+export const EDIT_TASK_ACTION_ID = "edit-task";
 export const RENAME_BOARD_ACTION_ID = "rename-board";
 export const ZOOM_IN_ACTION_ID = "view.zoom-in";
 export const ZOOM_OUT_ACTION_ID = "view.zoom-out";

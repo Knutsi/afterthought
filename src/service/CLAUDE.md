@@ -1,3 +1,5 @@
+Services in src/service are CORE SERVICES. They facilitate features and are the "operating system" of the Afterthrough application. 
+
 - ObjectService keeps a sentralized storage mechanims for all parts of the application
 - All objects stored needs a URL with a schele, such as "task//GUID"
 - PersonalStore stores per-database personal state (ui-state, preferences) in the `personal/` dir (git-ignored). Used for restoring activities on relaunch.

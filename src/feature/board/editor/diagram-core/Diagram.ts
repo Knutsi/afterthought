@@ -28,6 +28,7 @@ export class Diagram implements IDiagram {
   private onSelectionAddRequest?: SelectionRequestCallback;
   private onSelectionRemoveRequest?: SelectionRequestCallback;
   private onBackgroundDoubleClick?: (worldX: number, worldY: number) => void;
+  private onElementDoubleClick?: (element: DiagramElement) => void;
   private onMoveComplete?: (elements: DiagramElement[], deltaX: number, deltaY: number) => void;
 
   constructor(container: HTMLElement, callbacks: IDiagramCallbacks | undefined, options: IDiagramOptions) {
@@ -39,6 +40,7 @@ export class Diagram implements IDiagram {
     this.onSelectionAddRequest = callbacks?.onSelectionAddRequest;
     this.onSelectionRemoveRequest = callbacks?.onSelectionRemoveRequest;
     this.onBackgroundDoubleClick = callbacks?.onBackgroundDoubleClick;
+    this.onElementDoubleClick = callbacks?.onElementDoubleClick;
     this.onMoveComplete = callbacks?.onMoveComplete;
     this.createDOMStructure();
     this.setupResizeObserver();
@@ -328,6 +330,10 @@ export class Diagram implements IDiagram {
 
   public fireBackgroundDoubleClick(worldX: number, worldY: number): void {
     this.onBackgroundDoubleClick?.(worldX, worldY);
+  }
+
+  public fireElementDoubleClick(element: DiagramElement): void {
+    this.onElementDoubleClick?.(element);
   }
 
   public fireMoveComplete(elements: DiagramElement[], deltaX: number, deltaY: number): void {

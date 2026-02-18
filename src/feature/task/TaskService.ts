@@ -2,6 +2,7 @@ import { ServiceLayer } from "../../service/ServiceLayer";
 import { IObject } from "../../service/ObjectService";
 import { Task, TaskID, TaskCreateResult, TASK_STORE_ID } from "./types";
 import { createUri, URI_SCHEMES } from "../../core-model/uri";
+import { showTaskEditor } from "./editor/showTaskEditor";
 
 export class TaskService {
   private serviceLayer: ServiceLayer;
@@ -53,6 +54,14 @@ export class TaskService {
   // Update task status (done)
   async updateTaskStatus(taskId: TaskID, done: boolean): Promise<IObject | null> {
     return this.updateTask(taskId, { done });
+  }
+
+  async updateTaskDeadline(taskId: TaskID, deadline: Date | null): Promise<IObject | null> {
+    return this.updateTask(taskId, { deadline });
+  }
+
+  async openEditor(taskUri: string): Promise<boolean> {
+    return showTaskEditor(this.serviceLayer, taskUri);
   }
 
   // Helper to update any task fields

@@ -6,6 +6,7 @@ import {
   createNewBoardAction,
   createOpenBoardAction,
   createNewTaskAction,
+  createEditTaskAction,
   createSelectAllAction,
   createSelectNoneAction,
   createSelectionSetAction,
@@ -19,6 +20,7 @@ import {
 } from "./actions";
 import { TaskService } from "../task/TaskService";
 import { TASK_SERVICE_NAME } from "../task/types";
+import { TaskElement } from "./editor/diagram-board/elements/TaskElement";
 import type { Diagram } from "./editor/diagram-core/Diagram";
 import type { SearchPicker, PickerItem } from "../../gui/picker/SearchPicker";
 import "../../gui/picker/SearchPicker";
@@ -240,6 +242,27 @@ export class BoardService extends EventTarget {
     return updatedPlacement;
   }
 
+  public async refreshTaskElement(boardUri: Uri, taskUri: string): Promise<void> {
+    const diagram = this.diagrams.get(boardUri);
+    if (!diagram) return;
+
+    const parsed = parseUri(taskUri);
+    if (!parsed) return;
+
+    const taskService = this.serviceLayer.getFeatureService<TaskService>(TASK_SERVICE_NAME);
+    const taskObj = await taskService.getTask(parsed.id);
+    if (!taskObj) return;
+
+    const allElements = diagram.getStageManager().getAllElements();
+    for (const element of allElements) {
+      if (element instanceof TaskElement && element.taskUri === taskUri) {
+        element.title = taskObj.data.name ?? "Task";
+        diagram.requestRender();
+        break;
+      }
+    }
+  }
+
   public getNextBoardName(): string {
     const name = "Board " + this.boardCount;
     this.boardCount++;
@@ -356,6 +379,7 @@ export class BoardService extends EventTarget {
     actionService.addAction(createNewBoardAction(this.serviceLayer));
     actionService.addAction(createOpenBoardAction(this.serviceLayer));
     actionService.addAction(createNewTaskAction(this.serviceLayer));
+    actionService.addAction(createEditTaskAction(this.serviceLayer));
     actionService.addAction(createSelectAllAction(this.serviceLayer));
     actionService.addAction(createSelectNoneAction(this.serviceLayer));
     actionService.addAction(createSelectionSetAction(this.serviceLayer));

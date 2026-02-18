@@ -108,7 +108,9 @@ export class IdleMode implements IDiagramMode {
   }
 
   onDoubleClick(info: DiagramPointerInfo, _event: MouseEvent): void {
-    if (!info.elementUnderPointer) {
+    if (info.elementUnderPointer) {
+      this.diagram.fireElementDoubleClick(info.elementUnderPointer);
+    } else {
       this.diagram.fireBackgroundDoubleClick(info.worldX, info.worldY);
     }
   }

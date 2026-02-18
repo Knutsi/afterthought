@@ -4,6 +4,7 @@ import { getDefaultServiceLayer, type ServiceLayer } from "../../../../service/S
 
 export interface BoardDiagramOptions {
   onBackgroundDoubleClick?: (worldX: number, worldY: number) => void;
+  onElementDoubleClick?: (element: DiagramElement) => void;
   onElementChange?: ElementChangeCallback;
   onSelectionChange?: SelectionChangeCallback;
   onSelectionSetRequest?: SelectionRequestCallback;
@@ -27,6 +28,7 @@ export function createBoardDiagram(
       onSelectionAddRequest: options?.onSelectionAddRequest,
       onSelectionRemoveRequest: options?.onSelectionRemoveRequest,
       onBackgroundDoubleClick: options?.onBackgroundDoubleClick,
+      onElementDoubleClick: options?.onElementDoubleClick,
       onMoveComplete: options?.onMoveComplete,
     },
     {

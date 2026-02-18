@@ -13,6 +13,7 @@ import { BOARD_SERVICE_NAME } from "./types";
 import type { BoardService } from "./BoardService";
 import type { BoardActivityView } from "./BoardActivityView";
 import {
+  EDIT_TASK_ACTION_ID,
   MOVE_ELEMENTS_ACTION_ID,
   SELECTION_ADD_ACTION_ID,
   SELECTION_REMOVE_ACTION_ID,
@@ -39,6 +40,7 @@ export class BoardActivityController implements IActivityController<IBoardActivi
   private buildDiagramOptions(): BoardDiagramOptions {
     return {
       onBackgroundDoubleClick: this.handleBackgroundDoubleClick.bind(this),
+      onElementDoubleClick: this.handleElementDoubleClick.bind(this),
       onSelectionSetRequest: this.handleSelectionSetRequest.bind(this),
       onSelectionAddRequest: this.handleSelectionAddRequest.bind(this),
       onSelectionRemoveRequest: this.handleSelectionRemoveRequest.bind(this),
@@ -119,6 +121,10 @@ export class BoardActivityController implements IActivityController<IBoardActivi
   private handleBackgroundDoubleClick(worldX: number, worldY: number): void {
     console.log(`Create task at (${worldX}, ${worldY})`);
     // TODO: Integrate with task service
+  }
+
+  private handleElementDoubleClick(_element: DiagramElement): void {
+    this.serviceLayer.actionService.doAction(EDIT_TASK_ACTION_ID);
   }
 
   private handleSelectionSetRequest(elements: DiagramElement[]): void {

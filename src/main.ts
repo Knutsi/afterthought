@@ -24,6 +24,7 @@ import "./feature/home/HomeActivity.ts";
 import "./feature/board/BoardActivity.ts";
 import "./feature/git/NewDatabaseActivity.ts";
 import "./gui/prompt/TextPromptActivity";
+import "./feature/task/editor/TaskEditorActivity";
 
 // gui toolkit and modal:
 import "./gui/toolkit/Button";
