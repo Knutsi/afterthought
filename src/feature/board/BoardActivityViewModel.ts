@@ -33,6 +33,9 @@ export class BoardActivityViewModel implements IViewModel {
       const boardData = await boardService.getBoardData(parsed.id);
       if (boardData) {
         this.syncAdapter.loadFromBoardData(boardData);
+        for (const task of boardData.tasks) {
+          await boardService.refreshTaskElement(this.boardUri, task.taskUri);
+        }
         const taskUris = boardData.tasks.map(t => t.taskUri);
         boardService.updateBoardContentContext(this.boardUri, taskUris);
       }

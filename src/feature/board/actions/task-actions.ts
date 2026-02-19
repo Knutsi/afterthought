@@ -55,7 +55,7 @@ export function createEditTaskAction(serviceLayer: ServiceLayer): IAction {
     shortcuts: ["Enter"],
     menuGroup: "Board",
     menuSubGroup: "edit",
-    do: async (context: IContext): Promise<void> => {
+    do: async (context: IContext): Promise<UndoFunction | void> => {
       const boardEntries = context.getEntriesByScheme(URI_SCHEMES.BOARD);
       if (boardEntries.length === 0) return;
       const boardUri = boardEntries[0].uri;
@@ -68,12 +68,32 @@ export function createEditTaskAction(serviceLayer: ServiceLayer): IAction {
       const taskUri = createUri(URI_SCHEMES.TASK, parsed.id);
 
       const taskService = serviceLayer.getFeatureService<TaskService>(TASK_SERVICE_NAME);
-      const saved = await taskService.openEditor(taskUri);
+      const before = await taskService.getTask(parsed.id);
+      if (!before) return;
 
-      if (saved) {
-        const boardService = serviceLayer.getFeatureService<BoardService>(BOARD_SERVICE_NAME);
-        await boardService.refreshTaskElement(boardUri, taskUri);
-      }
+      const saved = await taskService.openEditor(taskUri);
+      if (!saved) return;
+
+      const after = await taskService.getTask(parsed.id);
+      if (!after) return;
+
+      const boardService = serviceLayer.getFeatureService<BoardService>(BOARD_SERVICE_NAME);
+      await boardService.refreshTaskElement(boardUri, taskUri);
+
+      const makeUndo = (restore: typeof before, reapply: typeof after): UndoFunction =>
+        async (): Promise<RedoFunction | void> => {
+          await taskService.updateTaskName(parsed.id, (restore.data as { name?: string }).name ?? "");
+          await taskService.updateTaskDeadline(parsed.id, (restore.data as { deadline?: Date | null }).deadline ?? null);
+          await boardService.refreshTaskElement(boardUri, taskUri);
+          return async (): Promise<UndoFunction | void> => {
+            await taskService.updateTaskName(parsed.id, (reapply.data as { name?: string }).name ?? "");
+            await taskService.updateTaskDeadline(parsed.id, (reapply.data as { deadline?: Date | null }).deadline ?? null);
+            await boardService.refreshTaskElement(boardUri, taskUri);
+            return makeUndo(restore, reapply);
+          };
+        };
+
+      return makeUndo(before, after);
     },
     canDo: async (context: IContext): Promise<boolean> => {
       return context.hasScheme(URI_SCHEMES.BOARD) &&
