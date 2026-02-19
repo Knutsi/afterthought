@@ -2,6 +2,7 @@ import { BaseComponent, defineComponent } from "../core/BaseComponent";
 import { EventListeners } from "../core/utilities";
 import { noSelect } from "../styles/cssUtilities";
 import type { ActionAvailabilityMap, IAction } from "../../service/ActionService";
+import { formatShortcutAsHTML } from "../../service/platformUtils";
 
 interface ScoredAction {
   action: IAction;
@@ -180,9 +181,35 @@ export class CommandPalette extends BaseComponent {
         }
 
         .result .shortcut {
-          font-family: monospace;
-          font-size: 0.85em;
+          display: flex;
+          align-items: center;
+          gap: 4px;
+          white-space: nowrap;
           color: color-mix(in srgb, var(--theme-color-text) 60%, transparent);
+        }
+
+        .result .shortcut kbd {
+          display: inline-block;
+          padding: 2px 5px;
+          font-size: 11px;
+          font-family: inherit;
+          line-height: 1;
+          border-radius: 3px;
+          opacity: 0.8;
+          background: color-mix(in srgb, var(--theme-color-text) 10%, transparent);
+          border: 1px solid color-mix(in srgb, var(--theme-color-text) 20%, transparent);
+          box-shadow: 0 1px 0 color-mix(in srgb, var(--theme-color-text) 15%, transparent);
+        }
+
+        .result .shortcut .chord-sep {
+          opacity: 0.5;
+          font-size: 10px;
+          margin: 0 3px;
+        }
+
+        .result .shortcut .separator {
+          opacity: 0.5;
+          font-size: 10px;
         }
 
         .result .name {
@@ -216,7 +243,9 @@ export class CommandPalette extends BaseComponent {
     return this.filteredActions
       .map((action, index) => {
         const selectedClass = index === this.selectedIndex ? "selected" : "";
-        const shortcutDisplay = action.shortcuts.length > 0 ? action.shortcuts[0] : "";
+        const shortcutDisplay = action.shortcuts.length > 0
+          ? formatShortcutAsHTML(action.shortcuts[0])
+          : "";
         return `
           <div class="result ${selectedClass}" data-index="${index}">
             <span class="name">${action.name}</span>

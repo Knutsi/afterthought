@@ -1,6 +1,7 @@
 import { BaseComponent, defineComponent } from '../core/BaseComponent';
 import { EventListeners } from '../core/utilities';
 import { noSelect } from '../styles/cssUtilities';
+import { formatShortcutAsHTML } from '../../service/platformUtils';
 
 export class MenuItem extends BaseComponent {
   // React-style callback prop
@@ -142,7 +143,7 @@ export class MenuItem extends BaseComponent {
         </style>
         <div class="menu-item ${disabled ? 'disabled' : ''} ${selected ? 'selected' : ''}" part="menu-item">
           <span class="label">${label}</span>
-          <span class="shortcut">${this.formatShortcut(shortcut)}</span>
+          <span class="shortcut">${formatShortcutAsHTML(shortcut)}</span>
         </div>
       `;
 
@@ -151,42 +152,6 @@ export class MenuItem extends BaseComponent {
       this.events.removeAll();  // Clear old listeners
       this.events.addToShadow(this.shadowRoot, '.menu-item', 'click', this._handleClick);
     }
-  }
-
-  private formatShortcut(shortcut: string): string {
-    if (!shortcut) return '';
-
-    // split by " / " to get alternative shortcuts
-    const alternatives = shortcut.split(' / ');
-
-    return alternatives.map((alt, i) => {
-      // split by space to get chord strokes (e.g., "Ctrl+N B" -> ["Ctrl+N", "B"])
-      const strokes = alt.split(' ').filter(s => s);
-      const formattedStrokes = strokes.map(stroke => {
-        // split each stroke into modifier+key parts, handling "+" as a literal key
-        const keys = this.parseStrokeKeys(stroke);
-        return keys.map(key => `<kbd>${key}</kbd>`).join('');
-      }).join('<span class="chord-sep">+</span>');
-
-      const separator = i < alternatives.length - 1 ? '<span class="separator">/</span>' : '';
-      return formattedStrokes + separator;
-    }).join('');
-  }
-
-  private parseStrokeKeys(stroke: string): string[] {
-    const keys: string[] = [];
-    let rest = stroke;
-    // consume modifier prefixes (e.g. "Mod+", "Shift+")
-    const modPattern = /^(Mod2|Mod|Shift|Alt|Ctrl|⌘\u2009?|⌥\u2009?|⇧\u2009?|⌃\u2009?)\+/;
-    let match = modPattern.exec(rest);
-    while (match) {
-      keys.push(match[1]);
-      rest = rest.slice(match[0].length);
-      match = modPattern.exec(rest);
-    }
-    // whatever remains is the key itself (could be "+", "-", "=", "A", etc.)
-    if (rest) keys.push(rest.trim());
-    return keys;
   }
 
   private _handleClick = (e: Event): void => {
